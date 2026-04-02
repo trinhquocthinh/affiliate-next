@@ -1,0 +1,44 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+        env:
+          DATABASE_URL:    ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET:     ${{ secrets.AUTH_SECRET }}
+          NEXTAUTH_URL:    ${{ secrets.NEXTAUTH_URL }}
+          ADMIN_EMAIL:     ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD:  ${{ secrets.ADMIN_PASSWORD }}
+
+      - name: Deploy to Netlify
+        run: npx netlify-cli deploy --build --prod --message "Deploy ${{ github.sha }} — ${{ github.event.head_commit.message }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID:    ${{ secrets.NETLIFY_SITE_ID }}
+          DATABASE_URL:       ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET:        ${{ secrets.AUTH_SECRET }}
+          NEXTAUTH_URL:       ${{ secrets.NEXTAUTH_URL }}
+          ADMIN_EMAIL:        ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD:     ${{ secrets.ADMIN_PASSWORD }}
