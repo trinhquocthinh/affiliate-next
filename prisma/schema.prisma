@@ -1,0 +1,169 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────────────────────
+// Auth & Users
+// ──────────────────────────────────────────────────────────────
+
+enum Role {
+  BUYER
+  AFFILIATE
+  ADMIN
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  displayName       String?
+  role              Role      @default(BUYER)
+  isActive          Boolean   @default(true)
+  loginAttempts     Int       @default(0)
+  lockedUntil       DateTime?
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  createdRequests     Request[]  @relation("CreatedBy")
+  closedRequests      Request[]  @relation("ClosedBy")
+  ownedRequests       Request[]  @relation("AffiliateOwner")
+  updatedRequests     Request[]  @relation("LastUpdatedBy")
+  auditLogs           AuditLog[] @relation("Actor")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Business Domain
+// ──────────────────────────────────────────────────────────────
+
+enum Platform {
+  SHOPEE
+  TIKTOK
+  OTHER
+}
+
+enum RequestStatus {
+  NEW
+  FILLED
+  CLOSED
+}
+
+enum CloseReason {
+  BOUGHT
+  NOT_BUYING
+  INVALID
+  STALE
+  OTHER
+}
+
+enum AuditAction {
+  CREATE_REQUEST
+  FILL_AFFILIATE_LINK
+  CLAIM_REQUEST
+  UNCLAIM_REQUEST
+  SAVE_NOTE
+  CLOSE_REQUEST
+  BULK_CLOSE
+  AUTH_DENIED
+  ACTION_ERROR
+  UPDATE_CONFIG
+  UPDATE_USER
+}
+
+model Request {
+  id               String        @id // REQ-YYYYMMDD-NNNN format
+  createdAt        DateTime      @default(now())
+  createdById      String
+  createdBy        User          @relation("CreatedBy", fields: [createdById], references: [id])
+  requesterName    String?
+  requesterContact String?
+  platform         Platform
+  productUrlRaw    String
+  productUrlNorm   String        // Normalized URL for duplicate detection
+  productName      String?
+  affiliateLink    String?
+  status           RequestStatus @default(NEW)
+  closeReason      CloseReason?
+  closeNote        String?
+  orderId          String?
+  closedAt         DateTime?
+  closedById       String?
+  closedBy         User?         @relation("ClosedBy", fields: [closedById], references: [id])
+  affiliateOwnerId String?
+  affiliateOwner   User?         @relation("AffiliateOwner", fields: [affiliateOwnerId], references: [id])
+  notes            String?
+  lastUpdatedAt    DateTime      @updatedAt
+  lastUpdatedById  String?
+  lastUpdatedBy    User?         @relation("LastUpdatedBy", fields: [lastUpdatedById], references: [id])
+  duplicateOfId    String?
+  duplicateOf      Request?      @relation("Duplicates", fields: [duplicateOfId], references: [id])
+  duplicates       Request[]     @relation("Duplicates")
+
+  auditLogs AuditLog[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([affiliateOwnerId])
+  @@index([productUrlNorm, createdAt])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  timestamp DateTime    @default(now())
+  requestId String?
+  request   Request?    @relation(fields: [requestId], references: [id])
+  actorId   String?
+  actor     User?       @relation("Actor", fields: [actorId], references: [id])
+  action    AuditAction
+  oldValue  Json?
+  newValue  Json?
+  source    String?     // buyer_ui, affiliate_ui, admin
+  remark    String?
+
+  @@index([requestId])
+  @@index([actorId])
+  @@index([timestamp])
+}
+
+model AppConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_config")
+}
