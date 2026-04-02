@@ -23,15 +23,6 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build
-        run: yarn build
-        env:
-          DATABASE_URL:    ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET:     ${{ secrets.AUTH_SECRET }}
-          NEXTAUTH_URL:    ${{ secrets.NEXTAUTH_URL }}
-          ADMIN_EMAIL:     ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD:  ${{ secrets.ADMIN_PASSWORD }}
-
       - name: Deploy to Netlify
         run: npx netlify-cli deploy --build --prod --message "Deploy ${{ github.sha }} — ${{ github.event.head_commit.message }}"
         env:
@@ -39,6 +30,6 @@ jobs:
           NETLIFY_SITE_ID:    ${{ secrets.NETLIFY_SITE_ID }}
           DATABASE_URL:       ${{ secrets.DATABASE_URL }}
           AUTH_SECRET:        ${{ secrets.AUTH_SECRET }}
-          NEXTAUTH_URL:       ${{ secrets.NEXTAUTH_URL }}
+          AUTH_URL:           ${{ secrets.AUTH_URL }}
           ADMIN_EMAIL:        ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD:     ${{ secrets.ADMIN_PASSWORD }}
