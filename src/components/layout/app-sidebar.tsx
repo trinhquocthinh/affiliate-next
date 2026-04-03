@@ -109,7 +109,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"}>
+              <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} tooltip="Home">
                   <HomeIcon />
                   <span>Home</span>
               </SidebarMenuButton>
@@ -118,11 +118,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Buyer</SidebarGroupLabel>
+          <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Buyer</SidebarGroupLabel>
           <SidebarMenu>
             {buyerItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href}>
+                <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
                     <item.icon />
                     <span>{item.title}</span>
                 </SidebarMenuButton>
@@ -133,11 +133,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         {isAffiliate && (
           <SidebarGroup>
-            <SidebarGroupLabel>Affiliate</SidebarGroupLabel>
+            <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Affiliate</SidebarGroupLabel>
             <SidebarMenu>
               {affiliateItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href}>
+                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
                       <item.icon />
                       <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -149,11 +149,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Admin</SidebarGroupLabel>
             <SidebarMenu>
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href}>
+                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
                       <item.icon />
                       <span>{item.title}</span>
                   </SidebarMenuButton>
