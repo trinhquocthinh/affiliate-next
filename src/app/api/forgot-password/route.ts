@@ -26,6 +26,10 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return genericResponse;
 
+    // Block admin account from using password reset
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail && user.email === adminEmail) return genericResponse;
+
     // Rate limit: max 3 reset tokens per user per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recentTokens = await prisma.passwordResetToken.count({
@@ -46,8 +50,13 @@ export async function POST(request: Request) {
     // TODO: Send email with reset link containing rawToken
     // For now, log the token in dev mode
     if (process.env.NODE_ENV === "development") {
+      const resetUrl = `${process.env.AUTH_URL}/reset-password?token=${rawToken}`;
       console.log(`[DEV] Password reset token for ${email}: ${rawToken}`);
-      console.log(`[DEV] Reset URL: ${process.env.AUTH_URL}/reset-password?token=${rawToken}`);
+      console.log(`[DEV] Reset URL: ${resetUrl}`);
+      return NextResponse.json({
+        ok: true,
+        data: { message: "If this email exists, we sent a reset link", devResetUrl: resetUrl },
+      });
     }
 
     return genericResponse;

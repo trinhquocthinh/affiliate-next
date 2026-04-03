@@ -32,6 +32,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Block admin account from using password reset
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail && resetToken.user.email === adminEmail) {
+      return NextResponse.json(
+        { ok: false, error: { code: "FORBIDDEN", message: "Admin account cannot use password reset" } },
+        { status: 403 },
+      );
+    }
+
     const passwordHash = await hash(password, 12);
 
     // Update password and invalidate all sessions
