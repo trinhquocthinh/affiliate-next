@@ -11,7 +11,7 @@ type ThemeProviderContextType = {
 
 const ThemeProviderContext = createContext<ThemeProviderContextType>({
   theme: "system",
-  setTheme: () => {},
+  setTheme: () => { },
 });
 
 export function ThemeProvider({

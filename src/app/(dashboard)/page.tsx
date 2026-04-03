@@ -1,8 +1,6 @@
 import { getActorContext } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +10,7 @@ import {
   ClockIcon,
   AlertTriangleIcon,
   UserIcon,
+  FilesIcon,
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -59,7 +58,7 @@ async function getAdminStats() {
   return { totalUsers, totalRequests, pendingCount, filledCount };
 }
 
-function StatCard({
+function GlassStatCard({
   title,
   value,
   icon: Icon,
@@ -71,20 +70,31 @@ function StatCard({
   description?: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+    <div className="group relative overflow-hidden flex flex-col justify-between min-h-40 bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/50 dark:border-white/8 rounded-[20px] p-6 shadow-glass-light dark:shadow-glass-dark transition-all duration-300 hover:-translate-y-1 hover:border-white/20 dark:hover:border-white/15 hover:shadow-xl">
+      <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      <div className="relative z-10 flex justify-between items-center mb-4">
+        <span className="text-sm font-medium text-muted-foreground">{title}</span>
+        <Icon className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <div className="relative z-10">
+        <div className="text-4xl font-bold leading-none mb-2">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          <div className="text-[13px] text-muted-foreground">{description}</div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center min-h-50 bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/50 dark:border-white/8 rounded-[20px] p-10 shadow-glass-light dark:shadow-glass-dark">
+      <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex justify-center items-center text-3xl mb-4">
+        <FilesIcon className="h-7 w-7" />
+      </div>
+      <h4 className="text-lg font-semibold mb-2">No requests yet</h4>
+      <p className="text-muted-foreground text-sm max-w-75">{message}</p>
+    </div>
   );
 }
 
@@ -95,28 +105,32 @@ export default async function HomePage() {
   return (
     <>
       <AppHeader title="Home" />
-      <div className="flex-1 space-y-6 p-4 md:p-6">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {greeting}, {actor.displayName || actor.email.split("@")[0]}
-          </h2>
-          <p className="text-muted-foreground">
-            Here&apos;s what&apos;s happening today.
-          </p>
+      <div className="flex-1 p-6 md:p-8 w-full max-w-300 mx-auto space-y-8">
+        {/* Header Action Area */}
+        <div className="flex justify-between items-end flex-wrap gap-4">
+          <div>
+            <div className="inline-block px-3 py-1 bg-white/70 dark:bg-slate-800/60 backdrop-blur-md border border-border rounded-full text-xs font-semibold mb-3 shadow-sm">
+              {actor.role.charAt(0) + actor.role.slice(1).toLowerCase()}
+            </div>
+            <h1 className="text-3xl font-bold mb-2 tracking-tight">
+              {greeting}, {actor.displayName || actor.email.split("@")[0]}
+            </h1>
+            <p className="text-[15px] text-muted-foreground">
+              Here&apos;s what&apos;s happening today.
+            </p>
+          </div>
+          {actor.isBuyer && (
+            <Link href="/buyer">
+              <Button className="flex items-center gap-2 px-7 py-3.5 h-auto bg-linear-to-br from-primary to-[#00a877] text-white font-semibold text-[15px] rounded-[14px] shadow-glow transition-all duration-200 hover:shadow-glow-hover hover:-translate-y-0.5">
+                <PlusCircleIcon className="h-5 w-5" />
+                Create New Request
+              </Button>
+            </Link>
+          )}
         </div>
 
-        {/* Role badge */}
-        <Badge variant="outline" className="capitalize">
-          {actor.role.toLowerCase()}
-        </Badge>
-
-        {/* Buyer Stats */}
         {actor.isBuyer && <BuyerSection userId={actor.userId} />}
-
-        {/* Affiliate Stats */}
         {actor.isAffiliate && <AffiliateSection userId={actor.userId} />}
-
-        {/* Admin Stats */}
         {actor.isAdmin && <AdminSection />}
       </div>
     </>
@@ -127,32 +141,25 @@ async function BuyerSection({ userId }: { userId: string }) {
   const stats = await getBuyerStats(userId);
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Buyer Overview</h3>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
+    <div className="space-y-5">
+      <h3 className="text-lg font-semibold flex items-center gap-2">Buyer Overview</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <GlassStatCard
           title="Active Requests"
           value={stats.activeCount}
           icon={ClockIcon}
           description="Pending affiliate links"
         />
-        <StatCard
+        <GlassStatCard
           title="Ready to Collect"
           value={stats.readyCount}
           icon={CheckCircleIcon}
           description="Links filled by affiliates"
         />
-        <Card className="flex items-center justify-center border-dashed">
-          <CardContent className="pt-6 text-center">
-            <Link href="/buyer">
-              <Button>
-                <PlusCircleIcon className="mr-2 h-4 w-4" />
-                New Request
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
       </div>
+
+      <h3 className="text-lg font-semibold flex items-center gap-2 pt-2">Recent Requests</h3>
+      <EmptyState message="Create a new request to start working with your affiliates." />
     </div>
   );
 }
@@ -161,38 +168,31 @@ async function AffiliateSection({ userId }: { userId: string }) {
   const stats = await getAffiliateStats(userId);
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Affiliate Overview</h3>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
+    <div className="space-y-5">
+      <h3 className="text-lg font-semibold flex items-center gap-2">Affiliate Overview</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <GlassStatCard
           title="Queue"
           value={stats.queueCount}
           icon={InboxIcon}
           description="Requests waiting for links"
         />
-        <StatCard
+        <GlassStatCard
           title="Stale"
           value={stats.staleCount}
           icon={AlertTriangleIcon}
           description="Over 48 hours old"
         />
-        <StatCard
+        <GlassStatCard
           title="My Claimed"
           value={stats.claimedCount}
           icon={UserIcon}
           description="Assigned to you"
         />
-        <Card className="flex items-center justify-center border-dashed">
-          <CardContent className="pt-6 text-center">
-            <Link href="/affiliate">
-              <Button>
-                <InboxIcon className="mr-2 h-4 w-4" />
-                Go to Queue
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
       </div>
+
+      <h3 className="text-lg font-semibold flex items-center gap-2 pt-2">Queue</h3>
+      <EmptyState message="No requests in the queue right now." />
     </div>
   );
 }
@@ -201,25 +201,25 @@ async function AdminSection() {
   const stats = await getAdminStats();
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Admin Overview</h3>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
+    <div className="space-y-5">
+      <h3 className="text-lg font-semibold flex items-center gap-2">Admin Overview</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <GlassStatCard
           title="Total Users"
           value={stats.totalUsers}
           icon={UserIcon}
         />
-        <StatCard
+        <GlassStatCard
           title="Total Requests"
           value={stats.totalRequests}
           icon={InboxIcon}
         />
-        <StatCard
+        <GlassStatCard
           title="Pending"
           value={stats.pendingCount}
           icon={ClockIcon}
         />
-        <StatCard
+        <GlassStatCard
           title="Filled"
           value={stats.filledCount}
           icon={CheckCircleIcon}
@@ -228,3 +228,5 @@ async function AdminSection() {
     </div>
   );
 }
+
+
