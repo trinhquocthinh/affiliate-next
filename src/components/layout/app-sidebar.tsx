@@ -85,19 +85,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const isAffiliate = user.role === "AFFILIATE" || user.role === "ADMIN";
   const isAdmin = user.role === "ADMIN";
 
-  const themeIcon =
-    theme === "dark" ? MoonIcon : theme === "light" ? SunIcon : MonitorIcon;
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
                   A
                 </div>
-                <div className="flex flex-col gap-0.5 leading-none">
+                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-semibold">Affiliate Manager</span>
                   <span className="text-xs text-muted-foreground capitalize">
                     {user.role.toLowerCase()}
