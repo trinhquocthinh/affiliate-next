@@ -54,11 +54,7 @@ export async function GET(request: Request) {
       conditions.push({
         OR: [
           { id: { contains: searchTerm, mode: "insensitive" } },
-          { productUrlRaw: { contains: searchTerm, mode: "insensitive" } },
           { productName: { contains: searchTerm, mode: "insensitive" } },
-          { requesterName: { contains: searchTerm, mode: "insensitive" } },
-          { requesterContact: { contains: searchTerm, mode: "insensitive" } },
-          { notes: { contains: searchTerm, mode: "insensitive" } },
         ],
       });
     }
@@ -149,6 +145,7 @@ export async function GET(request: Request) {
           processedCount,
         },
         buyers,
+        isAdmin: actor.isAdmin,
       },
     });
   } catch (error) {

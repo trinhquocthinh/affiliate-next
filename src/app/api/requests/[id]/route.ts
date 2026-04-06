@@ -85,3 +85,63 @@ export async function GET(
     );
   }
 }
+
+// PATCH /api/requests/[id] — admin: update orderId
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const actor = await getApiActorContext();
+    if (!actor) {
+      return NextResponse.json(
+        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
+        { status: 401 },
+      );
+    }
+    if (!actor.isAdmin) {
+      return NextResponse.json(
+        { ok: false, error: { code: "FORBIDDEN", message: "Admin access required" } },
+        { status: 403 },
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { orderId } = body as { orderId: string };
+
+    if (typeof orderId !== "string" || !orderId.trim()) {
+      return NextResponse.json(
+        { ok: false, error: { code: "VALIDATION_ERROR", message: "orderId is required" } },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.request.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
+        { status: 404 },
+      );
+    }
+    if (existing.status !== "CLOSED" || existing.closeReason !== "BOUGHT") {
+      return NextResponse.json(
+        { ok: false, error: { code: "INVALID_STATE", message: "Order ID can only be updated on CLOSED/BOUGHT requests" } },
+        { status: 422 },
+      );
+    }
+
+    const updated = await prisma.request.update({
+      where: { id },
+      data: { orderId: orderId.trim(), lastUpdatedAt: new Date(), lastUpdatedById: actor.userId },
+    });
+
+    return NextResponse.json({ ok: true, data: { orderId: updated.orderId } });
+  } catch (error) {
+    console.error("Patch request error:", error);
+    return NextResponse.json(
+      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to update request" } },
+      { status: 500 },
+    );
+  }
+}

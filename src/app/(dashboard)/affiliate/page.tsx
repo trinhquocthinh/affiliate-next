@@ -44,7 +44,14 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   LoaderIcon,
+  InfoIcon,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type QueueItem = {
   id: string;
@@ -126,6 +133,7 @@ export default function AffiliateQueuePage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -149,6 +157,9 @@ export default function AffiliateQueuePage() {
   const [closeNote, setCloseNote] = useState("");
   const [orderId, setOrderId] = useState("");
   const [actionLoading, setActionLoading] = useState("");
+
+  // Admin: edit orderId on closed requests
+  const [editOrderId, setEditOrderId] = useState("");
 
   // CSV export loading
   const [exporting, setExporting] = useState(false);
@@ -194,13 +205,12 @@ export default function AffiliateQueuePage() {
       const params = buildParams(page);
       const res = await fetch(`/api/affiliate/queue?${params}`);
       const data = await res.json();
-      console.log("🚀 ~ AffiliateQueuePage ~ data:", data)
-
       if (data.ok) {
         setItems(data.data.items);
         setTotal(data.data.total);
         setSummary(data.data.summary);
         if (data.data.buyers) setBuyers(data.data.buyers);
+        if (typeof data.data.isAdmin === "boolean") setIsAdmin(data.data.isAdmin);
       } else {
         toast.error(data.error?.message || "Failed to load queue");
       }
@@ -284,20 +294,18 @@ export default function AffiliateQueuePage() {
         currentPage++;
       }
 
-      const headers = ["ID", "Created", "Platform", "Status", "Product Name", "Product URL", "Affiliate Link", "Requester", "Affiliate Owner", "Notes", "Order ID", "Stale"];
+      const headers = ["ID", "Order ID", "Created", "Platform", "Status", "Product Name", "Product URL", "Requester", "Affiliate Owner", "Affiliate Link"];
       const rows = allItems.map((item) => [
         item.id,
+        item.orderId || "",
         new Date(item.createdAt).toISOString(),
         item.platform,
         item.status,
         item.productName || "",
-        item.productUrlRaw,
-        item.affiliateLink || "",
-        item.createdBy.displayName || item.createdBy.email,
+        decodeURIComponent(item.productUrlRaw.split("?")[0]),
+        item.createdBy.email,
         item.affiliateOwner?.displayName || item.affiliateOwner?.email || "",
-        item.notes || "",
-        item.orderId || "",
-        item.isStale ? "Yes" : "No",
+        item.affiliateLink ? decodeURIComponent(item.affiliateLink) : "",
       ]);
 
       const csvContent = [
@@ -329,6 +337,31 @@ export default function AffiliateQueuePage() {
     setCloseReason("BOUGHT");
     setCloseNote("");
     setOrderId("");
+    setEditOrderId(item.orderId || "");
+  }
+
+  async function handleUpdateOrderId() {
+    if (!selected) return;
+    setActionLoading("editOrderId");
+    try {
+      const res = await fetch(`/api/requests/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: editOrderId.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("Order ID updated");
+        setSelected((prev) => prev ? { ...prev, orderId: data.data.orderId } : null);
+        fetchQueue();
+      } else {
+        toast.error(data.error?.message || "Failed to update Order ID");
+      }
+    } catch {
+      toast.error("Failed to update Order ID");
+    } finally {
+      setActionLoading("");
+    }
   }
 
   async function handleSave() {
@@ -422,29 +455,55 @@ export default function AffiliateQueuePage() {
       <AppHeader title="Affiliate Queue" />
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Overview Stats — always shows unfiltered totals */}
-        <div className="grid gap-3 grid-cols-2">
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <InboxIcon className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {summary.processedCount}
-                  <span className="text-base font-normal text-muted-foreground"> / {summary.total}</span>
-                </p>
-                <p className="text-xs text-muted-foreground">Total (Processed / All)</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
-              <div>
-                <p className="text-2xl font-bold">{summary.staleCount}</p>
-                <p className="text-xs text-muted-foreground">Stale</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <TooltipProvider>
+          <div className="grid gap-3 grid-cols-2">
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <InboxIcon className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">
+                    {summary.processedCount}
+                    <span className="text-base font-normal text-muted-foreground"> / {summary.total}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Total (Processed / All)
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <InfoIcon className="h-3 w-3 cursor-help shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="flex flex-col gap-1">
+                          <p><span className="font-semibold">Processed:</span> requests that have been assigned to an affiliate</p>
+                          <p><span className="font-semibold">All:</span> total requests submitted</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 p-4">
+                <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold">{summary.staleCount}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Stale
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <InfoIcon className="h-3 w-3 cursor-help shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-48">
+                        <p>Requests that have not been closed for too long</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <p className="text-xs text-muted-foreground/70 italic">These metrics are not affected by filters</p>
+        </TooltipProvider>
 
         {/* Filters */}
         <div className="flex flex-col gap-3">
@@ -453,7 +512,7 @@ export default function AffiliateQueuePage() {
             <div className="relative flex-1">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search requests..."
+                placeholder="Search requestsId, product name, requester name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -544,6 +603,7 @@ export default function AffiliateQueuePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-40">ID</TableHead>
+                    <TableHead>Order ID</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Platform</TableHead>
                     <TableHead>Status</TableHead>
@@ -562,6 +622,9 @@ export default function AffiliateQueuePage() {
                     >
                       <TableCell className="font-mono text-sm">
                         {item.id}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground font-mono whitespace-nowrap">
+                        {item.orderId || "—"}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatRelativeTime(item.createdAt)}
@@ -588,7 +651,7 @@ export default function AffiliateQueuePage() {
                         {item.productName || item.productUrlRaw}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {item.createdBy.displayName || item.createdBy.email}
+                        {item.createdBy.email}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {item.affiliateOwner ? (
@@ -687,13 +750,16 @@ export default function AffiliateQueuePage() {
                         <p className="text-sm truncate">
                           {item.productName || item.productUrlRaw}
                         </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          Order: {item.orderId || "—"}
+                        </p>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <ClockIcon className="h-3 w-3" />
                             {formatRelativeTime(item.createdAt)}
                           </span>
                           <span>
-                            by {item.createdBy.displayName || item.createdBy.email}
+                            by {item.createdBy.email}
                           </span>
                           {item.affiliateOwner && (
                             <span className="flex items-center gap-1">
@@ -792,7 +858,7 @@ export default function AffiliateQueuePage() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-1.5">Requester</p>
                         <p className="text-sm">
-                          {selected.createdBy.displayName || selected.createdBy.email}
+                          {selected.createdBy.email}
                         </p>
                       </div>
 
@@ -800,7 +866,26 @@ export default function AffiliateQueuePage() {
                       {selected.status === "CLOSED" && selected.closeReason === "BOUGHT" && selected.orderId && (
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1.5">Order ID</p>
-                          <p className="text-sm font-mono">{selected.orderId}</p>
+                          {isAdmin ? (
+                            <div className="flex gap-2">
+                              <Input
+                                value={editOrderId}
+                                onChange={(e) => setEditOrderId(e.target.value)}
+                                className="h-8 text-sm font-mono"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleUpdateOrderId}
+                                disabled={actionLoading === "editOrderId" || !editOrderId.trim() || editOrderId.trim() === selected.orderId}
+                                className="h-8 shrink-0"
+                              >
+                                {actionLoading === "editOrderId" ? "Saving..." : "Save"}
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-mono">{selected.orderId}</p>
+                          )}
                         </div>
                       )}
                     </div>
