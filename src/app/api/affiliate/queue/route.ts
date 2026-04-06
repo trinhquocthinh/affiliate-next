@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { search, statusFilter, mineOnly, page, limit } = parsed.data;
+    const { search, statusFilter, buyerId, sortBy, sortOrder, page, limit } = parsed.data;
 
     // Build where clause
     const conditions: Record<string, unknown>[] = [];
@@ -43,9 +43,9 @@ export async function GET(request: Request) {
       conditions.push({ status: statusFilter });
     }
 
-    // Mine only
-    if (mineOnly) {
-      conditions.push({ affiliateOwnerId: actor.userId });
+    // Buyer filter
+    if (buyerId) {
+      conditions.push({ createdById: buyerId });
     }
 
     // Search - case-insensitive across multiple fields
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     const [items, total] = await Promise.all([
       prisma.request.findMany({
         where,
-        orderBy: { createdAt: "asc" }, // Oldest first for queue
+        orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
         include: {
@@ -109,16 +109,20 @@ export async function GET(request: Request) {
     }
 
     // Summary stats (for the full unfiltered queue)
-    const [totalQueue, staleCount, claimedCount, mineCount] = await Promise.all([
-      prisma.request.count({ where: { status: { in: ["NEW", "FILLED"] } } }),
+    const [totalQueue, staleCount, processedCount, buyers] = await Promise.all([
+      prisma.request.count(),
       prisma.request.count({
-        where: { status: "NEW", createdAt: { lt: staleThreshold } },
+        where: { status: { in: ["NEW", "FILLED"] }, createdAt: { lt: staleThreshold } },
       }),
       prisma.request.count({
-        where: { affiliateOwnerId: { not: null }, status: { in: ["NEW", "FILLED"] } },
+        where: {
+          affiliateOwnerId: { not: null },
+        },
       }),
-      prisma.request.count({
-        where: { affiliateOwnerId: actor.userId, status: { in: ["NEW", "FILLED"] } },
+      prisma.user.findMany({
+        where: { role: "BUYER", isActive: true },
+        select: { id: true, displayName: true, email: true },
+        orderBy: { displayName: "asc" },
       }),
     ]);
 
@@ -128,8 +132,7 @@ export async function GET(request: Request) {
       ageHours: Math.floor((Date.now() - item.createdAt.getTime()) / 3600000),
       isClaimed: !!item.affiliateOwnerId,
       isOwnedByMe: item.affiliateOwnerId === actor.userId,
-      hasPotentialDuplicate:
-        !!item.duplicateOfId || (dupCounts[item.productUrlNorm] || 0) > 1,
+      hasPotentialDuplicate: !!item.duplicateOfId || (dupCounts[item.productUrlNorm] || 0) > 1,
     }));
 
     return NextResponse.json({
@@ -143,9 +146,9 @@ export async function GET(request: Request) {
         summary: {
           total: totalQueue,
           staleCount,
-          claimedCount,
-          mineCount,
+          processedCount,
         },
+        buyers,
       },
     });
   } catch (error) {

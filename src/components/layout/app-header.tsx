@@ -30,13 +30,13 @@ export function AppHeader({ title }: { title?: string }) {
           </span>
         )}
       </div>
-      <button
+      {/* <button
         onClick={toggleTheme}
         title="Toggle Light/Dark Mode"
         className="w-10 h-10 rounded-full flex justify-center items-center bg-background/70 border border-border text-foreground text-xl backdrop-blur-md shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:text-primary"
       >
         <ThemeIcon className="h-5 w-5" />
-      </button>
+      </button> */}
     </header>
   );
 }

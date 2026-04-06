@@ -80,12 +80,12 @@ export const saveNoteSchema = z.object({
 
 export const queueFilterSchema = z.object({
   search: z.string().max(200).trim().optional(),
-  statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("OPEN"),
-  mineOnly: z
-    .union([z.boolean(), z.string().transform((v) => v === "true")])
-    .optional(),
+  statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("ALL"),
+  buyerId: z.string().optional(),
+  sortBy: z.enum(["createdAt", "lastUpdatedAt"]).default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
+  limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
 export const bulkCloseSchema = z.object({
