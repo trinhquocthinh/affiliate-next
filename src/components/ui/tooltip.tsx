@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+import { InfoIcon } from "lucide-react"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
 import { cn } from "@/lib/utils"
@@ -63,4 +65,30 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+function InfoTooltip({
+  content,
+  contentClassName,
+}: {
+  content: React.ReactNode;
+  contentClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger
+        onPointerDown={(e: React.PointerEvent) => {
+          if (e.pointerType === "touch") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+      >
+        <InfoIcon className="h-3 w-3 cursor-help shrink-0" />
+      </TooltipTrigger>
+      <TooltipContent className={contentClassName}>{content}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, InfoTooltip }

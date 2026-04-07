@@ -44,13 +44,10 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   LoaderIcon,
-  InfoIcon,
 } from "lucide-react";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  InfoTooltip,
 } from "@/components/ui/tooltip";
 
 type QueueItem = {
@@ -467,17 +464,14 @@ export default function AffiliateQueuePage() {
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     Total (Processed / All)
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <InfoIcon className="h-3 w-3 cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
+                    <InfoTooltip
+                      content={
                         <div className="flex flex-col gap-1">
                           <p><span className="font-semibold">Processed:</span> requests that have been assigned to an affiliate</p>
                           <p><span className="font-semibold">All:</span> total requests submitted</p>
                         </div>
-                      </TooltipContent>
-                    </Tooltip>
+                      }
+                    />
                   </p>
                 </div>
               </CardContent>
@@ -489,14 +483,10 @@ export default function AffiliateQueuePage() {
                   <p className="text-2xl font-bold">{summary.staleCount}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     Stale
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <InfoIcon className="h-3 w-3 cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-48">
-                        <p>Requests that have not been closed for too long</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <InfoTooltip
+                      content={<p>Requests that have not been closed for too long</p>}
+                      contentClassName="max-w-48"
+                    />
                   </p>
                 </div>
               </CardContent>
