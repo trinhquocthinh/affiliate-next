@@ -104,7 +104,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                 <Image
                   src="/assets/logo.png"
-                  alt="Affiliate Manager"
+                  alt="Shop Quành"
                   width={80}
                   height={80}
                   className="object-contain"

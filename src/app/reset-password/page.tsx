@@ -108,7 +108,7 @@ function ResetPasswordForm() {
       <div className="flex justify-center mb-6">
         <Image
           src="/assets/logo.png"
-          alt="Affiliate Manager"
+          alt="Shop Quành"
           width={80}
           height={80}
           className="object-contain"

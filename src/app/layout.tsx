@@ -14,7 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Affiliate Manager",
+  title: "Shop Quành",
   description: "Affiliate link request management system",
 };
 
