@@ -98,7 +98,7 @@ export default function RegisterPage() {
               placeholder="Your name"
               required
               autoFocus
-              className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
+              className="h-12 px-4 text-[15px] text-black bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -112,7 +112,7 @@ export default function RegisterPage() {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
+              className="h-12 px-4 text-[15px] text-black bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -127,7 +127,7 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
+              className="h-12 px-4 text-[15px] text-black bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
             />
             {password.length > 0 && (
               <div className="space-y-1">
@@ -135,9 +135,8 @@ export default function RegisterPage() {
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div
                       key={i}
-                      className={`h-1.5 flex-1 rounded-full transition-colors ${
-                        i < strength.score ? strengthColors[strength.score - 1] : "bg-white/50"
-                      }`}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${i < strength.score ? strengthColors[strength.score - 1] : "bg-white/50"
+                        }`}
                     />
                   ))}
                 </div>
@@ -150,7 +149,7 @@ export default function RegisterPage() {
           </div>
           <Button
             type="submit"
-            className="w-full mt-2 h-12 text-[15px] font-semibold rounded-xl bg-[#008a62] hover:bg-[#006b4c] shadow-[0_4px_12px_rgba(0,138,98,0.2)] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)] hover:-translate-y-0.5 transition-all"
+            className="w-full mt-2 h-12 text-[15px] text-white font-semibold rounded-xl bg-[#008a62] hover:bg-[#006b4c] shadow-[0_4px_12px_rgba(0,138,98,0.2)] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)] hover:-translate-y-0.5 transition-all"
             disabled={loading}
           >
             {loading ? "Creating account..." : "Create account"}

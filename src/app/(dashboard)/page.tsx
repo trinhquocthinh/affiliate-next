@@ -12,13 +12,7 @@ import {
   UserIcon,
   FilesIcon,
 } from "lucide-react";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
+import { GreetingText } from "@/components/layout/greeting-text";
 
 async function getBuyerStats(userId: string) {
   const [activeCount, readyCount] = await Promise.all([
@@ -100,7 +94,6 @@ function EmptyState({ message }: { message: string }) {
 
 export default async function HomePage() {
   const actor = await getActorContext();
-  const greeting = getGreeting();
 
   return (
     <>
@@ -113,7 +106,7 @@ export default async function HomePage() {
               {actor.role.charAt(0) + actor.role.slice(1).toLowerCase()}
             </div>
             <h1 className="text-3xl font-bold mb-2 tracking-tight">
-              {greeting}, {actor.displayName || actor.email.split("@")[0]}
+              <GreetingText name={actor.displayName || actor.email.split("@")[0]} />
             </h1>
             <p className="text-[15px] text-muted-foreground">
               Here&apos;s what&apos;s happening today.

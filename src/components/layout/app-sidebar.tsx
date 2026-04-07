@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Sidebar,
@@ -13,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -21,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   HomeIcon,
@@ -81,9 +85,15 @@ function getInitials(name: string | null, email: string): string {
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { setOpenMobile } = useSidebar();
 
   const isAffiliate = user.role === "AFFILIATE" || user.role === "ADMIN";
   const isAdmin = user.role === "ADMIN";
+
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   return (
     <Sidebar collapsible="icon">
@@ -91,15 +101,21 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-                  A
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                  <span className="font-semibold">Affiliate Manager</span>
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {user.role.toLowerCase()}
-                  </span>
-                </div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                <Image
+                  src="/assets/logo.png"
+                  alt="Affiliate Manager"
+                  width={80}
+                  height={80}
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+                <span className="font-semibold">Shop Quành</span>
+                <span className="text-xs text-muted-foreground capitalize">
+                  We fraud &quot;in pack&quot;
+                </span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -110,8 +126,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} tooltip="Home">
-                  <HomeIcon />
-                  <span>Home</span>
+                <HomeIcon />
+                <span>Home</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -123,8 +139,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
             {buyerItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                    <item.icon />
-                    <span>{item.title}</span>
+                  <item.icon />
+                  <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -138,8 +154,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
               {affiliateItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -154,8 +170,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -171,20 +187,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <DropdownMenuTrigger render={
                 <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent" />
               }>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {getInitials(user.displayName, user.email)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col gap-0.5 leading-none text-left">
-                    <span className="text-sm font-medium truncate">
-                      {user.displayName || user.email}
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {user.email}
-                    </span>
-                  </div>
-                  <ChevronsUpDownIcon className="ml-auto size-4" />
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {getInitials(user.displayName, user.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-0.5 leading-none text-left">
+                  <span className="text-sm font-medium truncate">
+                    {user.displayName || user.email}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {user.role.toLowerCase()}
+                  </span>
+                </div>
+                <ChevronsUpDownIcon className="ml-auto size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-56"
