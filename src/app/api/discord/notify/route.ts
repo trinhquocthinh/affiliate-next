@@ -91,6 +91,8 @@ export async function POST(request: Request) {
     // ── Send one message per request ──
 
     let sentCount = 0;
+    let failedCount = 0;
+    let mentionSent = false;
     const affiliateRoleId = process.env.DISCORD_AFFILIATE_ROLE_ID;
 
     for (const req of pendingRequests) {
@@ -104,9 +106,9 @@ export async function POST(request: Request) {
           createdAt: req.createdAt,
         });
 
-        // Mention affiliate role only on the first message of the batch
+        // Mention affiliate role only on the first successfully sent message
         const content =
-          sentCount === 0 && affiliateRoleId
+          !mentionSent && affiliateRoleId
             ? `<@&${affiliateRoleId}> có **${pendingRequests.length}** request mới cần fill link:`
             : undefined;
 
@@ -125,13 +127,15 @@ export async function POST(request: Request) {
           },
         });
 
+        if (content) mentionSent = true;
         sentCount++;
       } catch (e) {
         console.error(`Failed to notify request ${req.id}:`, e);
+        failedCount++;
       }
     }
 
-    return NextResponse.json({ ok: true, count: sentCount });
+    return NextResponse.json({ ok: true, count: sentCount, failed: failedCount });
   } catch (error) {
     console.error("Discord notify error:", error);
     return NextResponse.json(
