@@ -91,6 +91,7 @@ export async function POST(request: Request) {
     // ── Send one message per request ──
 
     let sentCount = 0;
+    const affiliateRoleId = process.env.DISCORD_AFFILIATE_ROLE_ID;
 
     for (const req of pendingRequests) {
       try {
@@ -103,7 +104,15 @@ export async function POST(request: Request) {
           createdAt: req.createdAt,
         });
 
+        // Mention affiliate role only on the first message of the batch
+        const content =
+          sentCount === 0 && affiliateRoleId
+            ? `<@&${affiliateRoleId}> có **${pendingRequests.length}** request mới cần fill link:`
+            : undefined;
+
         const message = await sendChannelMessage(threadId, {
+          content,
+          allowed_mentions: content ? { roles: [affiliateRoleId!] } : undefined,
           embeds: [embed],
           components: [buildFillButton(req.id)],
         });
