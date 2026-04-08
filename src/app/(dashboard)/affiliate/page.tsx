@@ -161,6 +161,25 @@ export default function AffiliateQueuePage() {
   // CSV export loading
   const [exporting, setExporting] = useState(false);
 
+  // Discord linking
+  const [discordId, setDiscordId] = useState<string | null>(null);
+  const [discordIdInput, setDiscordIdInput] = useState("");
+  const [discordLinking, setDiscordLinking] = useState(false);
+  const [discordExpanded, setDiscordExpanded] = useState(false);
+
+  // Fetch Discord link status
+  useEffect(() => {
+    fetch("/api/users/me/discord")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setDiscordId(data.data.discordId);
+          setDiscordIdInput(data.data.discordId || "");
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -447,6 +466,28 @@ export default function AffiliateQueuePage() {
     toast.success("Copied!");
   }
 
+  async function saveDiscordLink() {
+    setDiscordLinking(true);
+    try {
+      const res = await fetch("/api/users/me/discord", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discordId: discordIdInput.trim() || null }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        toast.error(data.error?.message || "Lỗi khi lưu Discord ID");
+        return;
+      }
+      setDiscordId(data.data.discordId);
+      toast.success(data.data.discordId ? "Đã liên kết Discord!" : "Đã gỡ liên kết Discord");
+    } catch {
+      toast.error("Lỗi kết nối");
+    } finally {
+      setDiscordLinking(false);
+    }
+  }
+
   return (
     <>
       <AppHeader title="Affiliate Queue" />
@@ -494,6 +535,82 @@ export default function AffiliateQueuePage() {
           </div>
           <p className="text-xs text-muted-foreground/70 italic">These metrics are not affected by filters</p>
         </TooltipProvider>
+
+        {/* Discord Linking */}
+        <Card>
+          <CardContent className="p-4">
+            <button
+              type="button"
+              className="flex items-center justify-between w-full text-left"
+              onClick={() => setDiscordExpanded(!discordExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔗</span>
+                <span className="text-sm font-medium">Discord</span>
+                {discordId ? (
+                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-xs">
+                    Đã liên kết
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Chưa liên kết</Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">{discordExpanded ? "▲" : "▼"}</span>
+            </button>
+            {discordExpanded && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Liên kết Discord để fill link trực tiếp từ group chat.
+                  Lấy User ID: Discord Settings → Advanced → bật Developer Mode → chuột phải avatar → Copy User ID.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Discord User ID (vd: 123456789012345678)"
+                    value={discordIdInput}
+                    onChange={(e) => setDiscordIdInput(e.target.value)}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={saveDiscordLink}
+                    disabled={discordLinking || discordIdInput === (discordId || "")}
+                  >
+                    {discordLinking ? <LoaderIcon className="h-4 w-4 animate-spin" /> : "Lưu"}
+                  </Button>
+                  {discordId && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        setDiscordIdInput("");
+                        setDiscordLinking(true);
+                        try {
+                          const res = await fetch("/api/users/me/discord", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ discordId: null }),
+                          });
+                          const data = await res.json();
+                          if (data.ok) {
+                            setDiscordId(null);
+                            toast.success("Đã gỡ liên kết Discord");
+                          }
+                        } catch {
+                          toast.error("Lỗi kết nối");
+                        } finally {
+                          setDiscordLinking(false);
+                        }
+                      }}
+                      disabled={discordLinking}
+                    >
+                      Gỡ
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <div className="flex flex-col gap-3">

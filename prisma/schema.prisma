@@ -33,6 +33,7 @@ model User {
   lockedUntil       DateTime?
   lastLoginAt       DateTime?
   passwordChangedAt DateTime?
+  discordId         String?   @unique
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -125,13 +126,15 @@ model Request {
   closedBy         User?         @relation("ClosedBy", fields: [closedById], references: [id])
   affiliateOwnerId String?
   affiliateOwner   User?         @relation("AffiliateOwner", fields: [affiliateOwnerId], references: [id])
-  notes            String?
-  lastUpdatedAt    DateTime      @updatedAt
-  lastUpdatedById  String?
-  lastUpdatedBy    User?         @relation("LastUpdatedBy", fields: [lastUpdatedById], references: [id])
-  duplicateOfId    String?
-  duplicateOf      Request?      @relation("Duplicates", fields: [duplicateOfId], references: [id])
-  duplicates       Request[]     @relation("Duplicates")
+  notes              String?
+  lastUpdatedAt      DateTime      @updatedAt
+  lastUpdatedById    String?
+  lastUpdatedBy      User?         @relation("LastUpdatedBy", fields: [lastUpdatedById], references: [id])
+  duplicateOfId      String?
+  duplicateOf        Request?      @relation("Duplicates", fields: [duplicateOfId], references: [id])
+  duplicates         Request[]     @relation("Duplicates")
+  discordNotifiedAt  DateTime?
+  discordMessageId   String?
 
   auditLogs AuditLog[]
 

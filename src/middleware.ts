@@ -9,6 +9,8 @@ const publicPaths = [
   "/api/register",
   "/api/forgot-password",
   "/api/reset-password",
+  "/api/discord/interaction",
+  "/api/discord/notify",
 ];
 
 export function middleware(req: NextRequest) {
