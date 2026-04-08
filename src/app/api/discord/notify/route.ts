@@ -66,26 +66,7 @@ export async function POST(request: Request) {
         }
       }
 
-      // Create new thread
-      const newThread = await createThread(
-        channelId,
-        `📋 Requests — ${todayStr}`,
-      );
-      threadId = newThread.id;
-
-      // Upsert AppConfig
-      await Promise.all([
-        prisma.appConfig.upsert({
-          where: { key: "DISCORD_CURRENT_THREAD_ID" },
-          update: { value: threadId },
-          create: { key: "DISCORD_CURRENT_THREAD_ID", value: threadId },
-        }),
-        prisma.appConfig.upsert({
-          where: { key: "DISCORD_CURRENT_THREAD_DATE" },
-          update: { value: todayStr },
-          create: { key: "DISCORD_CURRENT_THREAD_DATE", value: todayStr },
-        }),
-      ]);
+      threadId = await createAndSaveThread(channelId, todayStr);
     }
 
     // ── Send one message per request ──
@@ -93,6 +74,7 @@ export async function POST(request: Request) {
     let sentCount = 0;
     let failedCount = 0;
     let mentionSent = false;
+    const errors: string[] = [];
     const affiliateRoleId = process.env.DISCORD_AFFILIATE_ROLE_ID;
 
     for (const req of pendingRequests) {
@@ -112,12 +94,29 @@ export async function POST(request: Request) {
             ? `<@&${affiliateRoleId}> có **${pendingRequests.length}** request mới cần fill link:`
             : undefined;
 
-        const message = await sendChannelMessage(threadId, {
-          content,
-          allowed_mentions: content ? { roles: [affiliateRoleId!] } : undefined,
-          embeds: [embed],
-          components: [buildFillButton(req.id)],
-        });
+        let message;
+        try {
+          message = await sendChannelMessage(threadId, {
+            content,
+            allowed_mentions: content ? { roles: [affiliateRoleId!] } : undefined,
+            embeds: [embed],
+            components: [buildFillButton(req.id)],
+          });
+        } catch (sendErr) {
+          // If thread was deleted/archived externally, create a new one and retry
+          if (sendErr instanceof Error && sendErr.message.includes("10003")) {
+            console.warn("Thread invalid (Unknown Channel), creating new thread...");
+            threadId = await createAndSaveThread(channelId, todayStr);
+            message = await sendChannelMessage(threadId, {
+              content,
+              allowed_mentions: content ? { roles: [affiliateRoleId!] } : undefined,
+              embeds: [embed],
+              components: [buildFillButton(req.id)],
+            });
+          } else {
+            throw sendErr;
+          }
+        }
 
         await prisma.request.update({
           where: { id: req.id },
@@ -130,12 +129,19 @@ export async function POST(request: Request) {
         if (content) mentionSent = true;
         sentCount++;
       } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         console.error(`Failed to notify request ${req.id}:`, e);
+        errors.push(`${req.id}: ${msg}`);
         failedCount++;
       }
     }
 
-    return NextResponse.json({ ok: true, count: sentCount, failed: failedCount });
+    return NextResponse.json({
+      ok: sentCount > 0,
+      count: sentCount,
+      failed: failedCount,
+      ...(errors.length > 0 && { errors }),
+    });
   } catch (error) {
     console.error("Discord notify error:", error);
     return NextResponse.json(
@@ -143,4 +149,25 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/** Create a new Discord thread and persist its ID in AppConfig */
+async function createAndSaveThread(channelId: string, todayStr: string) {
+  const newThread = await createThread(
+    channelId,
+    `📋 Requests — ${todayStr}`,
+  );
+  await Promise.all([
+    prisma.appConfig.upsert({
+      where: { key: "DISCORD_CURRENT_THREAD_ID" },
+      update: { value: newThread.id },
+      create: { key: "DISCORD_CURRENT_THREAD_ID", value: newThread.id },
+    }),
+    prisma.appConfig.upsert({
+      where: { key: "DISCORD_CURRENT_THREAD_DATE" },
+      update: { value: todayStr },
+      create: { key: "DISCORD_CURRENT_THREAD_DATE", value: todayStr },
+    }),
+  ]);
+  return newThread.id;
 }
