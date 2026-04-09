@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useActor } from "@/components/layout/actor-provider";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ import {
   ListIcon,
   CopyIcon,
   LoaderIcon,
+  ShieldIcon,
 } from "lucide-react";
 
 type RequestItem = {
@@ -102,6 +104,8 @@ function statusLabel(status: string) {
 }
 
 export default function BuyerRequestsPage() {
+  const { isAdmin } = useActor();
+
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -116,6 +120,11 @@ export default function BuyerRequestsPage() {
   const [closeNote, setCloseNote] = useState("");
   const [orderId, setOrderId] = useState("");
   const [closing, setClosing] = useState(false);
+
+  // Admin correction state
+  const [adminOrderId, setAdminOrderId] = useState("");
+  const [adminBuyerNote, setAdminBuyerNote] = useState("");
+  const [savingCorrection, setSavingCorrection] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -148,6 +157,8 @@ export default function BuyerRequestsPage() {
     setCloseReason("BOUGHT");
     setCloseNote("");
     setOrderId("");
+    setAdminOrderId(item.orderId || "");
+    setAdminBuyerNote(item.buyerNote || "");
   }
 
   function copyId(id: string) {
@@ -181,6 +192,42 @@ export default function BuyerRequestsPage() {
       toast.error("Failed to save note");
     } finally {
       setSavingNote(false);
+    }
+  }
+
+  async function handleAdminCorrect() {
+    if (!selected) return;
+    setSavingCorrection(true);
+    try {
+      const res = await fetch(`/api/requests/${selected.id}/admin-correct`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: adminOrderId || null,
+          buyerNote: adminBuyerNote || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("Correction saved");
+        setSelected((prev) =>
+          prev
+            ? {
+                ...prev,
+                orderId: data.data.orderId,
+                buyerNote: data.data.buyerNote,
+                lastUpdatedAt: data.data.lastUpdatedAt,
+              }
+            : null,
+        );
+        fetchRequests();
+      } else {
+        toast.error(data.error?.message || "Failed to save correction");
+      }
+    } catch {
+      toast.error("Failed to save correction");
+    } finally {
+      setSavingCorrection(false);
     }
   }
 
@@ -570,9 +617,57 @@ export default function BuyerRequestsPage() {
                       </div>
                     )}
 
-                    {selected.status === "CLOSED" && (
+                    {selected.status === "CLOSED" && !isAdmin && (
                       <div className="p-6 lg:p-8 flex items-center justify-center text-sm text-muted-foreground">
                         This request has been closed.
+                      </div>
+                    )}
+
+                    {/* Admin Correction — only for CLOSED + admin */}
+                    {selected.status === "CLOSED" && isAdmin && (
+                      <div className="p-6 lg:p-8 bg-violet-500/5 border-t border-border space-y-4">
+                        <p className="text-sm font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-2">
+                          <ShieldIcon className="h-4 w-4" />
+                          Admin Correction
+                        </p>
+                        {selected.closeReason === "BOUGHT" && (
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">Order ID</Label>
+                            <Input
+                              placeholder="Correct order ID"
+                              value={adminOrderId}
+                              onChange={(e) => setAdminOrderId(e.target.value)}
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">Buyer Note</Label>
+                          <Textarea
+                            placeholder="Correct buyer note"
+                            value={adminBuyerNote}
+                            onChange={(e) => setAdminBuyerNote(e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full border-violet-400/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:border-violet-400/60"
+                          onClick={handleAdminCorrect}
+                          disabled={
+                            savingCorrection ||
+                            (adminOrderId === (selected.orderId || "") &&
+                              adminBuyerNote === (selected.buyerNote || ""))
+                          }
+                        >
+                          {savingCorrection ? (
+                            <>
+                              <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Correction"
+                          )}
+                        </Button>
                       </div>
                     )}
                   </div>

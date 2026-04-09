@@ -118,6 +118,13 @@ export const updateConfigSchema = z.object({
   value: z.string(),
 });
 
+export const adminCorrectSchema = z.object({
+  orderId: z.string().max(100).trim().nullable().optional(),
+  buyerNote: z.string().max(MAX_NOTE_LENGTH).trim().nullable().optional(),
+}).refine((data) => data.orderId !== undefined || data.buyerNote !== undefined, {
+  message: "At least one field (orderId or buyerNote) must be provided",
+});
+
 export const updateUserSchema = z.object({
   role: z.enum(["BUYER", "AFFILIATE", "ADMIN"]).optional(),
   isActive: z.boolean().optional(),
