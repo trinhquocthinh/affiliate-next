@@ -107,7 +107,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   alt="Shop Quành"
                   width={80}
                   height={80}
-                  className="object-contain"
+                  className="object-contain drop-shadow-[0_0_3px_rgba(16,185,129,0.8)] brightness-110"
                 />
               </div>
               <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
