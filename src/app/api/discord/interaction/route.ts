@@ -35,6 +35,8 @@ export async function POST(request: Request) {
 
   const body = JSON.parse(rawBody);
 
+  console.log(`[interaction] type=${body.type} custom_id=${body.data?.custom_id ?? "n/a"}`);
+
   // ── 2. PING → PONG (Discord endpoint verification) ──
 
   if (body.type === 1) {
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
 
     if (customId.startsWith("fill:")) {
       const requestId = customId.slice(5);
+      console.log(`[interaction] fill button clicked requestId=${requestId}`);
       return modalResponse(buildFillModal(requestId));
     }
 
@@ -65,7 +68,12 @@ export async function POST(request: Request) {
       const requestId = customId.slice(11);
       const token = body.token as string;
 
-      after(() => processFillModalSubmit(body, requestId, token));
+      console.log(`[interaction] modal submit requestId=${requestId} token=${token.slice(0, 20)}...`);
+      after(async () => {
+        console.log(`[interaction:after] starting processFillModalSubmit requestId=${requestId}`);
+        await processFillModalSubmit(body, requestId, token);
+        console.log(`[interaction:after] done requestId=${requestId}`);
+      });
       return deferredEphemeralReply();
     }
 
@@ -85,6 +93,7 @@ async function processFillModalSubmit(
   interactionToken: string,
 ) {
   try {
+    console.log(`[processFillModalSubmit] start requestId=${requestId}`);
     const discordUserId = (interaction.member as Record<string, unknown>)?.user
       ? ((interaction.member as Record<string, unknown>).user as Record<string, unknown>).id as string
       : (interaction.user as Record<string, unknown>)?.id as string;
