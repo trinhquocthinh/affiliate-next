@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
-import { fillLinkSchema } from "@/lib/validations";
+import { saveBuyerNoteSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 
-// POST /api/affiliate/[id]/fill — fill affiliate link
+// POST /api/requests/[id]/buyer-note — buyer updates their own note
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -18,16 +18,9 @@ export async function POST(
       );
     }
 
-    if (!actor.isAffiliate) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
-        { status: 403 },
-      );
-    }
-
     const { id } = await params;
     const body = await request.json();
-    const parsed = fillLinkSchema.safeParse(body);
+    const parsed = saveBuyerNoteSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -36,7 +29,7 @@ export async function POST(
       );
     }
 
-    const { affiliateLink, note, expectedLastUpdatedAt } = parsed.data;
+    const { buyerNote, expectedLastUpdatedAt } = parsed.data;
 
     const existing = await prisma.request.findUnique({ where: { id } });
     if (!existing) {
@@ -46,9 +39,17 @@ export async function POST(
       );
     }
 
+    // Buyer can only edit their own requests
+    if (existing.createdById !== actor.userId && !actor.isAdmin) {
+      return NextResponse.json(
+        { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },
+        { status: 403 },
+      );
+    }
+
     if (existing.status === "CLOSED") {
       return NextResponse.json(
-        { ok: false, error: { code: "INVALID_STATE", message: "Cannot fill a closed request" } },
+        { ok: false, error: { code: "INVALID_STATE", message: "Cannot edit a closed request" } },
         { status: 400 },
       );
     }
@@ -71,11 +72,7 @@ export async function POST(
     const updated = await prisma.request.update({
       where: { id },
       data: {
-        affiliateLink,
-        filledAt: new Date(),
-        status: "FILLED",
-        affiliateOwnerId: existing.affiliateOwnerId || actor.userId,
-        notes: note !== undefined ? (note || null) : existing.notes,
+        buyerNote: buyerNote || null,
         lastUpdatedById: actor.userId,
       },
     });
@@ -83,32 +80,25 @@ export async function POST(
     await logAuditEvent({
       requestId: id,
       actorId: actor.userId,
-      action: "FILL_AFFILIATE_LINK",
-      oldValue: {
-        status: existing.status,
-        affiliateLink: existing.affiliateLink,
-      },
-      newValue: {
-        status: "FILLED",
-        affiliateLink,
-        note,
-      },
-      source: "affiliate_ui",
+      action: "SAVE_NOTE",
+      oldValue: { buyerNote: existing.buyerNote },
+      newValue: { buyerNote },
+      source: "buyer_ui",
     });
 
     return NextResponse.json({
       ok: true,
       data: {
-        status: updated.status,
-        affiliateLink: updated.affiliateLink,
-        affiliateOwner: actor.email,
-        lastUpdatedAt: updated.lastUpdatedAt,
+        buyerNote: updated.buyerNote,
+        lastUpdatedAt: updated.lastUpdatedAt.toISOString(),
       },
     });
   } catch (error) {
-    console.error("Fill affiliate link error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error("Save buyer note error:", message, stack ?? error);
     return NextResponse.json(
-      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to fill affiliate link" } },
+      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to save note" } },
       { status: 500 },
     );
   }

@@ -78,6 +78,11 @@ export const saveNoteSchema = z.object({
   expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
 });
 
+export const saveBuyerNoteSchema = z.object({
+  buyerNote: z.string().max(MAX_NOTE_LENGTH).trim(),
+  expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
+});
+
 export const queueFilterSchema = z.object({
   search: z.string().max(200).trim().optional(),
   statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("ALL"),

@@ -9,6 +9,8 @@
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:push:uat": "bash scripts/db-push.sh uat",
+    "db:push:prod": "bash scripts/db-push.sh prod",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"

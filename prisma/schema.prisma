@@ -117,6 +117,7 @@ model Request {
   productUrlNorm   String        // Normalized URL for duplicate detection
   productName      String?
   affiliateLink    String?
+  filledAt         DateTime?
   status           RequestStatus @default(NEW)
   closeReason      CloseReason?
   closeNote        String?
@@ -127,6 +128,7 @@ model Request {
   affiliateOwnerId String?
   affiliateOwner   User?         @relation("AffiliateOwner", fields: [affiliateOwnerId], references: [id])
   notes              String?
+  buyerNote          String?
   lastUpdatedAt      DateTime      @updatedAt
   lastUpdatedById    String?
   lastUpdatedBy      User?         @relation("LastUpdatedBy", fields: [lastUpdatedById], references: [id])

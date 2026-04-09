@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -37,6 +38,8 @@ import {
   ExternalLinkIcon,
   ClockIcon,
   ListIcon,
+  CopyIcon,
+  LoaderIcon,
 } from "lucide-react";
 
 type RequestItem = {
@@ -46,10 +49,12 @@ type RequestItem = {
   productUrlRaw: string;
   productName: string | null;
   affiliateLink: string | null;
+  filledAt: string | null;
   status: string;
   closeReason: string | null;
   orderId: string | null;
   notes: string | null;
+  buyerNote: string | null;
   isStale: boolean;
   ageHours: number;
   lastUpdatedAt: string;
@@ -64,6 +69,12 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   CLOSED: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
 };
 
+const PLATFORM_STYLES: Record<string, string> = {
+  SHOPEE: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+  TIKTOK: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  OTHER: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+};
+
 function formatRelativeTime(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(ms / 60000);
@@ -74,15 +85,37 @@ function formatRelativeTime(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function statusLabel(status: string) {
+  if (status === "NEW") return "Pending";
+  if (status === "FILLED") return "Ready";
+  return "Closed";
+}
+
 export default function BuyerRequestsPage() {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [selectedItem, setSelectedItem] = useState<RequestItem | null>(null);
-  const [closing, setClosing] = useState(false);
+  const [selected, setSelected] = useState<RequestItem | null>(null);
+
+  // Buyer note state
+  const [buyerNote, setBuyerNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Close state
   const [closeReason, setCloseReason] = useState("BOUGHT");
   const [closeNote, setCloseNote] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [closing, setClosing] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -109,26 +142,68 @@ export default function BuyerRequestsPage() {
     fetchRequests();
   }, [fetchRequests]);
 
+  function openDetail(item: RequestItem) {
+    setSelected(item);
+    setBuyerNote(item.buyerNote || "");
+    setCloseReason("BOUGHT");
+    setCloseNote("");
+    setOrderId("");
+  }
+
+  function copyId(id: string) {
+    navigator.clipboard.writeText(id);
+    toast.success("Copied!");
+  }
+
+  async function handleSaveBuyerNote() {
+    if (!selected) return;
+    setSavingNote(true);
+    try {
+      const res = await fetch(`/api/requests/${selected.id}/buyer-note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerNote,
+          expectedLastUpdatedAt: selected.lastUpdatedAt,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("Note saved");
+        setSelected((prev) =>
+          prev ? { ...prev, buyerNote, lastUpdatedAt: data.data.lastUpdatedAt } : null,
+        );
+        fetchRequests();
+      } else {
+        toast.error(data.error?.message || "Failed to save note");
+      }
+    } catch {
+      toast.error("Failed to save note");
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
   async function handleClose() {
-    if (!selectedItem) return;
+    if (!selected) return;
     setClosing(true);
 
     try {
-      const res = await fetch(`/api/requests/${selectedItem.id}/close`, {
+      const res = await fetch(`/api/requests/${selected.id}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           closeReason,
           closeNote: closeNote || undefined,
           orderId: closeReason === "BOUGHT" ? orderId : undefined,
-          expectedLastUpdatedAt: selectedItem.lastUpdatedAt,
+          expectedLastUpdatedAt: selected.lastUpdatedAt,
         }),
       });
 
       const data = await res.json();
       if (data.ok) {
         toast.success("Request closed");
-        setSelectedItem(null);
+        setSelected(null);
         setCloseNote("");
         setOrderId("");
         fetchRequests();
@@ -181,7 +256,7 @@ export default function BuyerRequestsPage() {
         {/* Desktop Table */}
         {!loading && items.length > 0 && (
           <>
-            <div className="hidden md:block rounded-lg border">
+            <div className="hidden md:block rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -190,8 +265,8 @@ export default function BuyerRequestsPage() {
                     <TableHead>Platform</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="max-w-xs">Product</TableHead>
+                    <TableHead>Your Note</TableHead>
                     <TableHead>Affiliate Link</TableHead>
-                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,31 +274,34 @@ export default function BuyerRequestsPage() {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => setSelectedItem(item)}
+                      onClick={() => openDetail(item)}
                     >
                       <TableCell className="font-mono text-sm">
                         {item.id}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatRelativeTime(item.createdAt)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge className={`text-xs ${PLATFORM_STYLES[item.platform] || ""}`}>
                           {item.platform}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}
-                        >
-                          {item.status === "NEW" ? "Pending" : item.status === "FILLED" ? "Ready" : "Closed"}
-                        </Badge>
-                        {item.isStale && (
-                          <AlertTriangleIcon className="inline ml-1 h-3 w-3 text-amber-500" />
-                        )}
+                        <span className="flex items-center gap-1">
+                          <Badge className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}>
+                            {statusLabel(item.status)}
+                          </Badge>
+                          {item.isStale && (
+                            <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
+                          )}
+                        </span>
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm">
                         {item.productName || item.productUrlRaw}
+                      </TableCell>
+                      <TableCell className="max-w-40 truncate text-sm text-muted-foreground">
+                        {item.buyerNote || <span className="italic opacity-40">—</span>}
                       </TableCell>
                       <TableCell>
                         {item.affiliateLink ? (
@@ -240,20 +318,6 @@ export default function BuyerRequestsPage() {
                           <span className="text-muted-foreground text-sm">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {item.status === "FILLED" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedItem(item);
-                            }}
-                          >
-                            Close
-                          </Button>
-                        )}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -265,27 +329,40 @@ export default function BuyerRequestsPage() {
               {items.map((item) => (
                 <Card
                   key={item.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedItem(item)}
+                  className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+                  onClick={() => openDetail(item)}
                 >
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <code className="font-mono text-sm">{item.id}</code>
-                      <Badge
-                        className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}
-                      >
-                        {item.status === "NEW" ? "Pending" : item.status === "FILLED" ? "Ready" : "Closed"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm truncate">
-                      {item.productName || item.productUrlRaw}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ClockIcon className="h-3 w-3" />
-                      {formatRelativeTime(item.createdAt)}
-                      <Badge variant="outline" className="text-xs ml-auto">
-                        {item.platform}
-                      </Badge>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <code className="font-mono text-sm font-medium">{item.id}</code>
+                          <Badge className={`text-xs ${PLATFORM_STYLES[item.platform] || ""}`}>
+                            {item.platform}
+                          </Badge>
+                          <Badge className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}>
+                            {statusLabel(item.status)}
+                          </Badge>
+                          {item.isStale && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangleIcon className="mr-1 h-3 w-3" />
+                              Stale
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm truncate">
+                          {item.productName || item.productUrlRaw}
+                        </p>
+                        {item.buyerNote && (
+                          <p className="text-xs text-muted-foreground truncate italic">
+                            Note: {item.buyerNote}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <ClockIcon className="h-3 w-3" />
+                          {formatRelativeTime(item.createdAt)}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -294,112 +371,213 @@ export default function BuyerRequestsPage() {
           </>
         )}
 
-        {/* Detail / Close Dialog */}
-        <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-          <DialogContent className="max-w-lg">
-            {selectedItem && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="font-mono">
-                    {selectedItem.id}
+        {/* Detail Dialog — 2-col layout matching affiliate page */}
+        <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+          <DialogContent className="p-0 gap-0 sm:max-w-lg lg:max-w-4xl">
+            {selected && (
+              <div className="flex flex-col rounded-xl overflow-hidden">
+                {/* Header */}
+                <DialogHeader className="px-6 pr-12 py-5 border-b gap-3">
+                  <DialogTitle className="flex items-center gap-3">
+                    <code className="font-mono text-lg font-bold tracking-wide">{selected.id}</code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 border border-border"
+                      onClick={() => copyId(selected.id)}
+                    >
+                      <CopyIcon className="h-3.5 w-3.5" />
+                    </Button>
                   </DialogTitle>
                   <DialogDescription>
-                    Created {formatRelativeTime(selectedItem.createdAt)} · {selectedItem.platform}
+                    <span className="flex items-center gap-2.5 flex-wrap">
+                      <Badge className={`text-xs font-semibold ${PLATFORM_STYLES[selected.platform] || ""}`}>
+                        {selected.platform}
+                      </Badge>
+                      <Badge className={`text-xs font-semibold ${STATUS_BADGE_STYLES[selected.status] || ""}`}>
+                        {statusLabel(selected.status)}
+                      </Badge>
+                      {selected.isStale && (
+                        <Badge variant="destructive" className="text-xs font-semibold">Stale</Badge>
+                      )}
+                      <span className="text-muted-foreground text-sm">
+                        · {formatRelativeTime(selected.createdAt)}
+                      </span>
+                    </span>
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Product URL</p>
-                    <a
-                      href={selectedItem.productUrlRaw}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline break-all"
-                    >
-                      {selectedItem.productUrlRaw}
-                    </a>
-                  </div>
-                  {selectedItem.productName && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Product Name</p>
-                      <p className="text-sm">{selectedItem.productName}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Status</p>
-                    <Badge className={`text-xs ${STATUS_BADGE_STYLES[selectedItem.status] || ""}`}>
-                      {selectedItem.status === "NEW" ? "Pending" : selectedItem.status === "FILLED" ? "Ready" : "Closed"}
-                    </Badge>
-                  </div>
-                  {selectedItem.affiliateLink && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Affiliate Link</p>
-                      <a
-                        href={selectedItem.affiliateLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline break-all flex items-center gap-1"
-                      >
-                        {selectedItem.affiliateLink}
-                        <ExternalLinkIcon className="h-3 w-3 shrink-0" />
-                      </a>
-                    </div>
-                  )}
-                  {selectedItem.notes && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                      <p className="text-sm">{selectedItem.notes}</p>
-                    </div>
-                  )}
 
-                  {/* Show orderId if closed with BOUGHT */}
-                  {selectedItem.status === "CLOSED" && selectedItem.closeReason === "BOUGHT" && selectedItem.orderId && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Order ID</p>
-                      <p className="text-sm font-mono">{selectedItem.orderId}</p>
-                    </div>
-                  )}
+                {/* Body: 2-col on lg */}
+                <div className="flex flex-col lg:flex-row max-h-[70vh] overflow-y-auto lg:overflow-visible">
+                  {/* Left Column: Read-only Info */}
+                  <div className="w-full lg:w-[45%] p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
+                    <div className="space-y-5">
+                      {/* Product URL */}
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1.5">Product URL</p>
+                        <a
+                          href={selected.productUrlRaw}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline break-all leading-relaxed flex items-start gap-1 group"
+                        >
+                          <span className="line-clamp-4">
+                            {decodeURIComponent(selected.productUrlRaw.split("?")[0])}
+                          </span>
+                          <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                        </a>
+                      </div>
 
-                  {/* Close action (only for FILLED status) */}
-                  {selectedItem.status === "FILLED" && (
-                    <div className="border-t pt-4 space-y-3">
-                      <p className="text-sm font-medium">Close this request</p>
-                      <Select value={closeReason} onValueChange={(v) => { setCloseReason(v ?? ""); setOrderId(""); }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Reason" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="BOUGHT">Bought</SelectItem>
-                          <SelectItem value="NOT_BUYING">Not buying</SelectItem>
-                          <SelectItem value="INVALID">Invalid</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {closeReason === "BOUGHT" && (
-                        <Input
-                          placeholder="Order ID (required)"
-                          value={orderId}
-                          onChange={(e) => setOrderId(e.target.value)}
-                        />
+                      {/* Product Name */}
+                      {selected.productName && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5">Product Name</p>
+                          <p className="text-sm">{selected.productName}</p>
+                        </div>
                       )}
-                      <Textarea
-                        placeholder="Close note (optional)"
-                        value={closeNote}
-                        onChange={(e) => setCloseNote(e.target.value)}
-                        rows={2}
-                      />
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={handleClose}
-                        disabled={closing || (closeReason === "BOUGHT" && !orderId.trim())}
-                      >
-                        {closing ? "Closing..." : "Close Request"}
-                      </Button>
+
+                      {/* Affiliate Link */}
+                      {selected.affiliateLink && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5">Affiliate Link</p>
+                          <a
+                            href={selected.affiliateLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline break-all flex items-start gap-1 group"
+                          >
+                            <span className="line-clamp-3">{selected.affiliateLink}</span>
+                            <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                          </a>
+                          {selected.filledAt && (
+                            <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                              <ClockIcon className="h-3 w-3" />
+                              Filled {formatDateTime(selected.filledAt)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Affiliate Notes */}
+                      {selected.notes && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5">Affiliate Notes</p>
+                          <p className="text-sm text-muted-foreground">{selected.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Order ID if closed */}
+                      {selected.status === "CLOSED" && selected.closeReason === "BOUGHT" && selected.orderId && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5">Order ID</p>
+                          <p className="text-sm font-mono">{selected.orderId}</p>
+                        </div>
+                      )}
+
+                      {/* Close reason */}
+                      {selected.status === "CLOSED" && selected.closeReason && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1.5">Close Reason</p>
+                          <p className="text-sm capitalize">{selected.closeReason.replace("_", " ").toLowerCase()}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Right Column: Actions */}
+                  <div className="w-full lg:w-[55%] flex flex-col lg:overflow-y-auto">
+                    {/* Buyer Note */}
+                    <div className="p-6 lg:p-8 border-b border-border space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Your Note</Label>
+                        <Textarea
+                          placeholder={
+                            selected.status === "CLOSED"
+                              ? "Request is closed"
+                              : "Add a note for the affiliate (e.g. preferred variant, color, size...)"
+                          }
+                          value={buyerNote}
+                          onChange={(e) => setBuyerNote(e.target.value)}
+                          rows={3}
+                          disabled={selected.status === "CLOSED"}
+                          className={selected.status === "CLOSED" ? "opacity-60 cursor-not-allowed" : ""}
+                        />
+                      </div>
+                      {selected.status !== "CLOSED" && (
+                        <Button
+                          onClick={handleSaveBuyerNote}
+                          disabled={savingNote || buyerNote === (selected.buyerNote || "")}
+                          className="w-full"
+                        >
+                          {savingNote ? (
+                            <>
+                              <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Note"
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Close Request — only for FILLED */}
+                    {selected.status === "FILLED" && (
+                      <div className="p-6 lg:p-8 bg-destructive/5 space-y-4">
+                        <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                          <AlertTriangleIcon className="h-4 w-4" />
+                          Close Request
+                        </p>
+                        <Select value={closeReason} onValueChange={(v) => { setCloseReason(v ?? "BOUGHT"); setOrderId(""); }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Reason" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BOUGHT">Bought</SelectItem>
+                            <SelectItem value="NOT_BUYING">Not buying</SelectItem>
+                            <SelectItem value="INVALID">Invalid</SelectItem>
+                            <SelectItem value="OTHER">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {closeReason === "BOUGHT" && (
+                          <Input
+                            placeholder="Order ID (required)"
+                            value={orderId}
+                            onChange={(e) => setOrderId(e.target.value)}
+                          />
+                        )}
+                        <Textarea
+                          placeholder="Close note (optional)"
+                          value={closeNote}
+                          onChange={(e) => setCloseNote(e.target.value)}
+                          rows={2}
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
+                          onClick={handleClose}
+                          disabled={closing || (closeReason === "BOUGHT" && !orderId.trim())}
+                        >
+                          {closing ? (
+                            <>
+                              <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />
+                              Closing...
+                            </>
+                          ) : (
+                            "Close Request"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {selected.status === "CLOSED" && (
+                      <div className="p-6 lg:p-8 flex items-center justify-center text-sm text-muted-foreground">
+                        This request has been closed.
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </DialogContent>
         </Dialog>
