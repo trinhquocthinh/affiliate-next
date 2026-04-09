@@ -292,6 +292,27 @@ export function ephemeralReply(content: string) {
   return interactionResponse(4, { content, flags: 64 }); // 64 = EPHEMERAL
 }
 
+// type 5 = DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE (shows "thinking…")
+export function deferredEphemeralReply() {
+  return interactionResponse(5, { flags: 64 });
+}
+
+// Follow-up message via interaction webhook (used after a deferred reply)
+export async function interactionFollowup(
+  interactionToken: string,
+  content: string,
+) {
+  const { applicationId } = getDiscordConfig();
+  await fetch(
+    `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, flags: 64 }),
+    },
+  );
+}
+
 // type 9 = MODAL
 export function modalResponse(modal: unknown) {
   return interactionResponse(9, modal);
