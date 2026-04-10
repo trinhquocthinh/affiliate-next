@@ -1,5 +1,6 @@
 import { getActorContext } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { getAppConfig } from "@/lib/config-cache";
 import { AppHeader } from "@/components/layout/app-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,25 +16,22 @@ import {
 import { GreetingText } from "@/components/layout/greeting-text";
 
 async function getBuyerStats(userId: string) {
-  const [activeCount, readyCount] = await Promise.all([
-    prisma.request.count({
-      where: { createdById: userId, status: "NEW" },
-    }),
-    prisma.request.count({
-      where: { createdById: userId, status: "FILLED" },
-    }),
+  // Single transaction — 1 DB round-trip instead of 2.
+  const [activeCount, readyCount] = await prisma.$transaction([
+    prisma.request.count({ where: { createdById: userId, status: "NEW" } }),
+    prisma.request.count({ where: { createdById: userId, status: "FILLED" } }),
   ]);
   return { activeCount, readyCount };
 }
 
 async function getAffiliateStats(userId: string) {
-  const staleThreshold = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  const config = await getAppConfig();
+  const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 60 * 60 * 1000);
 
-  const [queueCount, staleCount, claimedCount] = await Promise.all([
+  // Single transaction — 1 DB round-trip instead of 3.
+  const [queueCount, staleCount, claimedCount] = await prisma.$transaction([
     prisma.request.count({ where: { status: "NEW" } }),
-    prisma.request.count({
-      where: { status: "NEW", createdAt: { lt: staleThreshold } },
-    }),
+    prisma.request.count({ where: { status: "NEW", createdAt: { lt: staleThreshold } } }),
     prisma.request.count({
       where: { affiliateOwnerId: userId, status: { in: ["NEW", "FILLED"] } },
     }),
@@ -42,13 +40,13 @@ async function getAffiliateStats(userId: string) {
 }
 
 async function getAdminStats() {
-  const [totalUsers, totalRequests, pendingCount, filledCount] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.request.count(),
-      prisma.request.count({ where: { status: "NEW" } }),
-      prisma.request.count({ where: { status: "FILLED" } }),
-    ]);
+  // Single transaction — 1 DB round-trip instead of 4.
+  const [totalUsers, totalRequests, pendingCount, filledCount] = await prisma.$transaction([
+    prisma.user.count(),
+    prisma.request.count(),
+    prisma.request.count({ where: { status: "NEW" } }),
+    prisma.request.count({ where: { status: "FILLED" } }),
+  ]);
   return { totalUsers, totalRequests, pendingCount, filledCount };
 }
 

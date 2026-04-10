@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
+import { formatRelativeTime } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,16 +103,6 @@ const SORT_OPTIONS = [
   { value: "lastUpdatedAt:desc", label: "Updated: Newest first" },
   { value: "lastUpdatedAt:asc", label: "Updated: Oldest first" },
 ];
-
-function formatRelativeTime(dateStr: string): string {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 function statusLabel(status: string) {
   if (status === "NEW") return "Pending";

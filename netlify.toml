@@ -3,7 +3,10 @@
   publish   = ".next"
 
 [functions]
-  directory = "netlify/functions"
+  directory         = "netlify/functions"
+  # Increase timeout to handle Neon WebSocket cold starts gracefully.
+  # Default is 10s which can 502 on first invocation after idle.
+  node_bundler      = "nft"
 
 [build.environment]
   NODE_VERSION = "22"

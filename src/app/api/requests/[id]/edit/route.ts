@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { editRequestSchema } from "@/lib/validations";
 import { normalizeProductUrl } from "@/lib/url-utils";
 import { logAuditEvent } from "@/lib/audit";
+import { checkOptimisticLock } from "@/lib/api-utils";
 
 // PATCH /api/requests/[id]/edit — buyer edits their own request before it's closed
 export async function PATCH(
@@ -55,20 +56,8 @@ export async function PATCH(
       );
     }
 
-    // Optimistic locking
-    const expectedDate = new Date(expectedLastUpdatedAt);
-    if (Math.abs(existing.lastUpdatedAt.getTime() - expectedDate.getTime()) > 1000) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: "CONFLICT_STALE_WRITE",
-            message: "This request changed since you opened it. Reload and try again.",
-          },
-        },
-        { status: 409 },
-      );
-    }
+    const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);
+    if (conflict) return conflict;
 
     const updateData: Record<string, unknown> = { lastUpdatedById: actor.userId };
     if (productUrl !== undefined) {

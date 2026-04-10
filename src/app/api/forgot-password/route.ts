@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordSchema } from "@/lib/validations";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 requests per 15 minutes per IP
+    const ip = getClientIp(request);
+    const limit = rateLimit(ip, { limit: 5, windowSecs: 15 * 60 });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please try again later." } },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000)) } },
+      );
+    }
+
     const body = await request.json();
     const parsed = forgotPasswordSchema.safeParse(body);
 
@@ -48,11 +59,10 @@ export async function POST(request: Request) {
     });
 
     // TODO: Send email with reset link containing rawToken
-    // For now, log the token in dev mode
+    // In development, expose the reset URL in the response body only (not logs).
+    // In production this field is omitted — the user receives an email instead.
     if (process.env.NODE_ENV === "development") {
       const resetUrl = `${process.env.AUTH_URL}/reset-password?token=${rawToken}`;
-      console.log(`[DEV] Password reset token for ${email}: ${rawToken}`);
-      console.log(`[DEV] Reset URL: ${resetUrl}`);
       return NextResponse.json({
         ok: true,
         data: { message: "If this email exists, we sent a reset link", devResetUrl: resetUrl },

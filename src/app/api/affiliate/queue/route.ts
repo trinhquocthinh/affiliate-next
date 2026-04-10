@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { queueFilterSchema } from "@/lib/validations";
+import { getAppConfig } from "@/lib/config-cache";
 
 // GET /api/affiliate/queue — affiliate work queue
 export async function GET(request: Request) {
@@ -75,15 +76,10 @@ export async function GET(request: Request) {
       prisma.request.count({ where }),
     ]);
 
-    // Get config values
-    const configs = await prisma.appConfig.findMany({
-      where: { key: { in: ["STALE_REQUEST_HOURS", "DUPLICATE_WINDOW_HOURS"] } },
-    });
-    const configMap = Object.fromEntries(configs.map((c) => [c.key, c.value]));
-    const staleHours = parseInt(configMap.STALE_REQUEST_HOURS || "48", 10);
-    const dupWindowHours = parseInt(configMap.DUPLICATE_WINDOW_HOURS || "24", 10);
-    const staleThreshold = new Date(Date.now() - staleHours * 3600000);
-    const dupCutoff = new Date(Date.now() - dupWindowHours * 3600000);
+    // Get config values (cached — avoids a DB round-trip on each queue request)
+    const config = await getAppConfig();
+    const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 3600000);
+    const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 3600000);
 
     // Build duplicate index for visibility
     const normUrls = [...new Set(items.map((i) => i.productUrlNorm))];

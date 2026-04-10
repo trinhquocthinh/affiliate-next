@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext, assertAdmin } from "@/lib/auth-utils";
 import { updateConfigSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
+import { revalidateAppConfig } from "@/lib/config-cache";
 
 // GET /api/config — get all config values
 export async function GET() {
@@ -76,6 +77,9 @@ export async function PUT(request: Request) {
       newValue: { key, value },
       source: "admin",
     });
+
+    // Invalidate the config cache so the next request picks up the new value.
+    await revalidateAppConfig();
 
     return NextResponse.json({ ok: true, data: { key, value } });
   } catch (error) {

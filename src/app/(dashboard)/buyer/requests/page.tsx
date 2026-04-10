@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useActor } from "@/components/layout/actor-provider";
+import { formatRelativeTime, formatDateTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
@@ -77,26 +78,6 @@ const PLATFORM_STYLES: Record<string, string> = {
   TIKTOK: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
   OTHER: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
 };
-
-function formatRelativeTime(dateStr: string): string {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function statusLabel(status: string) {
   if (status === "NEW") return "Pending";

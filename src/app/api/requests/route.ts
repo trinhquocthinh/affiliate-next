@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext, ApiError } from "@/lib/auth-utils";
 import { createRequestSchema, batchCreateSchema } from "@/lib/validations";
+import { getAppConfig } from "@/lib/config-cache";
 import { normalizeProductUrl } from "@/lib/url-utils";
 import { generateRequestId } from "@/lib/request-id";
 import { logAuditEvent } from "@/lib/audit";
@@ -48,12 +49,9 @@ export async function GET(request: Request) {
       prisma.request.count({ where }),
     ]);
 
-    // Get stale threshold from config
-    const staleConfig = await prisma.appConfig.findUnique({
-      where: { key: "STALE_REQUEST_HOURS" },
-    });
-    const staleHours = parseInt(staleConfig?.value || "48", 10);
-    const staleThreshold = new Date(Date.now() - staleHours * 60 * 60 * 1000);
+    // Get stale threshold from config (cached)
+    const config = await getAppConfig();
+    const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 60 * 60 * 1000);
 
     const enrichedItems = items.map((item) => ({
       ...item,
@@ -129,12 +127,9 @@ async function handleSingleCreate(body: unknown, actor: ActorCtx) {
   const { productUrl, platform, productName, requesterName } = parsed.data;
   const productUrlNorm = normalizeProductUrl(productUrl);
 
-  // Duplicate detection
-  const dupConfig = await prisma.appConfig.findUnique({
-    where: { key: "DUPLICATE_WINDOW_HOURS" },
-  });
-  const dupWindowHours = parseInt(dupConfig?.value || "24", 10);
-  const dupCutoff = new Date(Date.now() - dupWindowHours * 60 * 60 * 1000);
+  // Duplicate detection (config cached)
+  const config = await getAppConfig();
+  const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 60 * 60 * 1000);
 
   const duplicates = await prisma.request.findMany({
     where: {
@@ -206,12 +201,9 @@ async function handleBatchCreate(body: unknown, actor: ActorCtx) {
 
   const { items, platform, requesterName } = parsed.data;
 
-  // Get config for duplicate detection
-  const dupConfig = await prisma.appConfig.findUnique({
-    where: { key: "DUPLICATE_WINDOW_HOURS" },
-  });
-  const dupWindowHours = parseInt(dupConfig?.value || "24", 10);
-  const dupCutoff = new Date(Date.now() - dupWindowHours * 60 * 60 * 1000);
+  // Get config for duplicate detection (cached)
+  const config = await getAppConfig();
+  const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 60 * 60 * 1000);
 
   const results: Array<{
     requestId: string;

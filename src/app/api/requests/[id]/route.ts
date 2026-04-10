@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
+import { getAppConfig } from "@/lib/config-cache";
 
 // GET /api/requests/[id] — get single request
 export async function GET(
@@ -43,21 +44,12 @@ export async function GET(
       );
     }
 
-    // Compute stale status
-    const staleConfig = await prisma.appConfig.findUnique({
-      where: { key: "STALE_REQUEST_HOURS" },
-    });
-    const staleHours = parseInt(staleConfig?.value || "48", 10);
+    // Compute stale status and duplicate window from config (cached)
+    const config = await getAppConfig();
     const isStale =
       item.status !== "CLOSED" &&
-      Date.now() - item.createdAt.getTime() >= staleHours * 3600000;
-
-    // Check for duplicates
-    const dupConfig = await prisma.appConfig.findUnique({
-      where: { key: "DUPLICATE_WINDOW_HOURS" },
-    });
-    const dupWindowHours = parseInt(dupConfig?.value || "24", 10);
-    const dupCutoff = new Date(Date.now() - dupWindowHours * 3600000);
+      Date.now() - item.createdAt.getTime() >= config.STALE_REQUEST_HOURS * 3600000;
+    const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 3600000);
 
     const duplicateCount = await prisma.request.count({
       where: {

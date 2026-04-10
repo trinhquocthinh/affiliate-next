@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { claimRequestSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
+import { checkOptimisticLock } from "@/lib/api-utils";
 
 // POST /api/requests/[id]/claim
 export async function POST(
@@ -53,20 +54,8 @@ export async function POST(
       );
     }
 
-    // Optimistic locking
-    const expectedDate = new Date(expectedLastUpdatedAt);
-    if (Math.abs(existing.lastUpdatedAt.getTime() - expectedDate.getTime()) > 1000) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: "CONFLICT_STALE_WRITE",
-            message: "This request changed since you opened it. Reload and try again.",
-          },
-        },
-        { status: 409 },
-      );
-    }
+    const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);
+    if (conflict) return conflict;
 
     if (unclaim) {
       // Unclaim: only owner or admin can unclaim

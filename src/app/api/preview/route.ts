@@ -23,7 +23,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const preview = await getLinkPreview(url);
+    const raw = await getLinkPreview(url);
+
+    // Sanitize: only return the expected scalar fields to prevent leaking
+    // unexpected data from the scraping function into the client response.
+    const preview = {
+      title: typeof raw.title === "string" ? raw.title.slice(0, 300) : undefined,
+      imageUrl: typeof raw.imageUrl === "string" ? raw.imageUrl.slice(0, 2000) : undefined,
+    };
 
     return NextResponse.json({
       ok: true,

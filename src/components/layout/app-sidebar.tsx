@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "@/components/layout/theme-provider";
+import { getInitials } from "@/lib/utils";
 
 type NavItem = {
   title: string;
@@ -69,18 +70,6 @@ type AppSidebarProps = {
     role: string;
   };
 };
-
-function getInitials(name: string | null, email: string): string {
-  if (name) {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return email[0].toUpperCase();
-}
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();

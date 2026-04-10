@@ -8,20 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-function getPasswordStrength(password: string): { score: number; label: string } {
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  const labels = ["Very weak", "Weak", "Fair", "Good", "Strong"];
-  return { score, label: labels[Math.min(score, labels.length) - 1] || "Very weak" };
-}
-
-const strengthColors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-400", "bg-emerald-500"];
+import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 
 const glassPage = (children: React.ReactNode) => (
   <div
@@ -43,7 +30,6 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const strength = getPasswordStrength(password);
 
   if (!token) {
     return glassPage(
@@ -136,21 +122,7 @@ function ResetPasswordForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
           />
-          {password.length > 0 && (
-            <div className="space-y-1">
-              <div className="flex gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-1.5 flex-1 rounded-full transition-colors ${
-                      i < strength.score ? strengthColors[strength.score - 1] : "bg-white/50"
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-gray-500">{strength.label}</p>
-            </div>
-          )}
+          <PasswordStrengthMeter password={password} />
           <p className="text-xs text-gray-500">
             Min 8 chars, 1 uppercase, 1 number, 1 special character
           </p>

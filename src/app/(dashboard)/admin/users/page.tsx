@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getInitials } from "@/lib/utils";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,18 +141,6 @@ export default function AdminUsersPage() {
     } finally {
       setAddLoading(false);
     }
-  }
-
-  function getInitials(name: string | null, email: string): string {
-    if (name) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return email[0].toUpperCase();
   }
 
   return (

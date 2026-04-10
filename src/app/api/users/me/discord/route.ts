@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 
-const DISCORD_ID_REGEX = /^\d{17,20}$/;
+// Discord Snowflake IDs are 18-20 digits (17-digit IDs predate the epoch and are invalid).
+const DISCORD_ID_REGEX = /^\d{18,20}$/;
 
 // GET /api/users/me/discord — get current user's Discord link status
 export async function GET() {
