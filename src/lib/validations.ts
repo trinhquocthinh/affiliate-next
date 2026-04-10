@@ -68,6 +68,19 @@ export const closeRequestSchema = z.object({
   }
 });
 
+export const editRequestSchema = z.object({
+  productUrl: z.string().url("Invalid URL").refine(
+    (url) => url.startsWith("http://") || url.startsWith("https://"),
+    "URL must start with http:// or https://",
+  ).optional(),
+  platform: z.enum(["SHOPEE", "TIKTOK", "OTHER"]).optional(),
+  productName: z.string().max(200).trim().nullable().optional(),
+  expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
+}).refine(
+  (data) => data.productUrl !== undefined || data.platform !== undefined || data.productName !== undefined,
+  { message: "At least one field must be provided" },
+);
+
 export const claimRequestSchema = z.object({
   unclaim: z.boolean().optional(),
   expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),

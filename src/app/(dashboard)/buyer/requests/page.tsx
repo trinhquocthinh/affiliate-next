@@ -42,6 +42,7 @@ import {
   CopyIcon,
   LoaderIcon,
   ShieldIcon,
+  PencilIcon,
 } from "lucide-react";
 
 type RequestItem = {
@@ -126,6 +127,12 @@ export default function BuyerRequestsPage() {
   const [adminBuyerNote, setAdminBuyerNote] = useState("");
   const [savingCorrection, setSavingCorrection] = useState(false);
 
+  // Edit request state
+  const [editProductUrl, setEditProductUrl] = useState("");
+  const [editPlatform, setEditPlatform] = useState("");
+  const [editProductName, setEditProductName] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
@@ -159,6 +166,9 @@ export default function BuyerRequestsPage() {
     setOrderId("");
     setAdminOrderId(item.orderId || "");
     setAdminBuyerNote(item.buyerNote || "");
+    setEditProductUrl(item.productUrlRaw);
+    setEditPlatform(item.platform);
+    setEditProductName(item.productName || "");
   }
 
   function copyId(id: string) {
@@ -181,9 +191,7 @@ export default function BuyerRequestsPage() {
       const data = await res.json();
       if (data.ok) {
         toast.success("Note saved");
-        setSelected((prev) =>
-          prev ? { ...prev, buyerNote, lastUpdatedAt: data.data.lastUpdatedAt } : null,
-        );
+        setSelected(null);
         fetchRequests();
       } else {
         toast.error(data.error?.message || "Failed to save note");
@@ -192,6 +200,47 @@ export default function BuyerRequestsPage() {
       toast.error("Failed to save note");
     } finally {
       setSavingNote(false);
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!selected) return;
+    setSavingEdit(true);
+    try {
+      const body: Record<string, unknown> = {
+        expectedLastUpdatedAt: selected.lastUpdatedAt,
+      };
+      if (editProductUrl !== selected.productUrlRaw) body.productUrl = editProductUrl;
+      if (editPlatform !== selected.platform) body.platform = editPlatform;
+      if (editProductName !== (selected.productName || "")) body.productName = editProductName || null;
+
+      const res = await fetch(`/api/requests/${selected.id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success("Request updated");
+        setSelected((prev) =>
+          prev
+            ? {
+                ...prev,
+                productUrlRaw: data.data.productUrlRaw,
+                platform: data.data.platform,
+                productName: data.data.productName,
+                lastUpdatedAt: data.data.lastUpdatedAt,
+              }
+            : null,
+        );
+        fetchRequests();
+      } else {
+        toast.error(data.error?.message || "Failed to update request");
+      }
+    } catch {
+      toast.error("Failed to update request");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -533,6 +582,68 @@ export default function BuyerRequestsPage() {
 
                   {/* Right Column: Actions */}
                   <div className="w-full lg:w-[55%] flex flex-col lg:overflow-y-auto">
+                    {/* Edit Request — only for non-CLOSED */}
+                    {selected.status !== "CLOSED" && (
+                      <div className="p-6 lg:p-8 border-b border-border space-y-4">
+                        <p className="text-sm font-semibold flex items-center gap-2">
+                          <PencilIcon className="h-4 w-4" />
+                          Edit Request
+                        </p>
+                        <div className="space-y-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">Platform</Label>
+                            <Select value={editPlatform} onValueChange={(v) => v && setEditPlatform(v)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="SHOPEE">Shopee</SelectItem>
+                                <SelectItem value="TIKTOK">TikTok</SelectItem>
+                                <SelectItem value="OTHER">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">Product URL</Label>
+                            <Input
+                              value={editProductUrl}
+                              onChange={(e) => setEditProductUrl(e.target.value)}
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">Product Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                            <Input
+                              value={editProductName}
+                              onChange={(e) => setEditProductName(e.target.value)}
+                              placeholder="Product name"
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handleSaveEdit}
+                          disabled={
+                            savingEdit ||
+                            !editProductUrl.trim() ||
+                            (
+                              editProductUrl === selected.productUrlRaw &&
+                              editPlatform === selected.platform &&
+                              editProductName === (selected.productName || "")
+                            )
+                          }
+                          className="w-full"
+                        >
+                          {savingEdit ? (
+                            <>
+                              <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Changes"
+                          )}
+                        </Button>
+                      </div>
+                    )}
                     {/* Buyer Note */}
                     <div className="p-6 lg:p-8 border-b border-border space-y-4">
                       <div className="space-y-2">
@@ -568,8 +679,8 @@ export default function BuyerRequestsPage() {
                       )}
                     </div>
 
-                    {/* Close Request — only for FILLED */}
-                    {selected.status === "FILLED" && (
+                    {/* Close Request — for NEW and FILLED (not CLOSED) */}
+                    {selected.status !== "CLOSED" && (
                       <div className="p-6 lg:p-8 bg-destructive/5 space-y-4">
                         <p className="text-sm font-semibold text-destructive flex items-center gap-2">
                           <AlertTriangleIcon className="h-4 w-4" />

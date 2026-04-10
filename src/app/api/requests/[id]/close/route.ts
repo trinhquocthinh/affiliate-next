@@ -46,18 +46,12 @@ export async function POST(
       );
     }
 
-    // Buyer can only close their own FILLED requests
+    // Buyer can only close their own requests (any non-CLOSED status)
     if (actor.role === "BUYER") {
       if (existing.createdById !== actor.userId) {
         return NextResponse.json(
           { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
           { status: 403 },
-        );
-      }
-      if (existing.status !== "FILLED") {
-        return NextResponse.json(
-          { ok: false, error: { code: "INVALID_STATE", message: "Can only close filled requests" } },
-          { status: 400 },
         );
       }
     }
