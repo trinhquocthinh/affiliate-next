@@ -298,4 +298,3 @@ AppConfig                     (key/value config table)
 - All sensitive operations check role + ownership server-side
 - Optimistic locking on request updates prevents conflicting writes
 - Password reset tokens are hashed before storage
-
