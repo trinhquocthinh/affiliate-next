@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["sin1"],
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "uat": false
+    }
+  },
+  "functions": {
+    "src/app/api/affiliate/bulk-close/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/affiliate/[id]/fill/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/affiliate/queue/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/requests/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

@@ -110,18 +110,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Demo Accounts (after seeding)
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@affiliate.local` | `Admin@123` |
-| Buyer | `buyer@affiliate.local` | `Buyer@123` |
-| Affiliate | `affiliate@affiliate.local` | `Affiliate@123` |
-
-> Passwords are set via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars for admin. Buyer and affiliate accounts use the values above by default.
-
----
-
 ## Available Scripts
 
 ```bash
@@ -197,41 +185,88 @@ src/
 
 ## Deployment
 
-This project is deployed on **Netlify** with automatic deploys from the `main` branch via GitHub Actions.
+This project deploys to **two environments via GitHub Actions**:
 
-### One-time Netlify setup
+| Branch | Workflow | Platform | Environment | Neon DB branch |
+|---|---|---|---|---|
+| `main` | [.github/workflows/deploy-vercel.yml](./.github/workflows/deploy-vercel.yml) | **Vercel** (region `sin1` — Singapore) | Production | `prod` |
+| `uat` | [.github/workflows/deploy-netlify.yml](./.github/workflows/deploy-netlify.yml) | **Netlify** | UAT / staging | `uat` |
 
-1. Create a new site on [netlify.com](https://app.netlify.com)
-2. **Do not** connect the GitHub repo directly — GitHub Actions handles the deploy
-3. Go to **Site settings → Environment variables** and add:
+> Both deploys run from GitHub Actions using the platform CLIs (`vercel` / `netlify-cli`). **Disable native Git integration on both Vercel and Netlify** to avoid double deploys.
 
-```
-DATABASE_URL       = <your Neon connection string>
-AUTH_SECRET        = <same value as local .env>
-NEXTAUTH_URL       = https://<your-netlify-domain>.netlify.app
-ADMIN_EMAIL        = <your admin email>
-ADMIN_PASSWORD     = <your admin password>
-```
+### GitHub Actions secrets
 
-4. Go to **Site settings → General** and copy the **Site ID**
-5. Go to [app.netlify.com/user/applications](https://app.netlify.com/user/applications) and create a **Personal access token**
+Add these under **GitHub → Settings → Environments → `secret`**:
 
-### GitHub Secrets required
-
-Add these in **GitHub → Settings → Secrets and variables → Actions**:
+**Shared (used by both workflows):**
 
 | Secret | Value |
 |---|---|
-| `NETLIFY_AUTH_TOKEN` | Your Netlify personal access token |
-| `NETLIFY_SITE_ID` | Your Netlify site ID |
-| `DATABASE_URL` | Neon connection string (for build-time Prisma generate) |
 | `AUTH_SECRET` | Auth.js secret |
-| `NEXTAUTH_URL` | Production URL |
+| `ADMIN_EMAIL` | Admin email |
+| `ADMIN_PASSWORD` | Admin password |
 
-### Deploy triggers
+> `DATABASE_URL` and `AUTH_URL` are environment-specific: store the **prod** values in the secrets used by the Vercel workflow, and the **uat** values in the secrets used by the Netlify workflow. The simplest setup is to keep them as plain repo secrets per the workflow file (or split into two GitHub Environments — one called `production`, one `uat`).
 
-- Every push to `main` → automatic production deploy
-- The workflow builds locally in GitHub Actions (secrets available at build time) then deploys the output to Netlify
+**Vercel-only:**
+
+| Secret | Value | How to get |
+|---|---|---|
+| `VERCEL_TOKEN` | Personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Organization / team ID | Run `vercel link` locally, then read `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | Project ID | Same as above |
+
+**Netlify-only:**
+
+| Secret | Value |
+|---|---|
+| `NETLIFY_AUTH_TOKEN` | Personal access token from [app.netlify.com/user/applications](https://app.netlify.com/user/applications) |
+| `NETLIFY_SITE_ID` | Site ID from Netlify site settings |
+
+### Vercel project setup
+
+1. Create the project on [vercel.com](https://vercel.com) (or run `vercel link` locally).
+2. **Disconnect** the GitHub Git integration if Vercel auto-connected the repo (Settings → Git → Disconnect). The GitHub Actions workflow handles deploys.
+3. Region pinning to `sin1` is enforced via [vercel.json](./vercel.json) — same region as Neon (`ap-southeast-1`).
+4. **Settings → Functions → Fluid Compute**: enable to reduce cold starts.
+5. **Settings → Environment Variables** (Production scope) — set the same values that GitHub Actions injects at build time, so the runtime can read them:
+
+```
+DATABASE_URL       = <Neon prod branch pooled connection string>
+AUTH_SECRET        = <Auth.js secret>
+AUTH_URL           = https://<your-vercel-domain>
+ADMIN_EMAIL        = <admin email>
+ADMIN_PASSWORD     = <admin password>
+```
+
+> Use the **pooled** Neon connection string (host contains `-pooler`).
+
+### Netlify project setup
+
+1. Create the site on Netlify (link it to the repo for env management, but disable auto-build — Actions handles it).
+2. **Site configuration → Build & deploy → Continuous deployment**: set **Stop builds** or set the production branch to a non-existent branch so Netlify doesn't auto-build on push.
+3. **Site configuration → Environment variables**:
+
+```
+DATABASE_URL       = <Neon uat branch pooled connection string>
+AUTH_SECRET        = <Auth.js secret>
+AUTH_URL           = https://<your-netlify-domain>.netlify.app
+ADMIN_EMAIL        = <admin email>
+ADMIN_PASSWORD     = <admin password>
+```
+
+### Neon database branches
+
+Both environments share one Neon project with two branches:
+
+- `main` Neon branch → used by Vercel (production)
+- `uat` Neon branch → used by Netlify (staging)
+
+Create the `uat` branch from the Neon dashboard (Branches → New branch from `main`) and copy its **pooled** connection string into the Netlify workflow's `DATABASE_URL` secret.
+
+### Why `sin1` matters
+
+The previous Netlify-only setup ran serverless functions in the US, while Neon lives in Singapore — every DB round-trip crossed the Pacific, causing API latency of ~10s. Pinning Vercel functions to `sin1` puts the function in the same region as the database, dropping warm-path latency to <500ms.
 
 ---
 
