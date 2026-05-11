@@ -3,6 +3,10 @@ import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { verifyRequestSecurity } from "@/lib/security-guard";
+
+// firebase-admin requires the Node.js runtime.
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +20,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const parsed = registerSchema.safeParse(body);
+    // Triple-layer security: SHA-256 body checksum + Firebase App Check + Turnstile.
+    const guard = await verifyRequestSecurity(request);
+    if (!guard.ok) return guard.response;
+
+    const parsed = registerSchema.safeParse(guard.body);
 
     if (!parsed.success) {
       return NextResponse.json(
