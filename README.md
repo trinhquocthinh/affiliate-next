@@ -34,7 +34,9 @@ A full-stack web application for managing affiliate link requests between buyers
 | Animations | Framer Motion |
 | Data Fetching | SWR |
 | Notifications | Sonner |
-| Deployment | Netlify (with `@netlify/plugin-nextjs`) |
+| CAPTCHA | Cloudflare Turnstile (`@marsidev/react-turnstile`) |
+| App Integrity | Firebase App Check (reCAPTCHA v3 provider) |
+| Deployment | Vercel (prod) + Netlify (UAT) via GitHub Actions |
 
 ---
 
@@ -64,6 +66,8 @@ BUYER                        AFFILIATE                    ADMIN
 - Node.js >= 20
 - Yarn
 - A [Neon](https://neon.tech) PostgreSQL database (free tier works)
+- A [Cloudflare](https://dash.cloudflare.com) account (free — for Turnstile)
+- A [Firebase](https://console.firebase.google.com) project with App Check enabled
 
 ---
 
@@ -82,16 +86,35 @@ yarn install
 Copy the example and fill in values:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-| Variable | Description | Example |
-|---|---|---|
-| `DATABASE_URL` | Neon PostgreSQL connection string | `postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require` |
-| `AUTH_SECRET` | Random secret for Auth.js session encryption (min 32 chars) | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Full public URL of your app | `http://localhost:3000` |
-| `ADMIN_EMAIL` | Email for the seeded admin account | `admin@yoursite.com` |
-| `ADMIN_PASSWORD` | Password for the seeded admin account | `Admin@123` |
+#### Server-side variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL pooled connection string |
+| `AUTH_SECRET` | Random secret for Auth.js (`openssl rand -base64 32`) |
+| `AUTH_URL` | Full public URL of your app (e.g. `http://localhost:3000`) |
+| `ADMIN_EMAIL` | Email for the seeded admin account |
+| `ADMIN_PASSWORD` | Password for the seeded admin account |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile **secret** key (server-side verify) |
+| `FIREBASE_PROJECT_ID` | Firebase project ID |
+| `FIREBASE_CLIENT_EMAIL` | Firebase service account client email |
+| `FIREBASE_PRIVATE_KEY` | Firebase service account private key (newline-escaped) |
+| `SECURITY_GUARD_DISABLED` | Set to `1` to bypass all security checks in non-production only |
+
+#### Client-side variables (`NEXT_PUBLIC_*`)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile **site** key (rendered in browser) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web app API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app ID |
+| `NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key registered in Firebase App Check |
+| `NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN` | App Check debug token for local dev (see below) |
 
 ### 3. Push schema & seed the database
 
@@ -153,7 +176,11 @@ src/
 │   ├── prisma.ts             # Prisma client singleton
 │   ├── validations.ts        # Zod schemas for all API inputs
 │   ├── audit.ts              # Audit log helper
-│   └── auth-utils.ts         # Server-side actor context helpers
+│   ├── auth-utils.ts         # Server-side actor context helpers
+│   ├── security-guard.ts     # Triple-layer POST guard (checksum + App Check + Turnstile)
+│   ├── firebase-admin.ts     # Firebase Admin SDK singleton (server)
+│   ├── firebase-client.ts    # Firebase Web SDK + App Check init (client)
+│   └── secure-fetch.ts       # Client helper: signs requests with all 3 security headers
 ├── hooks/                    # React hooks
 ├── types/                    # TypeScript type extensions
 └── middleware.ts             # Edge middleware: session cookie guard
@@ -177,96 +204,176 @@ src/
 | `GET/PUT` | `/api/config` | ADMIN | Read/update app config |
 | `GET/POST` | `/api/users` | ADMIN | List/create users |
 | `PATCH/DELETE` | `/api/users/[id]` | ADMIN | Update/delete user |
-| `POST` | `/api/register` | PUBLIC | Self-registration |
-| `POST` | `/api/forgot-password` | PUBLIC | Request password reset |
+| `POST` | `/api/register` | PUBLIC | Self-registration ⁽¹⁾ |
+| `POST` | `/api/forgot-password` | PUBLIC | Request password reset ⁽¹⁾ |
 | `POST` | `/api/reset-password` | PUBLIC | Confirm password reset |
+
+> ⁽¹⁾ Protected by the triple-layer security guard (SHA-256 checksum + Firebase App Check + Cloudflare Turnstile).
+
+---
+
+## Security Architecture
+
+Public mutation endpoints (`/api/register`, `/api/forgot-password`) are protected by three stacked server-side checks in addition to rate limiting.
+
+### Request flow
+
+```
+Client                              Server (Node.js runtime)
+──────                              ──────────────────────────
+1. Serialize body to JSON string
+2. SHA-256(body) → X-Body-Checksum header
+3. Firebase App Check token     →  X-Firebase-AppCheck header
+4. Cloudflare Turnstile token   →  X-Turnstile-Token header
+                                    │
+                                    ├─ 1. Rate limit (in-memory sliding window)
+                                    ├─ 2. X-Body-Checksum — constant-time SHA-256 compare
+                                    ├─ 3. X-Firebase-AppCheck — Firebase Admin verifyToken()
+                                    ├─ 4. X-Turnstile-Token — Cloudflare siteverify API
+                                    └─ 5. Zod schema validation → Prisma / Neon DB
+```
+
+### Error codes
+
+| HTTP | Code | Meaning |
+|---|---|---|
+| 429 | `RATE_LIMITED` | Too many requests from this IP |
+| 400 | `BAD_REQUEST` | Missing or malformed required header / invalid JSON |
+| 400 | `CHECKSUM_MISMATCH` | Body was tampered — SHA-256 does not match |
+| 401 | `APPCHECK_INVALID` | Firebase App Check token missing or invalid |
+| 401 | `TURNSTILE_INVALID` | Cloudflare Turnstile token missing or invalid |
+| 500 | `SECURITY_CHECK_FAILED` | Unexpected error during a security check |
+
+### Dev bypass
+
+Set `SECURITY_GUARD_DISABLED=1` in `.env.local` to skip all three checks. **Never honoured when `NODE_ENV=production`.**
+
+---
+
+## Firebase App Check — Local Setup
+
+Because `localhost` cannot pass reCAPTCHA normally, App Check uses a **debug token** in development:
+
+1. Start the dev server and open the `/register` page in Chrome DevTools.
+2. Firebase will print to the console:
+   ```
+   App Check debug token: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   ```
+3. Register that UUID in Firebase Console:
+   **App Check → Apps → your web app → ⋮ → Manage debug tokens → Add**
+4. Save the UUID to `.env.local`:
+   ```bash
+   NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   ```
+5. Restart `yarn dev`.
+
+> **Do not commit the debug token.** Add `NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN` to `.gitignore` or keep it only in `.env.local` which is already gitignored.
+
+---
+
+## Cloudflare Turnstile Setup
+
+| Environment | Widget | Note |
+|---|---|---|
+| Local dev | Use Cloudflare's **test keys** — always pass without a real CAPTCHA challenge | Site key: `1x00000000000000000000AA` / Secret: `1x0000000000000000000000000000000AA` |
+| UAT | Create a dedicated widget in Cloudflare Dashboard, register your Netlify domain | Widget → Site Key → `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; Widget → Secret Key → `TURNSTILE_SECRET_KEY` |
+| Production | Create a separate widget, register your production domain | Same variables, different values |
 
 ---
 
 ## Deployment
 
-This project deploys to **two environments via GitHub Actions**:
+This project deploys to two environments via GitHub Actions:
 
-| Branch | Workflow | Platform | Environment | Neon DB branch |
-|---|---|---|---|---|
-| `main` | [.github/workflows/deploy-vercel.yml](./.github/workflows/deploy-vercel.yml) | **Vercel** (region `sin1` — Singapore) | Production | `prod` |
-| `uat` | [.github/workflows/deploy-netlify.yml](./.github/workflows/deploy-netlify.yml) | **Netlify** | UAT / staging | `uat` |
+| Branch | Platform | Environment | Neon DB branch |
+|---|---|---|---|
+| `main` | **Vercel** (region `sin1` — Singapore) | Production | `main` |
+| `uat` | **Netlify** | UAT / staging | `uat` |
 
-> Both deploys run from GitHub Actions using the platform CLIs (`vercel` / `netlify-cli`). **Disable native Git integration on both Vercel and Netlify** to avoid double deploys.
+> Both deploys run from GitHub Actions. **Disable native Git integration on both Vercel and Netlify** to avoid double deploys.
 
 ### GitHub Actions secrets
 
-Add these under **GitHub → Settings → Environments → `secret`**:
-
-**Shared (used by both workflows):**
+**Shared:**
 
 | Secret | Value |
 |---|---|
-| `AUTH_SECRET` | Auth.js secret |
-| `ADMIN_EMAIL` | Admin email |
-| `ADMIN_PASSWORD` | Admin password |
+| `AUTH_SECRET` | Auth.js session secret |
+| `ADMIN_EMAIL` | Admin account email |
+| `ADMIN_PASSWORD` | Admin account password |
 
-> `DATABASE_URL` and `AUTH_URL` are environment-specific: store the **prod** values in the secrets used by the Vercel workflow, and the **uat** values in the secrets used by the Netlify workflow. The simplest setup is to keep them as plain repo secrets per the workflow file (or split into two GitHub Environments — one called `production`, one `uat`).
+> `DATABASE_URL` and `AUTH_URL` are environment-specific — store the prod values in secrets used by the Vercel workflow and the UAT values in the Netlify workflow. Split into two GitHub Environments (`production` / `uat`) for clean separation.
 
 **Vercel-only:**
 
-| Secret | Value | How to get |
-|---|---|---|
-| `VERCEL_TOKEN` | Personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
-| `VERCEL_ORG_ID` | Organization / team ID | Run `vercel link` locally, then read `.vercel/project.json` |
-| `VERCEL_PROJECT_ID` | Project ID | Same as above |
+| Secret | How to get |
+|---|---|
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Run `vercel link` locally → `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | Same as above |
 
 **Netlify-only:**
 
-| Secret | Value |
+| Secret | How to get |
 |---|---|
-| `NETLIFY_AUTH_TOKEN` | Personal access token from [app.netlify.com/user/applications](https://app.netlify.com/user/applications) |
-| `NETLIFY_SITE_ID` | Site ID from Netlify site settings |
+| `NETLIFY_AUTH_TOKEN` | [app.netlify.com/user/applications](https://app.netlify.com/user/applications) |
+| `NETLIFY_SITE_ID` | Netlify site settings → Site ID |
+
+**Security env vars (per environment):**
+
+| Variable | Vercel (prod) | Netlify (UAT) |
+|---|---|---|
+| `TURNSTILE_SECRET_KEY` | Prod widget secret key | UAT widget secret key |
+| `FIREBASE_PROJECT_ID` | Firebase project ID | Same project |
+| `FIREBASE_CLIENT_EMAIL` | Service account email | Same service account |
+| `FIREBASE_PRIVATE_KEY` | Service account private key | Same private key |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Prod widget site key | UAT widget site key |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase Web config values | Same project, same values |
+| `NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key | Same key |
 
 ### Vercel project setup
 
-1. Create the project on [vercel.com](https://vercel.com) (or run `vercel link` locally).
-2. **Disconnect** the GitHub Git integration if Vercel auto-connected the repo (Settings → Git → Disconnect). The GitHub Actions workflow handles deploys.
-3. Region pinning to `sin1` is enforced via [vercel.json](./vercel.json) — same region as Neon (`ap-southeast-1`).
+1. Create the project on [vercel.com](https://vercel.com) or run `vercel link`.
+2. **Disconnect** the GitHub Git integration (Settings → Git → Disconnect).
+3. Region is pinned to `sin1` via [vercel.json](./vercel.json) — same region as Neon (`ap-southeast-1`).
 4. **Settings → Functions → Fluid Compute**: enable to reduce cold starts.
-5. **Settings → Environment Variables** (Production scope) — set the same values that GitHub Actions injects at build time, so the runtime can read them:
+5. **Settings → Environment Variables** (Production scope):
 
 ```
-DATABASE_URL       = <Neon prod branch pooled connection string>
+DATABASE_URL       = <Neon prod pooled connection string>
 AUTH_SECRET        = <Auth.js secret>
 AUTH_URL           = https://<your-vercel-domain>
 ADMIN_EMAIL        = <admin email>
 ADMIN_PASSWORD     = <admin password>
+TURNSTILE_SECRET_KEY                     = <prod Turnstile secret>
+FIREBASE_PROJECT_ID                      = <project id>
+FIREBASE_CLIENT_EMAIL                    = <service account email>
+FIREBASE_PRIVATE_KEY                     = <service account private key>
+NEXT_PUBLIC_TURNSTILE_SITE_KEY           = <prod Turnstile site key>
+NEXT_PUBLIC_FIREBASE_API_KEY             = <web app api key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN         = <project>.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID          = <project id>
+NEXT_PUBLIC_FIREBASE_APP_ID              = <web app id>
+NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY  = <recaptcha v3 site key>
 ```
-
-> Use the **pooled** Neon connection string (host contains `-pooler`).
 
 ### Netlify project setup
 
-1. Create the site on Netlify (link it to the repo for env management, but disable auto-build — Actions handles it).
-2. **Site configuration → Build & deploy → Continuous deployment**: set **Stop builds** or set the production branch to a non-existent branch so Netlify doesn't auto-build on push.
-3. **Site configuration → Environment variables**:
-
-```
-DATABASE_URL       = <Neon uat branch pooled connection string>
-AUTH_SECRET        = <Auth.js secret>
-AUTH_URL           = https://<your-netlify-domain>.netlify.app
-ADMIN_EMAIL        = <admin email>
-ADMIN_PASSWORD     = <admin password>
-```
+1. Create the site on Netlify and disable auto-builds (Settings → Build & deploy → Continuous deployment → **Stop builds**).
+2. **Site configuration → Environment variables** — same list as Vercel but with UAT values.
 
 ### Neon database branches
 
 Both environments share one Neon project with two branches:
 
-- `main` Neon branch → used by Vercel (production)
-- `uat` Neon branch → used by Netlify (staging)
+- `main` branch → Vercel (production)
+- `uat` branch → Netlify (staging) — create from Neon Dashboard: **Branches → New branch from `main`**
 
-Create the `uat` branch from the Neon dashboard (Branches → New branch from `main`) and copy its **pooled** connection string into the Netlify workflow's `DATABASE_URL` secret.
+Always use the **pooled** connection string (host contains `-pooler`).
 
 ### Why `sin1` matters
 
-The previous Netlify-only setup ran serverless functions in the US, while Neon lives in Singapore — every DB round-trip crossed the Pacific, causing API latency of ~10s. Pinning Vercel functions to `sin1` puts the function in the same region as the database, dropping warm-path latency to <500ms.
+Serverless functions default to US regions. With Neon hosted in Singapore (`ap-southeast-1`), every DB round-trip previously crossed the Pacific (~10 s latency). Pinning Vercel to `sin1` co-locates functions with the database, dropping warm-path latency to <500 ms.
 
 ---
 
@@ -292,10 +399,13 @@ AppConfig                     (key/value config table)
 
 ## Security Notes
 
-- Passwords are hashed with **bcrypt** (12 rounds)
-- Sessions are validated against the database on every request (hybrid JWT + DB session strategy)
-- Accounts are locked after repeated failed login attempts
+- Passwords hashed with **bcrypt** (12 rounds)
+- Sessions validated against the database on every request (hybrid JWT + DB strategy)
+- Accounts locked after repeated failed login attempts
 - All sensitive operations check role + ownership server-side
 - Optimistic locking on request updates prevents conflicting writes
-- Password reset tokens are hashed before storage
+- Password reset tokens hashed before storage (SHA-256)
+- Public POST endpoints protected by a triple-layer guard: SHA-256 body checksum + Firebase App Check + Cloudflare Turnstile
+- Content Security Policy headers set on all routes; Turnstile and reCAPTCHA domains explicitly allowlisted
+- All security check failures return generic messages — no internal detail leakage to the client
 
