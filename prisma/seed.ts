@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: Record<string, string> = {
 };
 
 async function main() {
-  console.log("Seeding database...");
+  console.log("Seeding databases...");
 
   // Seed default config
   for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
