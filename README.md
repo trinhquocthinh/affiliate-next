@@ -63,7 +63,7 @@ BUYER                        AFFILIATE                    ADMIN
 
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js >= 21
 - Yarn
 - A [Neon](https://neon.tech) PostgreSQL database (free tier works)
 - A [Cloudflare](https://dash.cloudflare.com) account (free — for Turnstile)
