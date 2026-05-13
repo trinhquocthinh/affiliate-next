@@ -23,6 +23,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@base-ui/react": "^1.3.0",
+    "@marsidev/react-turnstile": "^1.5.2",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^7.6.0",
     "@prisma/client": "^7.6.0",
@@ -31,6 +32,8 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.13.0",
+    "firebase-admin": "^13.9.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "16.2.2",

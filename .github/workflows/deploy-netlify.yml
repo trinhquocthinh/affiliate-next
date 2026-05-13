@@ -9,7 +9,7 @@ jobs:
   deploy:
     name: Build & Deploy to Netlify
     runs-on: ubuntu-latest
-    environment: secret
+    environment: uat
 
     steps:
       - name: Checkout
@@ -28,9 +28,21 @@ jobs:
         run: npx netlify-cli deploy --build --prod --message "Deploy ${{ github.sha }} — ${{ github.event.head_commit.message }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID:    ${{ secrets.NETLIFY_SITE_ID }}
-          DATABASE_URL:       ${{ secrets.DATABASE_URL }}
-          AUTH_SECRET:        ${{ secrets.AUTH_SECRET }}
-          AUTH_URL:           ${{ secrets.AUTH_URL }}
-          ADMIN_EMAIL:        ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD:     ${{ secrets.ADMIN_PASSWORD }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: ${{ secrets.AUTH_URL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # Security guard — server-side
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          # Security guard — public (embedded into client bundle at build time)
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY }}

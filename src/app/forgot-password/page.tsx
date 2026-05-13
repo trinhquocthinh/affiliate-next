@@ -1,42 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { securePost } from "@/lib/secure-fetch";
+
+interface ForgotPasswordResponse {
+  ok: boolean;
+  data?: { devResetUrl?: string };
+  error?: { code: string; message: string };
+}
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!turnstileToken) {
+      toast.error("Please complete the captcha.");
+      return;
+    }
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
     try {
-      const res = await fetch("/api/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
+      const data = await securePost<ForgotPasswordResponse>(
+        "/api/forgot-password",
+        { email },
+        turnstileToken,
+      );
 
       if (!data.ok) {
         toast.error(data.error?.message || "Request failed");
+        turnstileRef.current?.reset();
+        setTurnstileToken("");
       } else {
         if (data.data?.devResetUrl) setDevResetUrl(data.data.devResetUrl);
         setSubmitted(true);
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Something went wrong. Please try again.");
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -116,10 +134,26 @@ export default function ForgotPasswordPage() {
                   className="h-12 px-4 text-[15px] text-black bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
                 />
               </div>
+              {turnstileSiteKey ? (
+                <div className="flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={turnstileSiteKey}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onError={() => setTurnstileToken("")}
+                    onExpire={() => setTurnstileToken("")}
+                    options={{ theme: "light" }}
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600">
+                  Turnstile site key missing — set NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+                </p>
+              )}
               <Button
                 type="submit"
                 className="w-full mt-2 h-12 text-[15px] text-white font-semibold rounded-xl bg-[#008a62] hover:bg-[#006b4c] shadow-[0_4px_12px_rgba(0,138,98,0.2)] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)] hover:-translate-y-0.5 transition-all"
-                disabled={loading}
+                disabled={loading || !turnstileToken}
               >
                 {loading ? "Sending..." : "Send reset link"}
               </Button>

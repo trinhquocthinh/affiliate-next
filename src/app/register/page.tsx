@@ -1,21 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
+import { securePost } from "@/lib/secure-fetch";
+
+interface RegisterResponse {
+  ok: boolean;
+  error?: { code: string; message: string };
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!turnstileToken) {
+      toast.error("Please complete the captcha.");
+      return;
+    }
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -26,22 +41,26 @@ export default function RegisterPage() {
     };
 
     try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
+      const data = await securePost<RegisterResponse>(
+        "/api/register",
+        body,
+        turnstileToken,
+      );
 
       if (!data.ok) {
         toast.error(data.error?.message || "Registration failed");
+        // Turnstile tokens are single-use — refresh on failure.
+        turnstileRef.current?.reset();
+        setTurnstileToken("");
       } else {
         toast.success("Account created! Please sign in.");
         router.push("/login");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Something went wrong. Please try again.");
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -119,10 +138,26 @@ export default function RegisterPage() {
               Min 8 chars, 1 uppercase, 1 number, 1 special character
             </p>
           </div>
+          {turnstileSiteKey ? (
+            <div className="flex justify-center">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={turnstileSiteKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setTurnstileToken("")}
+                onExpire={() => setTurnstileToken("")}
+                options={{ theme: "light" }}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-amber-600">
+              Turnstile site key missing — set NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+            </p>
+          )}
           <Button
             type="submit"
             className="w-full mt-2 h-12 text-[15px] text-white font-semibold rounded-xl bg-[#008a62] hover:bg-[#006b4c] shadow-[0_4px_12px_rgba(0,138,98,0.2)] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)] hover:-translate-y-0.5 transition-all"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
           >
             {loading ? "Creating account..." : "Create account"}
           </Button>
