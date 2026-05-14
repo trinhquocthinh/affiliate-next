@@ -587,8 +587,8 @@ export default function BuyerRequestsPage() {
                           <div className="space-y-1.5">
                             <Label className="text-sm">Product URL</Label>
                             <Input
-                              value={editProductUrl}
-                              onChange={(e) => setEditProductUrl(e.target.value)}
+                              value={decodeURIComponent(editProductUrl).split("?")[0]}
+                              onChange={(e) => setEditProductUrl(decodeURIComponent(e.target.value.split("?")[0]))}
                               placeholder="https://..."
                             />
                           </div>
