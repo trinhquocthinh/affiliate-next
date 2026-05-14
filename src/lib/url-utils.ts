@@ -77,3 +77,102 @@ function shouldIgnoreParam(key: string): boolean {
     lower.startsWith("__")
   );
 }
+
+// ---------------------------------------------------------------------------
+// Platform detection
+// ---------------------------------------------------------------------------
+
+const SHOPEE_DOMAINS = new Set([
+  "shopee.vn",
+  "shopee.sg",
+  "shopee.com.my",
+  "shopee.ph",
+  "shopee.co.th",
+  "shopee.co.id",
+  "shopee.tw",
+  "shopee.com.br",
+  "shopee.com.mx",
+  "shopee.com.co",
+  "shopee.cl",
+]);
+
+const SHORTLINK_DOMAINS = new Set([
+  // Shopee shortlinks
+  "s.shopee.vn",
+  "shp.ee",
+  // TikTok shortlinks
+  "vm.tiktok.com",
+  "vt.tiktok.com",
+  // Generic shortlink services
+  "bit.ly",
+  "tinyurl.com",
+  "t.co",
+  "goo.gl",
+  "ow.ly",
+  "buff.ly",
+  "is.gd",
+  "rb.gy",
+  "cutt.ly",
+  "tiny.cc",
+  "short.io",
+  "soo.gd",
+]);
+
+export type DetectedPlatform = "SHOPEE" | "TIKTOK" | "OTHER";
+
+export type UrlDetectionResult = {
+  platform: DetectedPlatform | null;
+  isShortlink: boolean;
+  errorMessage?: string;
+};
+
+/**
+ * Detect the platform of a product URL and validate it.
+ * Returns null platform for empty input (no validation needed yet).
+ */
+export function detectPlatformFromUrl(url: string): UrlDetectionResult {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return { platform: null, isShortlink: false };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { platform: null, isShortlink: false, errorMessage: "Invalid URL format" };
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    return { platform: null, isShortlink: false, errorMessage: "Invalid URL format" };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (SHORTLINK_DOMAINS.has(hostname)) {
+    // Try to give a platform hint even for shortlinks
+    let platform: DetectedPlatform | null = null;
+    if (hostname === "shp.ee" || hostname === "s.shopee.vn") platform = "SHOPEE";
+    else if (hostname === "vm.tiktok.com" || hostname === "vt.tiktok.com") platform = "TIKTOK";
+    return {
+      platform,
+      isShortlink: true,
+      errorMessage: "Shortlinks are not supported. Please use the full product URL.",
+    };
+  }
+
+  // Check exact Shopee domain or subdomain
+  const isShopee =
+    SHOPEE_DOMAINS.has(hostname) ||
+    [...SHOPEE_DOMAINS].some((d) => hostname.endsWith("." + d));
+  if (isShopee) {
+    return { platform: "SHOPEE", isShortlink: false };
+  }
+
+  // TikTok: any *.tiktok.com that wasn't caught by shortlinks above
+  if (hostname === "tiktok.com" || hostname.endsWith(".tiktok.com")) {
+    return { platform: "TIKTOK", isShortlink: false };
+  }
+
+  return { platform: "OTHER", isShortlink: false };
+}

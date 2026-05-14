@@ -97,6 +97,26 @@ function extractMetaContent(html: string, attr: string): string | undefined {
   return regex.exec(html)?.[1] || altRegex.exec(html)?.[1];
 }
 
+/**
+ * Extract product name from a Shopee URL slug.
+ * Shopee URLs follow the pattern: /product-name-slug-i.shopId.itemId
+ * The slug is the product name with spaces replaced by hyphens.
+ */
+function extractShopeeNameFromUrl(pathname: string): string | undefined {
+  try {
+    const decoded = decodeURIComponent(pathname);
+    // Get the last path segment (handles /category/product-slug-i.shopId.itemId)
+    const lastSegment = decoded.split("/").filter(Boolean).pop() ?? "";
+    // Remove the -i.shopId.itemId suffix
+    const withoutId = lastSegment.replace(/-i\.\d+\.\d+$/, "").trim();
+    if (!withoutId) return undefined;
+    // Shopee encodes spaces as hyphens in URL slugs
+    return withoutId.replace(/-/g, " ").trim();
+  } catch {
+    return undefined;
+  }
+}
+
 async function tryShopeePreview(url: string, parsed: URL): Promise<LinkPreview | null> {
   const region = Object.entries(SHOPEE_REGIONS).find(([domain]) =>
     parsed.hostname.includes(domain),
@@ -108,6 +128,9 @@ async function tryShopeePreview(url: string, parsed: URL): Promise<LinkPreview |
   if (!match) return null;
 
   const [, shopId, itemId] = match;
+
+  // Always extract name from slug — this is reliable even when the API is unavailable
+  const nameFromSlug = extractShopeeNameFromUrl(parsed.pathname);
 
   try {
     const apiUrl = `https://shopee.vn/api/v4/item/get?shopid=${shopId}&itemid=${itemId}`;
@@ -122,11 +145,15 @@ async function tryShopeePreview(url: string, parsed: URL): Promise<LinkPreview |
     });
     clearTimeout(timeout);
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return nameFromSlug ? { title: nameFromSlug } : null;
+    }
 
     const data = await response.json();
     const item = data?.data;
-    if (!item) return null;
+    if (!item) {
+      return nameFromSlug ? { title: nameFromSlug } : null;
+    }
 
     const imageToken = item.image;
     const imageUrl = imageToken
@@ -134,11 +161,12 @@ async function tryShopeePreview(url: string, parsed: URL): Promise<LinkPreview |
       : undefined;
 
     return {
-      title: item.name,
+      // Prefer API name (most accurate), fall back to slug extraction
+      title: item.name || nameFromSlug,
       imageUrl,
     };
   } catch {
-    return null;
+    return nameFromSlug ? { title: nameFromSlug } : null;
   }
 }
 
