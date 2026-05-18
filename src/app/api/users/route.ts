@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {};
     if (roleFilter) where.role = roleFilter;
     if (activeFilter !== null && activeFilter !== undefined) {
-      where.isActive = activeFilter === "true";
+      where.status = activeFilter === "true" ? "ACTIVE" : "INACTIVE";
     }
     if (search) {
       where.OR = [
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         email: true,
         displayName: true,
         role: true,
-        isActive: true,
+        status: true,
         lastLoginAt: true,
         createdAt: true,
       },
@@ -103,13 +103,14 @@ export async function POST(request: Request) {
         passwordHash,
         displayName: displayName || null,
         role: role || "BUYER",
+        status: "ACTIVE",
       },
       select: {
         id: true,
         email: true,
         displayName: true,
         role: true,
-        isActive: true,
+        status: true,
       },
     });
 

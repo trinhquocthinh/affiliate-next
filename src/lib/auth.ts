@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email },
         });
 
-        if (!user || !user.isActive) {
+        if (!user || user.status !== "ACTIVE") {
           return null;
         }
 
@@ -115,7 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: {
             user: {
               select: {
-                isActive: true,
+                status: true,
                 lockedUntil: true,
                 role: true,
                 displayName: true,
@@ -129,9 +129,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // User deactivated or locked — revoke session
+        // User not active or locked — revoke session
         if (
-          !session.user.isActive ||
+          session.user.status !== "ACTIVE" ||
           (session.user.lockedUntil && session.user.lockedUntil > new Date())
         ) {
           await prisma.session

@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { verifyRequestSecurity } from "@/lib/security-guard";
+import { logAuditEvent } from "@/lib/audit";
+import {
+  getDiscordConfig,
+  sendChannelMessage,
+  buildPendingUserEmbed,
+} from "@/lib/discord";
 
 // firebase-admin requires the Node.js runtime.
 export const runtime = "nodejs";
@@ -55,11 +61,30 @@ export async function POST(request: Request) {
         passwordHash,
         displayName,
         role: "BUYER",
+        status: "PENDING",
       },
     });
 
+    // Notify admin Discord channel — failure must not block registration
+    try {
+      const { adminChannelId } = getDiscordConfig();
+      await sendChannelMessage(adminChannelId, {
+        embeds: [buildPendingUserEmbed(user)],
+      });
+    } catch (discordErr) {
+      console.error("Failed to send Discord pending alert:", discordErr);
+    }
+
+    await logAuditEvent({
+      actorId: user.id,
+      targetUserId: user.id,
+      action: "REGISTER_PENDING",
+      newValue: { email: user.email, displayName: user.displayName },
+      source: "register_api",
+    });
+
     return NextResponse.json(
-      { ok: true, data: { userId: user.id, email: user.email } },
+      { ok: true, data: { userId: user.id, email: user.email, status: "PENDING" } },
       { status: 201 },
     );
   } catch (error) {

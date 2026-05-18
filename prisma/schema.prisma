@@ -22,20 +22,29 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  INACTIVE
+  DELETED
+}
+
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  passwordHash      String
-  displayName       String?
-  role              Role      @default(BUYER)
-  isActive          Boolean   @default(true)
-  loginAttempts     Int       @default(0)
-  lockedUntil       DateTime?
-  lastLoginAt       DateTime?
-  passwordChangedAt DateTime?
-  discordId         String?   @unique
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                       String     @id @default(cuid())
+  email                    String     @unique
+  passwordHash             String
+  displayName              String?
+  role                     Role       @default(BUYER)
+  status                   UserStatus @default(PENDING)
+  rejectReason             String?
+  loginAttempts            Int        @default(0)
+  lockedUntil              DateTime?
+  lastLoginAt              DateTime?
+  passwordChangedAt        DateTime?
+  discordId                String?    @unique
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
 
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
@@ -44,6 +53,7 @@ model User {
   ownedRequests       Request[]  @relation("AffiliateOwner")
   updatedRequests     Request[]  @relation("LastUpdatedBy")
   auditLogs           AuditLog[] @relation("Actor")
+  targetedAuditLogs   AuditLog[] @relation("AuditTarget")
 }
 
 model Session {
@@ -103,6 +113,11 @@ enum AuditAction {
   ACTION_ERROR
   UPDATE_CONFIG
   UPDATE_USER
+  REGISTER_PENDING
+  APPROVE_USER
+  REJECT_USER
+  DELETE_USER
+  REOPEN_USER
 }
 
 model Request {
@@ -148,20 +163,23 @@ model Request {
 }
 
 model AuditLog {
-  id        String      @id @default(cuid())
-  timestamp DateTime    @default(now())
-  requestId String?
-  request   Request?    @relation(fields: [requestId], references: [id])
-  actorId   String?
-  actor     User?       @relation("Actor", fields: [actorId], references: [id])
-  action    AuditAction
-  oldValue  Json?
-  newValue  Json?
-  source    String?     // buyer_ui, affiliate_ui, admin
-  remark    String?
+  id           String      @id @default(cuid())
+  timestamp    DateTime    @default(now())
+  requestId    String?
+  request      Request?    @relation(fields: [requestId], references: [id])
+  actorId      String?
+  actor        User?       @relation("Actor", fields: [actorId], references: [id])
+  targetUserId String?
+  targetUser   User?       @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  action       AuditAction
+  oldValue     Json?
+  newValue     Json?
+  source       String?     // buyer_ui, affiliate_ui, admin
+  remark       String?
 
   @@index([requestId])
   @@index([actorId])
+  @@index([targetUserId])
   @@index([timestamp])
 }
 

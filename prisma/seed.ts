@@ -42,6 +42,7 @@ async function main() {
         passwordHash,
         displayName: "Admin",
         role: "ADMIN",
+        status: "ACTIVE",
       },
     });
     console.log(`Admin user created: ${adminEmail}`);
@@ -60,6 +61,7 @@ async function main() {
         passwordHash,
         displayName: "Buyer Demo",
         role: "BUYER",
+        status: "ACTIVE",
       },
     });
     console.log(`Buyer user created: ${buyerEmail}`);
@@ -78,6 +80,7 @@ async function main() {
         passwordHash,
         displayName: "Affiliate Demo",
         role: "AFFILIATE",
+        status: "ACTIVE",
       },
     });
     console.log(`Affiliate user created: ${affiliateEmail}`);

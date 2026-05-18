@@ -140,6 +140,18 @@ export const adminCorrectSchema = z.object({
 
 export const updateUserSchema = z.object({
   role: z.enum(["BUYER", "AFFILIATE", "ADMIN"]).optional(),
-  isActive: z.boolean().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "PENDING", "REJECTED", "DELETED"]).optional(),
   displayName: z.string().max(100).trim().optional(),
 });
+
+export const userActionSchema = z
+  .object({
+    action: z.enum(["APPROVE", "REJECT", "DELETE", "REOPEN"]),
+    reason: z.string().max(1000).trim().optional(),
+  })
+  .refine(
+    (data) =>
+      data.action !== "REJECT" ||
+      (typeof data.reason === "string" && data.reason.length > 0),
+    { message: "Reason is required when rejecting a user", path: ["reason"] },
+  );

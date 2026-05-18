@@ -33,7 +33,7 @@ export async function PATCH(
 
     const existing = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, isActive: true, displayName: true },
+      select: { id: true, role: true, status: true, displayName: true },
     });
 
     if (!existing) {
@@ -45,7 +45,7 @@ export async function PATCH(
 
     const updateData: Record<string, unknown> = {};
     if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
-    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+    if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
     if (parsed.data.displayName !== undefined) updateData.displayName = parsed.data.displayName;
 
     const updated = await prisma.user.update({
@@ -56,15 +56,15 @@ export async function PATCH(
         email: true,
         displayName: true,
         role: true,
-        isActive: true,
+        status: true,
       },
     });
 
     await logAuditEvent({
       actorId: actor.userId,
       action: "UPDATE_USER",
-      oldValue: { role: existing.role, isActive: existing.isActive, displayName: existing.displayName },
-      newValue: { role: updated.role, isActive: updated.isActive, displayName: updated.displayName },
+      oldValue: { role: existing.role, status: existing.status, displayName: existing.displayName },
+      newValue: { role: updated.role, status: updated.status, displayName: updated.displayName },
       source: "admin",
       remark: `Updated user ${updated.email}`,
     });
