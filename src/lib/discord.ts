@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { PLATFORM_LABELS } from "@/lib/constants";
 
 // ──────────────────────────────────────────────────────────────
@@ -14,40 +13,9 @@ function env(key: string): string {
 export const getDiscordConfig = () => ({
   botToken: env("DISCORD_BOT_TOKEN"),
   applicationId: env("DISCORD_APPLICATION_ID"),
-  publicKey: env("DISCORD_PUBLIC_KEY"),
   channelId: env("DISCORD_CHANNEL_ID"),
+  adminChannelId: env("DISCORD_ADMIN_CHANNEL_ID"),
 });
-
-// ──────────────────────────────────────────────────────────────
-// Signature verification (Ed25519) for Discord interactions
-// ──────────────────────────────────────────────────────────────
-
-export async function verifyInteraction(
-  rawBody: string,
-  signature: string,
-  timestamp: string,
-): Promise<boolean> {
-  const { publicKey } = getDiscordConfig();
-  try {
-    const key = crypto.createPublicKey({
-      key: Buffer.concat([
-        // Ed25519 DER prefix
-        Buffer.from("302a300506032b6570032100", "hex"),
-        Buffer.from(publicKey, "hex"),
-      ]),
-      format: "der",
-      type: "spki",
-    });
-    return crypto.verify(
-      null,
-      Buffer.from(timestamp + rawBody),
-      key,
-      Buffer.from(signature, "hex"),
-    );
-  } catch {
-    return false;
-  }
-}
 
 // ──────────────────────────────────────────────────────────────
 // Discord REST API helpers
@@ -334,4 +302,106 @@ export function getTodayDateStringVN(): string {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+// ──────────────────────────────────────────────────────────────
+// User approval notifications (one-way)
+// ──────────────────────────────────────────────────────────────
+
+type PendingUserInfo = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  createdAt: Date;
+};
+
+export function buildPendingUserEmbed(user: PendingUserInfo) {
+  const createdVN = user.createdAt.toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+  return {
+    title: "🆕 Người dùng mới — Chờ xét duyệt",
+    color: 0xf39c12, // amber
+    fields: [
+      { name: "Email", value: user.email, inline: true },
+      { name: "Tên hiển thị", value: user.displayName || "—", inline: true },
+      { name: "Thời gian đăng ký", value: createdVN, inline: false },
+      { name: "User ID", value: user.id, inline: false },
+    ],
+    footer: { text: "Vào Web Dashboard để xét duyệt" },
+  };
+}
+
+export type AdminActionKind = "APPROVE" | "REJECT" | "DELETE" | "REOPEN";
+
+export type AdminActionAdmin = {
+  id: string;
+  email: string;
+  displayName: string | null;
+};
+
+export type AdminActionTarget = {
+  id: string;
+  email: string;
+  displayName: string | null;
+};
+
+const ADMIN_ACTION_META: Record<
+  AdminActionKind,
+  { title: string; color: number }
+> = {
+  APPROVE: { title: "✅ User Approved", color: 0x2ecc71 },
+  REJECT: { title: "❌ User Rejected", color: 0xe74c3c },
+  DELETE: { title: "🗑️ User Deleted", color: 0x95a5a6 },
+  REOPEN: { title: "🔄 User Re-opened", color: 0x3498db },
+};
+
+export async function sendAdminActionNotification(params: {
+  admin: AdminActionAdmin;
+  target: AdminActionTarget;
+  action: AdminActionKind;
+  reason?: string | null;
+}): Promise<void> {
+  try {
+    const { admin, target, action, reason } = params;
+    const meta = ADMIN_ACTION_META[action];
+    const nowVN = new Date().toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+    const fields: { name: string; value: string; inline?: boolean }[] = [
+      { name: "Target Email", value: target.email, inline: true },
+      {
+        name: "Target Name",
+        value: target.displayName || "—",
+        inline: true,
+      },
+      {
+        name: "Admin",
+        value: `${admin.displayName || admin.email} (${admin.email})`,
+        inline: false,
+      },
+      { name: "Action", value: action, inline: true },
+      { name: "Thời gian", value: nowVN, inline: true },
+    ];
+
+    if (action === "REJECT" && reason) {
+      fields.push({ name: "Lý do từ chối", value: reason, inline: false });
+    }
+
+    const { adminChannelId } = getDiscordConfig();
+    await sendChannelMessage(adminChannelId, {
+      embeds: [
+        {
+          title: meta.title,
+          color: meta.color,
+          fields,
+          footer: { text: `Target ID: ${target.id}` },
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("[discord] sendAdminActionNotification failed", err);
+  }
 }

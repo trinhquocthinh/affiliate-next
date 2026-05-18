@@ -112,7 +112,7 @@ export async function GET(request: Request) {
         },
       }),
       prisma.user.findMany({
-        where: { role: "BUYER", isActive: true },
+        where: { role: "BUYER", status: "ACTIVE" },
         select: { id: true, displayName: true, email: true },
         orderBy: { displayName: "asc" },
       }),

@@ -9,15 +9,59 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { securePost } from "@/lib/secure-fetch";
+
+type StatusBanner =
+  | { type: "PENDING" }
+  | { type: "REJECTED"; reason: string | null }
+  | { type: "INACTIVE" };
+
+interface PrecheckResponse {
+  ok: boolean;
+  error?: {
+    code: string;
+    reason?: string | null;
+    message?: string;
+  };
+}
+
+function StatusAlert({ banner }: { banner: StatusBanner }) {
+  if (banner.type === "PENDING") {
+    return (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Tài khoản của bạn đang chờ Admin xét duyệt. Vui lòng quay lại sau.
+      </div>
+    );
+  }
+  if (banner.type === "REJECTED") {
+    return (
+      <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p className="font-semibold">Tài khoản của bạn chưa được phê duyệt!</p>
+        {banner.reason && (
+          <p className="mt-1">
+            Lý do từ Admin: <span className="font-medium">{banner.reason}</span>
+          </p>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+      Tài khoản đã bị vô hiệu hoá. Liên hệ Admin để được hỗ trợ.
+    </div>
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [loading, setLoading] = useState(false);
+  const [banner, setBanner] = useState<StatusBanner | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setBanner(null);
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -25,6 +69,33 @@ function LoginForm() {
     const password = formData.get("password") as string;
 
     try {
+      // Step 1: precheck — validates credentials and user status
+      const precheck = await securePost<PrecheckResponse>(
+        "/api/login/precheck",
+        { email, password },
+        "", // no Turnstile on login; server has requireTurnstile: false
+      );
+
+      if (!precheck.ok) {
+        const code = precheck.error?.code;
+        if (code === "PENDING") {
+          setBanner({ type: "PENDING" });
+          return;
+        }
+        if (code === "REJECTED") {
+          setBanner({ type: "REJECTED", reason: precheck.error?.reason ?? null });
+          return;
+        }
+        if (code === "INACTIVE") {
+          setBanner({ type: "INACTIVE" });
+          return;
+        }
+        // INVALID_CREDENTIALS or other error
+        toast.error("Invalid email or password");
+        return;
+      }
+
+      // Step 2: signIn via NextAuth (account is ACTIVE)
       const result = await signIn("credentials", {
         email,
         password,
@@ -69,6 +140,7 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {banner && <StatusAlert banner={banner} />}
           <div className="flex flex-col gap-2">
             <Label htmlFor="email" className="text-sm font-semibold text-gray-800">
               Email

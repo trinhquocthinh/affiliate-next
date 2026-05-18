@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
@@ -18,8 +17,8 @@ interface RegisterResponse {
 }
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<TurnstileInstance | null>(null);
@@ -53,8 +52,7 @@ export default function RegisterPage() {
         turnstileRef.current?.reset();
         setTurnstileToken("");
       } else {
-        toast.success("Account created! Please sign in.");
-        router.push("/login");
+        setPending(true);
       }
     } catch (err) {
       console.error(err);
@@ -64,6 +62,42 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const glassWrapper = (children: React.ReactNode) => (
+    <div
+      className="relative min-h-screen flex items-center justify-center overflow-hidden p-5"
+      style={{ background: "linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)" }}
+    >
+      <div className="auth-blob auth-blob-1" />
+      <div className="auth-blob auth-blob-2" />
+      <div className="auth-glass-card relative z-10 w-full max-w-105 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] px-8 py-10">
+        <div className="flex justify-center mb-6">
+          <Image src="/assets/logo.png" alt="Shop Quành" width={80} height={80} className="object-contain" />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
+  if (pending) {
+    return glassWrapper(
+      <div className="text-center flex flex-col items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-3xl">⏳</div>
+        <h2 className="text-2xl font-bold text-gray-800">Hồ sơ đã được ghi nhận</h2>
+        <p className="text-gray-600 text-sm leading-relaxed">
+          Hồ sơ của bạn đã được ghi nhận và đang chờ Admin xét duyệt.
+          <br />
+          Chúng tôi sẽ thông báo khi có kết quả.
+        </p>
+        <Link
+          href="/login"
+          className="mt-2 text-sm text-[#008a62] hover:text-[#006b4c] hover:underline font-semibold"
+        >
+          Quay lại trang đăng nhập
+        </Link>
+      </div>,
+    );
   }
 
   return (

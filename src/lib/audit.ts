@@ -4,6 +4,7 @@ import type { AuditAction } from "@/generated/prisma/client";
 type AuditEvent = {
   requestId?: string;
   actorId?: string;
+  targetUserId?: string;
   action: AuditAction;
   oldValue?: unknown;
   newValue?: unknown;
@@ -17,6 +18,7 @@ export async function logAuditEvent(event: AuditEvent) {
       data: {
         requestId: event.requestId,
         actorId: event.actorId,
+        targetUserId: event.targetUserId,
         action: event.action,
         oldValue: event.oldValue ? JSON.parse(JSON.stringify(event.oldValue)) : undefined,
         newValue: event.newValue ? JSON.parse(JSON.stringify(event.newValue)) : undefined,

@@ -11,6 +11,7 @@ const publicPaths = [
   "/api/reset-password",
   "/api/discord/interaction",
   "/api/discord/notify",
+  "/api/login",
 ];
 
 export function middleware(req: NextRequest) {
