@@ -89,6 +89,9 @@
   --warning-foreground: oklch(0.35 0.1 60);
   --success: oklch(0.65 0.17 155);
   --success-foreground: oklch(0.985 0 0);
+  /* Cyber/tech accent — teal in light for contrast on white */
+  --accent-cyber: oklch(0.62 0.13 190);
+  --accent-cyber-soft: oklch(0.62 0.13 190 / 0.18);
 }
 
 .dark {
@@ -127,6 +130,9 @@
   --warning-foreground: oklch(0.35 0.1 60);
   --success: oklch(0.65 0.17 155);
   --success-foreground: oklch(0.985 0 0);
+  /* Cyber/tech accent — cyan in dark for glow on deep navy */
+  --accent-cyber: oklch(0.78 0.15 200);
+  --accent-cyber-soft: oklch(0.78 0.15 200 / 0.22);
 }
 
 @layer base {
