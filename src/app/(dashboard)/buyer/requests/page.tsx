@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { useActor } from "@/components/layout/actor-provider";
 import { formatRelativeTime, formatDateTime } from "@/lib/utils";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/swr-fetcher";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,11 +87,11 @@ function statusLabel(status: string) {
   return "Closed";
 }
 
+type RequestsListResponse = { ok: boolean; data?: { items: RequestItem[] }; error?: { message?: string } };
+
 export default function BuyerRequestsPage() {
   const { isAdmin } = useActor();
 
-  const [items, setItems] = useState<RequestItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selected, setSelected] = useState<RequestItem | null>(null);
 
@@ -114,30 +116,16 @@ export default function BuyerRequestsPage() {
   const [editProductName, setEditProductName] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: "100" });
-      if (statusFilter !== "ALL") params.set("status", statusFilter);
+  const swrKey = (() => {
+    const params = new URLSearchParams({ limit: "100" });
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    return `/api/requests?${params.toString()}`;
+  })();
 
-      const res = await fetch(`/api/requests?${params}`);
-      const data = await res.json();
-
-      if (data.ok) {
-        setItems(data.data.items);
-      } else {
-        toast.error(data.error?.message || "Failed to load requests");
-      }
-    } catch {
-      toast.error("Failed to load requests");
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter]);
-
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+  const { data, isLoading, isValidating, mutate } = useSWR<RequestsListResponse>(swrKey);
+  const items = data?.ok ? data.data?.items ?? [] : [];
+  const loading = isLoading;
+  const fetching = isValidating;
 
   function openDetail(item: RequestItem) {
     setSelected(item);
@@ -161,24 +149,25 @@ export default function BuyerRequestsPage() {
     if (!selected) return;
     setSavingNote(true);
     try {
-      const res = await fetch(`/api/requests/${selected.id}/buyer-note`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyerNote,
-          expectedLastUpdatedAt: selected.lastUpdatedAt,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
+      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${selected.id}/buyer-note`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            buyerNote,
+            expectedLastUpdatedAt: selected.lastUpdatedAt,
+          }),
+        },
+      );
+      if (res.ok) {
         toast.success("Note saved");
         setSelected(null);
-        fetchRequests();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to save note");
+        toast.error(res.error?.message || "Failed to save note");
       }
-    } catch {
-      toast.error("Failed to save note");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save note");
     } finally {
       setSavingNote(false);
     }
@@ -195,31 +184,34 @@ export default function BuyerRequestsPage() {
       if (editPlatform !== selected.platform) body.platform = editPlatform;
       if (editProductName !== (selected.productName || "")) body.productName = editProductName || null;
 
-      const res = await fetch(`/api/requests/${selected.id}/edit`, {
+      const res = await apiFetch<{
+        ok: boolean;
+        data?: { productUrlRaw: string; platform: string; productName: string | null; lastUpdatedAt: string };
+        error?: { message?: string };
+      }>(`/api/requests/${selected.id}/edit`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok && res.data) {
         toast.success("Request updated");
+        const updated = res.data;
         setSelected((prev) =>
           prev
             ? {
                 ...prev,
-                productUrlRaw: data.data.productUrlRaw,
-                platform: data.data.platform,
-                productName: data.data.productName,
-                lastUpdatedAt: data.data.lastUpdatedAt,
+                productUrlRaw: updated.productUrlRaw,
+                platform: updated.platform,
+                productName: updated.productName,
+                lastUpdatedAt: updated.lastUpdatedAt,
               }
             : null,
         );
-        fetchRequests();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to update request");
+        toast.error(res.error?.message || "Failed to update request");
       }
-    } catch {
-      toast.error("Failed to update request");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update request");
     } finally {
       setSavingEdit(false);
     }
@@ -229,33 +221,36 @@ export default function BuyerRequestsPage() {
     if (!selected) return;
     setSavingCorrection(true);
     try {
-      const res = await fetch(`/api/requests/${selected.id}/admin-correct`, {
+      const res = await apiFetch<{
+        ok: boolean;
+        data?: { orderId: string | null; buyerNote: string | null; lastUpdatedAt: string };
+        error?: { message?: string };
+      }>(`/api/requests/${selected.id}/admin-correct`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId: adminOrderId || null,
           buyerNote: adminBuyerNote || null,
         }),
       });
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok && res.data) {
         toast.success("Correction saved");
+        const updated = res.data;
         setSelected((prev) =>
           prev
             ? {
                 ...prev,
-                orderId: data.data.orderId,
-                buyerNote: data.data.buyerNote,
-                lastUpdatedAt: data.data.lastUpdatedAt,
+                orderId: updated.orderId,
+                buyerNote: updated.buyerNote,
+                lastUpdatedAt: updated.lastUpdatedAt,
               }
             : null,
         );
-        fetchRequests();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to save correction");
+        toast.error(res.error?.message || "Failed to save correction");
       }
-    } catch {
-      toast.error("Failed to save correction");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save correction");
     } finally {
       setSavingCorrection(false);
     }
@@ -266,29 +261,30 @@ export default function BuyerRequestsPage() {
     setClosing(true);
 
     try {
-      const res = await fetch(`/api/requests/${selected.id}/close`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          closeReason,
-          closeNote: closeNote || undefined,
-          orderId: closeReason === "BOUGHT" ? orderId : undefined,
-          expectedLastUpdatedAt: selected.lastUpdatedAt,
-        }),
-      });
+      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${selected.id}/close`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            closeReason,
+            closeNote: closeNote || undefined,
+            orderId: closeReason === "BOUGHT" ? orderId : undefined,
+            expectedLastUpdatedAt: selected.lastUpdatedAt,
+          }),
+        },
+      );
 
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok) {
         toast.success("Request closed");
         setSelected(null);
         setCloseNote("");
         setOrderId("");
-        fetchRequests();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to close request");
+        toast.error(res.error?.message || "Failed to close request");
       }
-    } catch {
-      toast.error("Failed to close request");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to close request");
     } finally {
       setClosing(false);
     }
@@ -299,8 +295,13 @@ export default function BuyerRequestsPage() {
       <AppHeader title="My Requests" />
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Filters */}
-        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-          <TabsList>
+        <Tabs
+          value={statusFilter}
+          onValueChange={(v) => {
+            if (!fetching) setStatusFilter(v);
+          }}
+        >
+          <TabsList className={fetching ? "opacity-60 pointer-events-none" : undefined}>
             <TabsTrigger value="ALL">All</TabsTrigger>
             <TabsTrigger value="NEW">Pending</TabsTrigger>
             <TabsTrigger value="FILLED">Ready</TabsTrigger>

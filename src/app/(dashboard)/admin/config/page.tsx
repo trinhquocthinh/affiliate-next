@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/swr-fetcher";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,30 +41,20 @@ const CONFIG_FIELDS = [
   },
 ];
 
+type ConfigResponse = { ok: boolean; data?: ConfigMap; error?: { message?: string } };
+
 export default function AdminConfigPage() {
-  const [config, setConfig] = useState<ConfigMap>({});
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, mutate } = useSWR<ConfigResponse>("/api/config");
+  const remoteConfig = data?.ok ? data.data ?? {} : {};
+  const [overrides, setOverrides] = useState<ConfigMap>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const loading = isLoading;
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
+  const config: ConfigMap = { ...remoteConfig, ...overrides };
 
-  async function fetchConfig() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/config");
-      const data = await res.json();
-      if (data.ok) {
-        setConfig(data.data);
-      } else {
-        toast.error(data.error?.message || "Failed to load config");
-      }
-    } catch {
-      toast.error("Failed to load config");
-    } finally {
-      setLoading(false);
-    }
+  function setField(key: string, value: string) {
+    setOverrides((prev) => ({ ...prev, [key]: value }));
   }
 
   async function saveField(key: string) {
@@ -71,19 +63,27 @@ export default function AdminConfigPage() {
 
     setSaving(key);
     try {
-      const res = await fetch("/api/config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      });
-      const data = await res.json();
-      if (data.ok) {
+      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        "/api/config",
+        {
+          method: "PUT",
+          body: JSON.stringify({ key, value }),
+        },
+      );
+      if (res.ok) {
         toast.success(`${key} updated`);
+        // Clear local override so SWR data becomes the source of truth
+        setOverrides((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to save");
+        toast.error(res.error?.message || "Failed to save");
       }
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(null);
     }
@@ -91,20 +91,24 @@ export default function AdminConfigPage() {
 
   async function resetToDefaults() {
     if (!confirm("Reset all config values to defaults?")) return;
-
-    for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
-      setConfig((prev) => ({ ...prev, [key]: value }));
-      try {
-        await fetch("/api/config", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, value }),
-        });
-      } catch {
-        // continue
+    setResetting(true);
+    try {
+      for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
+        try {
+          await apiFetch("/api/config", {
+            method: "PUT",
+            body: JSON.stringify({ key, value }),
+          });
+        } catch {
+          // continue
+        }
       }
+      setOverrides({});
+      await mutate();
+      toast.success("Reset to defaults");
+    } finally {
+      setResetting(false);
     }
-    toast.success("Reset to defaults");
   }
 
   if (loading) {
@@ -137,9 +141,7 @@ export default function AdminConfigPage() {
                 <Input
                   type={field.type}
                   value={config[field.key] || ""}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
-                  }
+                  onChange={(e) => setField(field.key, e.target.value)}
                 />
                 <Button
                   onClick={() => saveField(field.key)}
@@ -153,8 +155,8 @@ export default function AdminConfigPage() {
           </Card>
         ))}
 
-        <Button variant="outline" onClick={resetToDefaults} className="w-full">
-          Reset to Defaults
+        <Button variant="outline" onClick={resetToDefaults} disabled={resetting} className="w-full">
+          {resetting ? "Resetting..." : "Reset to Defaults"}
         </Button>
       </div>
     </>

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/layout/app-header";
+import { apiFetch } from "@/lib/swr-fetcher";
 import { PlusIcon, TrashIcon, CheckCircleIcon, CopyIcon, AlertTriangleIcon, Loader2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,9 +104,11 @@ export default function BuyerRequestPage() {
           prev.map((i) => (i.id === id ? { ...i, isLoadingName: true } : i)),
         );
         try {
-          const res = await fetch(`/api/preview?url=${encodeURIComponent(value.trim())}`);
-          const data = await res.json();
+          const data = await apiFetch<{ ok: boolean; data?: { title?: string } }>(
+            `/api/preview?url=${encodeURIComponent(value.trim())}`,
+          );
           if (data.ok && data.data?.title) {
+            const title = data.data.title;
             setItems((prev) =>
               prev.map((i) =>
                 i.id === id
@@ -113,7 +116,7 @@ export default function BuyerRequestPage() {
                       ...i,
                       isLoadingName: false,
                       // Fill if empty or was previously auto-filled
-                      productName: i.productName.trim() ? i.productName : (data.data.title as string),
+                      productName: i.productName.trim() ? i.productName : title,
                       isNameAutoFilled: !i.productName.trim(),
                     }
                   : i,
@@ -179,22 +182,24 @@ export default function BuyerRequestPage() {
         };
       }
 
-      const res = await fetch("/api/requests", {
+      const data = await apiFetch<{
+        ok: boolean;
+        data?: { items?: CreatedResult[]; createdCount?: number; requestId?: string };
+        error?: { message?: string };
+      }>("/api/requests", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
       if (!data.ok) { toast.error(data.error?.message || "Failed to create request"); return; }
-      if (data.data.items) {
+      if (data.data?.items) {
         setResults(data.data.items);
         toast.success(`Created ${data.data.createdCount} request(s)`);
-      } else {
-        setResults([data.data]);
+      } else if (data.data) {
+        setResults([data.data as unknown as CreatedResult]);
         toast.success(`Request ${data.data.requestId} created`);
       }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

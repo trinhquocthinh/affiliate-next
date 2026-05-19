@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { getInitials } from "@/lib/utils";
+import { apiFetch } from "@/lib/swr-fetcher";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { AppHeader } from "@/components/layout/app-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -90,16 +93,19 @@ function StatusBadge({ status }: { status: string }) {
 function RoleDropdown({
   role,
   onChange,
+  disabled,
 }: {
   role: string;
   onChange: (role: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative inline-block w-32">
       <select
-        className={`appearance-none w-full px-3 py-1.5 text-xs font-bold rounded-full border focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer transition-colors shadow-sm ${roleStyles[role] || ""
+        className={`appearance-none w-full px-3 py-1.5 text-xs font-bold rounded-full border focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${roleStyles[role] || ""
           }`}
         value={role}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="BUYER">BUYER</option>
@@ -116,15 +122,20 @@ function RoleDropdown({
 function UserActionsMenu({
   user,
   onAction,
+  disabled,
 }: {
   user: UserItem;
   onAction: (user: UserItem, action: AdminAction) => void;
+  disabled?: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-emerald-400 dark:hover:bg-emerald-400/10 rounded-lg transition-colors focus:outline-none">
+          <button
+            disabled={disabled}
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-emerald-400 dark:hover:bg-emerald-400/10 rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <MoreHorizontal size={18} />
           </button>
         }
@@ -173,14 +184,16 @@ function UserActionsMenu({
   );
 }
 
+type UsersResponse = { ok: boolean; data?: { users: UserItem[] }; error?: { message?: string } };
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<UserItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [roleFilter, setRoleFilter] = useState("");
   const [showDeleted, setShowDeleted] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   const [newEmail, setNewEmail] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -191,46 +204,36 @@ export default function AdminUsersPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [search, roleFilter]);
+  const swrKey = (() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    if (roleFilter) params.set("role", roleFilter);
+    const qs = params.toString();
+    return `/api/users${qs ? `?${qs}` : ""}`;
+  })();
 
-  async function fetchUsers() {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search.trim()) params.set("search", search.trim());
-      if (roleFilter) params.set("role", roleFilter);
-      const res = await fetch(`/api/users?${params}`);
-      const data = await res.json();
-      if (data.ok) {
-        setUsers(data.data.users);
-      } else {
-        toast.error(data.error?.message || "Failed to load users");
-      }
-    } catch {
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data, isLoading, isValidating, mutate } = useSWR<UsersResponse>(swrKey);
+  const users = data?.ok ? data.data?.users ?? [] : [];
+  const loading = isLoading;
+  const fetching = isValidating;
 
   async function updateUser(userId: string, updates: Record<string, unknown>) {
+    setBusyUserId(userId);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const res = await apiFetch<UsersResponse>(`/api/users/${userId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok) {
         toast.success("User updated");
-        fetchUsers();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to update");
+        toast.error(res.error?.message || "Failed to update");
       }
-    } catch {
-      toast.error("Failed to update");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setBusyUserId(null);
     }
   }
 
@@ -239,23 +242,24 @@ export default function AdminUsersPage() {
     action: AdminAction,
     reason?: string,
   ): Promise<boolean> {
+    setBusyUserId(userId);
     try {
-      const res = await fetch(`/api/admin/users/${userId}/action`, {
+      const res = await apiFetch<UsersResponse>(`/api/admin/users/${userId}/action`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, reason }),
       });
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok) {
         toast.success(ACTION_SUCCESS_TOAST[action]);
-        fetchUsers();
+        mutate();
         return true;
       }
-      toast.error(data.error?.message || "Thao tác thất bại");
+      toast.error(res.error?.message || "Thao tác thất bại");
       return false;
-    } catch {
-      toast.error("Thao tác thất bại");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Thao tác thất bại");
       return false;
+    } finally {
+      setBusyUserId(null);
     }
   }
 
@@ -283,9 +287,8 @@ export default function AdminUsersPage() {
     e.preventDefault();
     setAddLoading(true);
     try {
-      const res = await fetch("/api/users", {
+      const res = await apiFetch<UsersResponse>("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: newEmail,
           displayName: newDisplayName || undefined,
@@ -293,17 +296,16 @@ export default function AdminUsersPage() {
           role: newRole,
         }),
       });
-      const data = await res.json();
-      if (data.ok) {
+      if (res.ok) {
         toast.success("User created");
         setShowAddDialog(false);
         setNewEmail(""); setNewDisplayName(""); setNewPassword(""); setNewRole("BUYER");
-        fetchUsers();
+        mutate();
       } else {
-        toast.error(data.error?.message || "Failed to create user");
+        toast.error(res.error?.message || "Failed to create user");
       }
-    } catch {
-      toast.error("Failed to create user");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create user");
     } finally {
       setAddLoading(false);
     }
@@ -344,7 +346,8 @@ export default function AdminUsersPage() {
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Show deleted</span>
                 <button
                   onClick={() => setShowDeleted(!showDeleted)}
-                  className={`w-11 h-6 rounded-full relative transition-colors focus:outline-none ${showDeleted ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
+                  disabled={fetching}
+                  className={`w-11 h-6 rounded-full relative transition-colors focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${showDeleted ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
                     }`}
                 >
                   <div
@@ -359,7 +362,8 @@ export default function AdminUsersPage() {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="appearance-none bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800 font-medium text-slate-700 dark:text-slate-300 text-sm rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer shadow-sm"
+                  disabled={fetching}
+                  className="appearance-none bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800 font-medium text-slate-700 dark:text-slate-300 text-sm rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="">All roles</option>
                   <option value="BUYER">BUYER</option>
@@ -434,6 +438,7 @@ export default function AdminUsersPage() {
                           <RoleDropdown
                             role={user.role}
                             onChange={(role) => updateUser(user.id, { role })}
+                            disabled={busyUserId === user.id}
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -445,7 +450,7 @@ export default function AdminUsersPage() {
                             : "Never"}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <UserActionsMenu user={user} onAction={handleMenuAction} />
+                          <UserActionsMenu user={user} onAction={handleMenuAction} disabled={busyUserId === user.id} />
                         </td>
                       </tr>
                     ))}
@@ -461,7 +466,7 @@ export default function AdminUsersPage() {
                     className="bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm relative"
                   >
                     <div className="absolute top-4 right-4">
-                      <UserActionsMenu user={user} onAction={handleMenuAction} />
+                      <UserActionsMenu user={user} onAction={handleMenuAction} disabled={busyUserId === user.id} />
                     </div>
                     <div className="flex items-center gap-4 mb-5 pr-10">
                       <div
@@ -489,6 +494,7 @@ export default function AdminUsersPage() {
                         <RoleDropdown
                           role={user.role}
                           onChange={(role) => updateUser(user.id, { role })}
+                          disabled={busyUserId === user.id}
                         />
                       </div>
                       <div>

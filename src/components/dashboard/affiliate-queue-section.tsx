@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useActor } from "@/components/layout/actor-provider";
+import { apiFetch } from "@/lib/swr-fetcher";
 import { formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ import {
   MoreHorizontalIcon,
   EyeIcon,
   UndoIcon,
+  LoaderIcon,
 } from "lucide-react";
 
 export type AffiliateQueueItem = {
@@ -59,6 +61,7 @@ export function AffiliateQueueSection({
   const actor = useActor();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   function openDetail(id: string) {
     setSelectedId(id);
@@ -66,24 +69,29 @@ export function AffiliateQueueSection({
   }
 
   async function handleClaim(item: AffiliateQueueItem, unclaim: boolean) {
+    if (claimingId) return;
+    setClaimingId(item.id);
     try {
-      const res = await fetch(`/api/requests/${item.id}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          unclaim: unclaim || undefined,
-          expectedLastUpdatedAt: item.lastUpdatedAt,
-        }),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${item.id}/claim`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            unclaim: unclaim || undefined,
+            expectedLastUpdatedAt: item.lastUpdatedAt,
+          }),
+        },
+      );
       if (json.ok) {
         toast.success(unclaim ? "Unclaimed" : "Claimed");
         router.refresh();
       } else {
         toast.error(json.error?.message || "Action failed");
       }
-    } catch {
-      toast.error("Action failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setClaimingId(null);
     }
   }
 
@@ -197,16 +205,27 @@ export function AffiliateQueueSection({
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {isMine ? (
-                              <DropdownMenuItem onClick={() => handleClaim(item, true)}>
-                                <UndoIcon className="h-4 w-4" />
+                              <DropdownMenuItem
+                                disabled={claimingId === item.id}
+                                onClick={() => handleClaim(item, true)}
+                              >
+                                {claimingId === item.id ? (
+                                  <LoaderIcon className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <UndoIcon className="h-4 w-4" />
+                                )}
                                 Unclaim
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                disabled={isClaimedByOther && !actor.isAdmin}
+                                disabled={(isClaimedByOther && !actor.isAdmin) || claimingId === item.id}
                                 onClick={() => handleClaim(item, false)}
                               >
-                                <HandIcon className="h-4 w-4" />
+                                {claimingId === item.id ? (
+                                  <LoaderIcon className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <HandIcon className="h-4 w-4" />
+                                )}
                                 {isClaimedByOther ? "Claimed by other" : "Claim"}
                               </DropdownMenuItem>
                             )}

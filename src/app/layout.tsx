@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SWRProvider } from "@/components/layout/swr-provider";
+import { GlobalProgress } from "@/components/layout/global-progress";
 import "./globals.css";
 
 const inter = Inter({
@@ -55,7 +57,8 @@ export default function RootLayout({
           <div className="absolute rounded-full blur-[80px] animate-float w-75 h-75 bg-sky-400/15 top-[40%] left-[50%]" style={{ animationDelay: "-10s" }} />
         </div>
 
-        {children}
+        <SWRProvider>{children}</SWRProvider>
+        <GlobalProgress />
         <Toaster richColors position="top-right" />
         <Analytics />
         <SpeedInsights />

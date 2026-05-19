@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { useActor } from "@/components/layout/actor-provider";
+import { apiFetch } from "@/lib/swr-fetcher";
 import { formatRelativeTime, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,8 +69,16 @@ export function RequestDetailDialog({
   onMutated?: () => void;
 }) {
   const actor = useActor();
-  const [data, setData] = useState<RequestDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const swrKey = open && requestId ? `/api/requests/${requestId}` : null;
+  const {
+    data: swrData,
+    isLoading: swrLoading,
+    mutate,
+  } = useSWR<{ ok: boolean; data?: RequestDetail; error?: { message?: string } }>(swrKey);
+
+  const data: RequestDetail | null =
+    swrData?.ok && swrData.data ? swrData.data : null;
+  const loading = swrLoading;
 
   // Form state
   const [buyerNote, setBuyerNote] = useState("");
@@ -84,44 +94,29 @@ export function RequestDetailDialog({
   const [adminBuyerNote, setAdminBuyerNote] = useState("");
   const [busy, setBusy] = useState<string>("");
 
-  const fetchDetail = useCallback(async () => {
-    if (!requestId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/requests/${requestId}`);
-      const json = await res.json();
-      if (!json.ok) {
-        toast.error(json.error?.message || "Failed to load request");
-        onOpenChange(false);
-        return;
-      }
-      const r = json.data as RequestDetail;
-      setData(r);
-      setBuyerNote(r.buyerNote || "");
-      setEditProductUrl(r.productUrlRaw);
-      setEditPlatform(r.platform);
-      setEditProductName(r.productName || "");
-      setAffiliateLink(r.affiliateLink || "");
-      setAffNote(r.notes || "");
-      setCloseReason("BOUGHT");
-      setCloseNote("");
-      setOrderId("");
-      setAdminOrderId(r.orderId || "");
-      setAdminBuyerNote(r.buyerNote || "");
-    } catch {
-      toast.error("Failed to load request");
-      onOpenChange(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [requestId, onOpenChange]);
-
+  // Sync form state from fetched data
   useEffect(() => {
-    if (open && requestId) {
-      setData(null);
-      fetchDetail();
+    if (!data) return;
+    setBuyerNote(data.buyerNote || "");
+    setEditProductUrl(data.productUrlRaw);
+    setEditPlatform(data.platform);
+    setEditProductName(data.productName || "");
+    setAffiliateLink(data.affiliateLink || "");
+    setAffNote(data.notes || "");
+    setCloseReason("BOUGHT");
+    setCloseNote("");
+    setOrderId("");
+    setAdminOrderId(data.orderId || "");
+    setAdminBuyerNote(data.buyerNote || "");
+  }, [data]);
+
+  // Handle fetch errors
+  useEffect(() => {
+    if (swrData && !swrData.ok) {
+      toast.error(swrData.error?.message || "Failed to load request");
+      onOpenChange(false);
     }
-  }, [open, requestId, fetchDetail]);
+  }, [swrData, onOpenChange]);
 
   function notifyMutation() {
     onMutated?.();
@@ -145,21 +140,19 @@ export function RequestDetailDialog({
       if (editPlatform !== data.platform) body.platform = editPlatform;
       if (editProductName !== (data.productName || ""))
         body.productName = editProductName || null;
-      const res = await fetch(`/api/requests/${data.id}/edit`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${data.id}/edit`,
+        { method: "PATCH", body: JSON.stringify(body) },
+      );
       if (json.ok) {
         toast.success("Request updated");
-        await fetchDetail();
+        await mutate();
         notifyMutation();
       } else {
         toast.error(json.error?.message || "Failed to update");
       }
-    } catch {
-      toast.error("Failed to update");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
     } finally {
       setBusy("");
     }
@@ -169,21 +162,22 @@ export function RequestDetailDialog({
     if (!data) return;
     setBusy("buyerNote");
     try {
-      const res = await fetch(`/api/requests/${data.id}/buyer-note`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ buyerNote, expectedLastUpdatedAt: data.lastUpdatedAt }),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${data.id}/buyer-note`,
+        {
+          method: "POST",
+          body: JSON.stringify({ buyerNote, expectedLastUpdatedAt: data.lastUpdatedAt }),
+        },
+      );
       if (json.ok) {
         toast.success("Note saved");
-        await fetchDetail();
+        await mutate();
         notifyMutation();
       } else {
         toast.error(json.error?.message || "Failed to save note");
       }
-    } catch {
-      toast.error("Failed to save note");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save note");
     } finally {
       setBusy("");
     }
@@ -193,25 +187,26 @@ export function RequestDetailDialog({
     if (!data) return;
     setBusy("fill");
     try {
-      const res = await fetch(`/api/affiliate/${data.id}/fill`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          affiliateLink: affiliateLink.trim(),
-          note: affNote || undefined,
-          expectedLastUpdatedAt: data.lastUpdatedAt,
-        }),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/affiliate/${data.id}/fill`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            affiliateLink: affiliateLink.trim(),
+            note: affNote || undefined,
+            expectedLastUpdatedAt: data.lastUpdatedAt,
+          }),
+        },
+      );
       if (json.ok) {
         toast.success("Saved");
-        await fetchDetail();
+        await mutate();
         notifyMutation();
       } else {
         toast.error(json.error?.message || "Failed to save");
       }
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setBusy("");
     }
@@ -221,17 +216,18 @@ export function RequestDetailDialog({
     if (!data) return;
     setBusy("close");
     try {
-      const res = await fetch(`/api/requests/${data.id}/close`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          closeReason,
-          closeNote: closeNote || undefined,
-          orderId: closeReason === "BOUGHT" ? orderId : undefined,
-          expectedLastUpdatedAt: data.lastUpdatedAt,
-        }),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${data.id}/close`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            closeReason,
+            closeNote: closeNote || undefined,
+            orderId: closeReason === "BOUGHT" ? orderId : undefined,
+            expectedLastUpdatedAt: data.lastUpdatedAt,
+          }),
+        },
+      );
       if (json.ok) {
         toast.success("Request closed");
         onOpenChange(false);
@@ -239,8 +235,8 @@ export function RequestDetailDialog({
       } else {
         toast.error(json.error?.message || "Failed to close");
       }
-    } catch {
-      toast.error("Failed to close");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to close");
     } finally {
       setBusy("");
     }
@@ -250,24 +246,25 @@ export function RequestDetailDialog({
     if (!data) return;
     setBusy("adminCorrect");
     try {
-      const res = await fetch(`/api/requests/${data.id}/admin-correct`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: adminOrderId || null,
-          buyerNote: adminBuyerNote || null,
-        }),
-      });
-      const json = await res.json();
+      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${data.id}/admin-correct`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            orderId: adminOrderId || null,
+            buyerNote: adminBuyerNote || null,
+          }),
+        },
+      );
       if (json.ok) {
         toast.success("Correction saved");
-        await fetchDetail();
+        await mutate();
         notifyMutation();
       } else {
         toast.error(json.error?.message || "Failed to save");
       }
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setBusy("");
     }

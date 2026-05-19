@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/utils";
+import { apiFetch } from "@/lib/swr-fetcher";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,25 +115,33 @@ function statusLabel(status: string) {
 
 const PAGE_SIZE = 20;
 
+type QueueResponse = {
+  ok: boolean;
+  data?: {
+    items: QueueItem[];
+    total: number;
+    totalPages: number;
+    summary: Summary;
+    buyers?: BuyerOption[];
+    isAdmin?: boolean;
+  };
+  error?: { message?: string };
+};
+
 export default function AffiliateQueuePage() {
-  // Data
-  const [items, setItems] = useState<QueueItem[]>([]);
-  const [summary, setSummary] = useState<Summary>({ total: 0, staleCount: 0, processedCount: 0 });
-  const [buyers, setBuyers] = useState<BuyerOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  // Pagination state
   const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(total / PAGE_SIZE);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [buyers, setBuyers] = useState<BuyerOption[]>([]);
 
   // Filters
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [buyerFilter, setBuyerFilter] = useState("ALL");
   const [sortValue, setSortValue] = useState("createdAt:desc");
 
-  // Mobile lazy loading
+  // Mobile lazy loading (accumulator)
   const [mobileItems, setMobileItems] = useState<QueueItem[]>([]);
   const [mobilePage, setMobilePage] = useState(1);
   const [mobileHasMore, setMobileHasMore] = useState(true);
@@ -160,24 +171,15 @@ export default function AffiliateQueuePage() {
 
   // Fetch Discord link status
   useEffect(() => {
-    fetch("/api/users/me/discord")
-      .then((r) => r.json())
+    apiFetch<{ ok: boolean; data?: { discordId: string | null } }>("/api/users/me/discord")
       .then((data) => {
-        if (data.ok) {
+        if (data.ok && data.data) {
           setDiscordId(data.data.discordId);
           setDiscordIdInput(data.data.discordId || "");
         }
       })
       .catch(() => { });
   }, []);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -205,32 +207,29 @@ export default function AffiliateQueuePage() {
     [statusFilter, sortBy, sortOrder, debouncedSearch, buyerFilter],
   );
 
-  // Desktop fetch
-  const fetchQueue = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = buildParams(page);
-      const res = await fetch(`/api/affiliate/queue?${params}`);
-      const data = await res.json();
-      if (data.ok) {
-        setItems(data.data.items);
-        setTotal(data.data.total);
-        setSummary(data.data.summary);
-        if (data.data.buyers) setBuyers(data.data.buyers);
-        if (typeof data.data.isAdmin === "boolean") setIsAdmin(data.data.isAdmin);
-      } else {
-        toast.error(data.error?.message || "Failed to load queue");
-      }
-    } catch {
-      toast.error("Failed to load queue");
-    } finally {
-      setLoading(false);
-    }
-  }, [buildParams, page]);
+  // Desktop fetch via SWR
+  const swrKey = `/api/affiliate/queue?${buildParams(page).toString()}`;
+  const { data: swrData, isLoading, isValidating, mutate } = useSWR<QueueResponse>(swrKey);
+  const items = swrData?.ok ? swrData.data?.items ?? [] : [];
+  const total = swrData?.ok ? swrData.data?.total ?? 0 : 0;
+  const summary: Summary = swrData?.ok
+    ? swrData.data?.summary ?? { total: 0, staleCount: 0, processedCount: 0 }
+    : { total: 0, staleCount: 0, processedCount: 0 };
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const loading = isLoading;
+  const fetching = isValidating;
 
+  // Sync buyers + isAdmin from SWR response
   useEffect(() => {
-    fetchQueue();
-  }, [fetchQueue]);
+    if (swrData?.ok && swrData.data) {
+      if (swrData.data.buyers) setBuyers(swrData.data.buyers);
+      if (typeof swrData.data.isAdmin === "boolean") setIsAdmin(swrData.data.isAdmin);
+    }
+  }, [swrData]);
+
+  const fetchQueue = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   // Mobile: sync first page from desktop fetch
   useEffect(() => {
@@ -247,10 +246,9 @@ export default function AffiliateQueuePage() {
     setMobileLoadingMore(true);
     try {
       const params = buildParams(nextPage);
-      const res = await fetch(`/api/affiliate/queue?${params}`);
-      const data = await res.json();
-      if (data.ok) {
-        setMobileItems((prev) => [...prev, ...data.data.items]);
+      const data = await apiFetch<QueueResponse>(`/api/affiliate/queue?${params}`);
+      if (data.ok && data.data) {
+        setMobileItems((prev) => [...prev, ...data.data!.items]);
         setMobilePage(nextPage);
         setMobileHasMore(nextPage < data.data.totalPages);
       }
@@ -290,9 +288,8 @@ export default function AffiliateQueuePage() {
 
       while (hasMore) {
         params.set("page", String(currentPage));
-        const res = await fetch(`/api/affiliate/queue?${params}`);
-        const data = await res.json();
-        if (!data.ok) {
+        const data = await apiFetch<QueueResponse>(`/api/affiliate/queue?${params}`);
+        if (!data.ok || !data.data) {
           toast.error("Failed to export");
           return;
         }
@@ -351,21 +348,23 @@ export default function AffiliateQueuePage() {
     if (!selected) return;
     setActionLoading("editOrderId");
     try {
-      const res = await fetch(`/api/requests/${selected.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: editOrderId.trim() }),
-      });
-      const data = await res.json();
-      if (data.ok) {
+      const data = await apiFetch<{ ok: boolean; data?: { orderId: string }; error?: { message?: string } }>(
+        `/api/requests/${selected.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ orderId: editOrderId.trim() }),
+        },
+      );
+      if (data.ok && data.data) {
         toast.success("Order ID updated");
-        setSelected((prev) => prev ? { ...prev, orderId: data.data.orderId } : null);
+        const newOrderId = data.data.orderId;
+        setSelected((prev) => prev ? { ...prev, orderId: newOrderId } : null);
         fetchQueue();
       } else {
         toast.error(data.error?.message || "Failed to update Order ID");
       }
-    } catch {
-      toast.error("Failed to update Order ID");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update Order ID");
     } finally {
       setActionLoading("");
     }
@@ -377,16 +376,17 @@ export default function AffiliateQueuePage() {
 
     try {
       if (affiliateLink.trim()) {
-        const res = await fetch(`/api/affiliate/${selected.id}/fill`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            affiliateLink: affiliateLink.trim(),
-            note: note.trim() || undefined,
-            expectedLastUpdatedAt: selected.lastUpdatedAt,
-          }),
-        });
-        const data = await res.json();
+        const data = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+          `/api/affiliate/${selected.id}/fill`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              affiliateLink: affiliateLink.trim(),
+              note: note.trim() || undefined,
+              expectedLastUpdatedAt: selected.lastUpdatedAt,
+            }),
+          },
+        );
         if (data.ok) {
           toast.success("Saved successfully!");
           setSelected(null);
@@ -395,27 +395,30 @@ export default function AffiliateQueuePage() {
           toast.error(data.error?.message || "Failed to save");
         }
       } else if (note.trim() !== (selected.notes || "")) {
-        const res = await fetch(`/api/requests/${selected.id}/note`, {
+        const data = await apiFetch<{
+          ok: boolean;
+          data?: { lastUpdatedAt: string };
+          error?: { message?: string };
+        }>(`/api/requests/${selected.id}/note`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             note: note.trim(),
             expectedLastUpdatedAt: selected.lastUpdatedAt,
           }),
         });
-        const data = await res.json();
-        if (data.ok) {
+        if (data.ok && data.data) {
           toast.success("Note saved");
           fetchQueue();
+          const lastUpdatedAt = data.data.lastUpdatedAt;
           setSelected((prev) =>
-            prev ? { ...prev, notes: note.trim(), lastUpdatedAt: data.data.lastUpdatedAt } : null,
+            prev ? { ...prev, notes: note.trim(), lastUpdatedAt } : null,
           );
         } else {
           toast.error(data.error?.message || "Failed to save");
         }
       }
-    } catch {
-      toast.error("Failed to save");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setActionLoading("");
     }
@@ -426,18 +429,19 @@ export default function AffiliateQueuePage() {
     setActionLoading("close");
 
     try {
-      const res = await fetch(`/api/requests/${selected.id}/close`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          closeReason,
-          closeNote: closeNote.trim() || undefined,
-          orderId: closeReason === "BOUGHT" ? orderId : undefined,
-          expectedLastUpdatedAt: selected.lastUpdatedAt,
-        }),
-      });
+      const data = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
+        `/api/requests/${selected.id}/close`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            closeReason,
+            closeNote: closeNote.trim() || undefined,
+            orderId: closeReason === "BOUGHT" ? orderId : undefined,
+            expectedLastUpdatedAt: selected.lastUpdatedAt,
+          }),
+        },
+      );
 
-      const data = await res.json();
       if (data.ok) {
         toast.success("Request closed");
         setSelected(null);
@@ -445,8 +449,8 @@ export default function AffiliateQueuePage() {
       } else {
         toast.error(data.error?.message || "Failed to close");
       }
-    } catch {
-      toast.error("Failed to close");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to close");
     } finally {
       setActionLoading("");
     }
@@ -460,20 +464,22 @@ export default function AffiliateQueuePage() {
   async function saveDiscordLink() {
     setDiscordLinking(true);
     try {
-      const res = await fetch("/api/users/me/discord", {
+      const data = await apiFetch<{
+        ok: boolean;
+        data?: { discordId: string | null };
+        error?: { message?: string };
+      }>("/api/users/me/discord", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discordId: discordIdInput.trim() || null }),
       });
-      const data = await res.json();
-      if (!data.ok) {
+      if (!data.ok || !data.data) {
         toast.error(data.error?.message || "Lỗi khi lưu Discord ID");
         return;
       }
       setDiscordId(data.data.discordId);
       toast.success(data.data.discordId ? "Đã liên kết Discord!" : "Đã gỡ liên kết Discord");
-    } catch {
-      toast.error("Lỗi kết nối");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Lỗi kết nối");
     } finally {
       setDiscordLinking(false);
     }
@@ -576,18 +582,16 @@ export default function AffiliateQueuePage() {
                         setDiscordIdInput("");
                         setDiscordLinking(true);
                         try {
-                          const res = await fetch("/api/users/me/discord", {
+                          const data = await apiFetch<{ ok: boolean }>("/api/users/me/discord", {
                             method: "PUT",
-                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ discordId: null }),
                           });
-                          const data = await res.json();
                           if (data.ok) {
                             setDiscordId(null);
                             toast.success("Đã gỡ liên kết Discord");
                           }
-                        } catch {
-                          toast.error("Lỗi kết nối");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Lỗi kết nối");
                         } finally {
                           setDiscordLinking(false);
                         }
@@ -629,7 +633,7 @@ export default function AffiliateQueuePage() {
 
           {/* Row 2: Filter dropdowns */}
           <div className="flex flex-wrap gap-3">
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "ALL")}>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "ALL")} disabled={fetching}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue>
                   {({ ALL: "All Status", OPEN: "Open", NEW: "Pending", FILLED: "Ready", CLOSED: "Closed" } as Record<string, string>)[statusFilter] ?? "All Status"}
@@ -644,7 +648,7 @@ export default function AffiliateQueuePage() {
               </SelectContent>
             </Select>
 
-            <Select value={buyerFilter} onValueChange={(v) => setBuyerFilter(v ?? "ALL")}>
+            <Select value={buyerFilter} onValueChange={(v) => setBuyerFilter(v ?? "ALL")} disabled={fetching}>
               <SelectTrigger className="w-40">
                 <SelectValue>
                   {buyerFilter === "ALL"
@@ -664,7 +668,7 @@ export default function AffiliateQueuePage() {
               </SelectContent>
             </Select>
 
-            <Select value={sortValue} onValueChange={(v) => setSortValue(v ?? "createdAt:desc")}>
+            <Select value={sortValue} onValueChange={(v) => setSortValue(v ?? "createdAt:desc")} disabled={fetching}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue>
                   {SORT_OPTIONS.find((o) => o.value === sortValue)?.label}
