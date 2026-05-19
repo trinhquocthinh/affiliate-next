@@ -168,7 +168,7 @@ export default function AffiliateQueuePage() {
           setDiscordIdInput(data.data.discordId || "");
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Debounce search input
@@ -631,7 +631,9 @@ export default function AffiliateQueuePage() {
           <div className="flex flex-wrap gap-3">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "ALL")}>
               <SelectTrigger className="w-[130px]">
-                <SelectValue />
+                <SelectValue>
+                  {({ ALL: "All Status", OPEN: "Open", NEW: "Pending", FILLED: "Ready", CLOSED: "Closed" } as Record<string, string>)[statusFilter] ?? "All Status"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Status</SelectItem>
@@ -643,8 +645,14 @@ export default function AffiliateQueuePage() {
             </Select>
 
             <Select value={buyerFilter} onValueChange={(v) => setBuyerFilter(v ?? "ALL")}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="All Buyers" />
+              <SelectTrigger className="w-40">
+                <SelectValue>
+                  {buyerFilter === "ALL"
+                    ? "All Buyers"
+                    : (buyers.find((b) => b.id === buyerFilter)?.displayName ||
+                       buyers.find((b) => b.id === buyerFilter)?.email ||
+                       "All Buyers")}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Buyers</SelectItem>
@@ -658,7 +666,9 @@ export default function AffiliateQueuePage() {
 
             <Select value={sortValue} onValueChange={(v) => setSortValue(v ?? "createdAt:desc")}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue />
+                <SelectValue>
+                  {SORT_OPTIONS.find((o) => o.value === sortValue)?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {SORT_OPTIONS.map((opt) => (
@@ -1030,7 +1040,9 @@ export default function AffiliateQueuePage() {
                         </p>
                         <Select value={closeReason} onValueChange={(v) => { setCloseReason(v ?? ""); setOrderId(""); }}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Reason" />
+                            <SelectValue>
+                              {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", STALE: "Stale", OTHER: "Other" } as Record<string, string>)[closeReason] ?? "Reason"}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="BOUGHT">Bought</SelectItem>

@@ -4,105 +4,288 @@ import { getAppConfig } from "@/lib/config-cache";
 import { AppHeader } from "@/components/layout/app-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  PlusCircleIcon,
-  InboxIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  AlertTriangleIcon,
-  UserIcon,
-  FilesIcon,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { PlusCircleIcon } from "lucide-react";
 import { GreetingText } from "@/components/layout/greeting-text";
+import { StatCard } from "@/components/dashboard/stat-card";
+import {
+  BuyerRecentSection,
+  type BuyerRecentItem,
+} from "@/components/dashboard/buyer-recent-section";
+import {
+  AffiliateQueueSection,
+  type AffiliateQueueItem,
+} from "@/components/dashboard/affiliate-queue-section";
+import type { Prisma } from "@/generated/prisma/client";
 
-async function getBuyerStats(userId: string) {
-  // Single transaction — 1 DB round-trip instead of 2.
-  const [activeCount, readyCount] = await prisma.$transaction([
-    prisma.request.count({ where: { createdById: userId, status: "NEW" } }),
-    prisma.request.count({ where: { createdById: userId, status: "FILLED" } }),
-  ]);
-  return { activeCount, readyCount };
+// ─── Trend helper ─────────────────────────────────────────────────────────
+
+function trendWindows(now: Date) {
+  const oneDay = 24 * 60 * 60 * 1000;
+  return {
+    last24h: new Date(now.getTime() - oneDay),
+    prev24hStart: new Date(now.getTime() - 2 * oneDay),
+    prev24hEnd: new Date(now.getTime() - oneDay),
+    last7d: new Date(now.getTime() - 7 * oneDay),
+    prev7dStart: new Date(now.getTime() - 14 * oneDay),
+    prev7dEnd: new Date(now.getTime() - 7 * oneDay),
+  };
 }
 
-async function getAffiliateStats(userId: string) {
-  const config = await getAppConfig();
-  const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 60 * 60 * 1000);
+function computeStaleThreshold(hours: number) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000);
+}
 
-  // Single transaction — 1 DB round-trip instead of 3.
-  const [queueCount, staleCount, claimedCount] = await prisma.$transaction([
+// ─── Data fetching ────────────────────────────────────────────────────────
+
+async function getBuyerStats(userId: string) {
+  const w = trendWindows(new Date());
+  const base = { createdById: userId };
+
+  const [
+    activeCount,
+    readyCount,
+    activeDayNow,
+    activeDayPrev,
+    activeWeekNow,
+    activeWeekPrev,
+    readyDayNow,
+    readyDayPrev,
+    readyWeekNow,
+    readyWeekPrev,
+  ] = await prisma.$transaction([
+    prisma.request.count({ where: { ...base, status: "NEW" } }),
+    prisma.request.count({ where: { ...base, status: "FILLED" } }),
+    prisma.request.count({ where: { ...base, status: "NEW", createdAt: { gte: w.last24h } } }),
+    prisma.request.count({
+      where: { ...base, status: "NEW", createdAt: { gte: w.prev24hStart, lt: w.prev24hEnd } },
+    }),
+    prisma.request.count({ where: { ...base, status: "NEW", createdAt: { gte: w.last7d } } }),
+    prisma.request.count({
+      where: { ...base, status: "NEW", createdAt: { gte: w.prev7dStart, lt: w.prev7dEnd } },
+    }),
+    prisma.request.count({ where: { ...base, status: "FILLED", filledAt: { gte: w.last24h } } }),
+    prisma.request.count({
+      where: { ...base, status: "FILLED", filledAt: { gte: w.prev24hStart, lt: w.prev24hEnd } },
+    }),
+    prisma.request.count({ where: { ...base, status: "FILLED", filledAt: { gte: w.last7d } } }),
+    prisma.request.count({
+      where: { ...base, status: "FILLED", filledAt: { gte: w.prev7dStart, lt: w.prev7dEnd } },
+    }),
+  ]);
+
+  return {
+    activeCount,
+    readyCount,
+    activeDeltaDay: activeDayNow - activeDayPrev,
+    activeDeltaWeek: activeWeekNow - activeWeekPrev,
+    readyDeltaDay: readyDayNow - readyDayPrev,
+    readyDeltaWeek: readyWeekNow - readyWeekPrev,
+  };
+}
+
+async function getAffiliateStats(userId: string, staleThreshold: Date) {
+  const w = trendWindows(new Date());
+
+  const [
+    queueCount,
+    staleCount,
+    claimedCount,
+    queueDayNow,
+    queueDayPrev,
+    queueWeekNow,
+    queueWeekPrev,
+    claimedDayNow,
+    claimedDayPrev,
+  ] = await prisma.$transaction([
     prisma.request.count({ where: { status: "NEW" } }),
     prisma.request.count({ where: { status: "NEW", createdAt: { lt: staleThreshold } } }),
     prisma.request.count({
       where: { affiliateOwnerId: userId, status: { in: ["NEW", "FILLED"] } },
     }),
+    prisma.request.count({ where: { status: "NEW", createdAt: { gte: w.last24h } } }),
+    prisma.request.count({
+      where: { status: "NEW", createdAt: { gte: w.prev24hStart, lt: w.prev24hEnd } },
+    }),
+    prisma.request.count({ where: { status: "NEW", createdAt: { gte: w.last7d } } }),
+    prisma.request.count({
+      where: { status: "NEW", createdAt: { gte: w.prev7dStart, lt: w.prev7dEnd } },
+    }),
+    prisma.request.count({
+      where: { affiliateOwnerId: userId, lastUpdatedAt: { gte: w.last24h } },
+    }),
+    prisma.request.count({
+      where: {
+        affiliateOwnerId: userId,
+        lastUpdatedAt: { gte: w.prev24hStart, lt: w.prev24hEnd },
+      },
+    }),
   ]);
-  return { queueCount, staleCount, claimedCount };
+
+  return {
+    queueCount,
+    staleCount,
+    claimedCount,
+    queueDeltaDay: queueDayNow - queueDayPrev,
+    queueDeltaWeek: queueWeekNow - queueWeekPrev,
+    claimedDeltaDay: claimedDayNow - claimedDayPrev,
+  };
 }
 
 async function getAdminStats() {
-  // Single transaction — 1 DB round-trip instead of 4.
-  const [totalUsers, totalRequests, pendingCount, filledCount] = await prisma.$transaction([
+  const w = trendWindows(new Date());
+  const [
+    totalUsers,
+    totalRequests,
+    pendingCount,
+    filledCount,
+    requestsDayNow,
+    requestsDayPrev,
+    requestsWeekNow,
+    requestsWeekPrev,
+  ] = await prisma.$transaction([
     prisma.user.count(),
     prisma.request.count(),
     prisma.request.count({ where: { status: "NEW" } }),
     prisma.request.count({ where: { status: "FILLED" } }),
+    prisma.request.count({ where: { createdAt: { gte: w.last24h } } }),
+    prisma.request.count({
+      where: { createdAt: { gte: w.prev24hStart, lt: w.prev24hEnd } },
+    }),
+    prisma.request.count({ where: { createdAt: { gte: w.last7d } } }),
+    prisma.request.count({
+      where: { createdAt: { gte: w.prev7dStart, lt: w.prev7dEnd } },
+    }),
   ]);
-  return { totalUsers, totalRequests, pendingCount, filledCount };
+
+  return {
+    totalUsers,
+    totalRequests,
+    pendingCount,
+    filledCount,
+    requestsDeltaDay: requestsDayNow - requestsDayPrev,
+    requestsDeltaWeek: requestsWeekNow - requestsWeekPrev,
+  };
 }
 
-function GlassStatCard({
-  title,
-  value,
-  icon: Icon,
-  description,
+async function getBuyerRecent(
+  userId: string,
+  rangeDays: number,
+  statFilter: string | null,
+  staleThreshold: Date,
+): Promise<BuyerRecentItem[]> {
+  const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+  const where: Prisma.RequestWhereInput = {
+    createdById: userId,
+    createdAt: { gte: since },
+  };
+  if (statFilter === "active") where.status = "NEW";
+  else if (statFilter === "ready") where.status = "FILLED";
+
+  const rows = await prisma.request.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 25,
+    select: {
+      id: true,
+      createdAt: true,
+      platform: true,
+      productUrlRaw: true,
+      productName: true,
+      affiliateLink: true,
+      status: true,
+    },
+  });
+
+  return rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt.toISOString(),
+    platform: r.platform,
+    productUrlRaw: r.productUrlRaw,
+    productName: r.productName,
+    affiliateLink: r.affiliateLink,
+    status: r.status,
+    isStale: r.status !== "CLOSED" && r.createdAt < staleThreshold,
+  }));
+}
+
+async function getAffiliateQueueList(
+  userId: string,
+  statFilter: string | null,
+  staleThreshold: Date,
+): Promise<AffiliateQueueItem[]> {
+  const where: Prisma.RequestWhereInput = { status: "NEW" };
+  if (statFilter === "stale") where.createdAt = { lt: staleThreshold };
+  if (statFilter === "mine") {
+    where.affiliateOwnerId = userId;
+    where.status = { in: ["NEW", "FILLED"] };
+  }
+
+  const rows = await prisma.request.findMany({
+    where,
+    orderBy: { createdAt: "asc" },
+    take: 25,
+    select: {
+      id: true,
+      createdAt: true,
+      lastUpdatedAt: true,
+      platform: true,
+      productUrlRaw: true,
+      productName: true,
+      status: true,
+      affiliateOwner: { select: { email: true } },
+      createdBy: { select: { displayName: true, email: true } },
+    },
+  });
+
+  const now = Date.now();
+  return rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt.toISOString(),
+    lastUpdatedAt: r.lastUpdatedAt.toISOString(),
+    platform: r.platform,
+    productUrlRaw: r.productUrlRaw,
+    productName: r.productName,
+    status: r.status,
+    isStale: r.status !== "CLOSED" && r.createdAt < staleThreshold,
+    ageHours: Math.floor((now - r.createdAt.getTime()) / 3600000),
+    affiliateOwnerEmail: r.affiliateOwner?.email ?? null,
+    createdBy: r.createdBy,
+  }));
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────
+
+export default async function HomePage({
+  searchParams,
 }: {
-  title: string;
-  value: number;
-  icon: React.ElementType;
-  description?: string;
+  searchParams: Promise<{ stat?: string; range?: string }>;
 }) {
-  return (
-    <div className="group relative overflow-hidden flex flex-col justify-between min-h-40 bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/50 dark:border-white/8 rounded-[20px] p-6 shadow-glass-light dark:shadow-glass-dark transition-all duration-300 hover:-translate-y-1 hover:border-white/20 dark:hover:border-white/15 hover:shadow-xl">
-      <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      <div className="relative z-10 flex justify-between items-center mb-4">
-        <span className="text-sm font-medium text-muted-foreground">{title}</span>
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="relative z-10">
-        <div className="text-4xl font-bold leading-none mb-2">{value}</div>
-        {description && (
-          <div className="text-[13px] text-muted-foreground">{description}</div>
-        )}
-      </div>
-    </div>
-  );
-}
+  const [actor, sp, config] = await Promise.all([
+    getActorContext(),
+    searchParams,
+    getAppConfig(),
+  ]);
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center text-center min-h-50 bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/50 dark:border-white/8 rounded-[20px] p-10 shadow-glass-light dark:shadow-glass-dark">
-      <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex justify-center items-center text-3xl mb-4">
-        <FilesIcon className="h-7 w-7" />
-      </div>
-      <h4 className="text-lg font-semibold mb-2">No requests yet</h4>
-      <p className="text-muted-foreground text-sm max-w-75">{message}</p>
-    </div>
-  );
-}
+  const staleThreshold = computeStaleThreshold(config.STALE_REQUEST_HOURS);
 
-export default async function HomePage() {
-  const actor = await getActorContext();
+  const stat = sp.stat ?? null;
+  const rangeRaw = parseInt(sp.range ?? "7", 10);
+  const range = [7, 14, 30].includes(rangeRaw) ? rangeRaw : 7;
 
   return (
     <>
       <AppHeader title="Home" />
-      <div className="flex-1 p-6 md:p-8 w-full max-w-300 mx-auto space-y-8">
-        {/* Header Action Area */}
+      <div className="flex-1 p-6 md:p-8 w-full max-w-400 mx-auto space-y-8">
+        {/* Header */}
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
-            <div className="inline-block px-3 py-1 bg-white/70 dark:bg-slate-800/60 backdrop-blur-md border border-border rounded-full text-xs font-semibold mb-3 shadow-sm">
+            <Badge
+              variant="outline"
+              className="mb-3 border-(--accent-cyber)/40 text-(--accent-cyber) bg-(--accent-cyber-soft)"
+            >
               {actor.role.charAt(0) + actor.role.slice(1).toLowerCase()}
-            </div>
+            </Badge>
             <h1 className="text-3xl font-bold mb-2 tracking-tight">
               <GreetingText name={actor.displayName || actor.email.split("@")[0]} />
             </h1>
@@ -120,104 +303,166 @@ export default async function HomePage() {
           )}
         </div>
 
-        {actor.isBuyer && <BuyerSection userId={actor.userId} />}
-        {actor.isAffiliate && <AffiliateSection userId={actor.userId} />}
-        {actor.isAdmin && <AdminSection />}
+        {actor.isBuyer && (
+          <BuyerBlock
+            userId={actor.userId}
+            stat={stat}
+            range={range}
+            staleThreshold={staleThreshold}
+          />
+        )}
+        {actor.isAffiliate && (
+          <AffiliateBlock userId={actor.userId} stat={stat} staleThreshold={staleThreshold} />
+        )}
+        {actor.isAdmin && <AdminBlock />}
       </div>
     </>
   );
 }
 
-async function BuyerSection({ userId }: { userId: string }) {
-  const stats = await getBuyerStats(userId);
+// ─── Buyer block ──────────────────────────────────────────────────────────
+
+async function BuyerBlock({
+  userId,
+  stat,
+  range,
+  staleThreshold,
+}: {
+  userId: string;
+  stat: string | null;
+  range: number;
+  staleThreshold: Date;
+}) {
+  const buyerStat = stat === "active" || stat === "ready" ? stat : null;
+  const [stats, recent] = await Promise.all([
+    getBuyerStats(userId),
+    getBuyerRecent(userId, range, buyerStat, staleThreshold),
+  ]);
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-semibold flex items-center gap-2">Buyer Overview</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GlassStatCard
+      <h3 className="text-lg font-semibold">Buyer Overview</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+        <StatCard
           title="Active Requests"
           value={stats.activeCount}
-          icon={ClockIcon}
+          icon="clock"
           description="Pending affiliate links"
+          deltaDay={stats.activeDeltaDay}
+          deltaWeek={stats.activeDeltaWeek}
+          statKey="active"
+          tone="warning"
         />
-        <GlassStatCard
+        <StatCard
           title="Ready to Collect"
           value={stats.readyCount}
-          icon={CheckCircleIcon}
+          icon="check"
           description="Links filled by affiliates"
+          deltaDay={stats.readyDeltaDay}
+          deltaWeek={stats.readyDeltaWeek}
+          statKey="ready"
+          tone="success"
         />
       </div>
-
-      <h3 className="text-lg font-semibold flex items-center gap-2 pt-2">Recent Requests</h3>
-      <EmptyState message="Create a new request to start working with your affiliates." />
+      <BuyerRecentSection items={recent} range={range} activeStat={buyerStat} />
     </div>
   );
 }
 
-async function AffiliateSection({ userId }: { userId: string }) {
-  const stats = await getAffiliateStats(userId);
+// ─── Affiliate block ──────────────────────────────────────────────────────
+
+async function AffiliateBlock({
+  userId,
+  stat,
+  staleThreshold,
+}: {
+  userId: string;
+  stat: string | null;
+  staleThreshold: Date;
+}) {
+  const affStat = stat === "queue" || stat === "stale" || stat === "mine" ? stat : null;
+  const [stats, queue] = await Promise.all([
+    getAffiliateStats(userId, staleThreshold),
+    getAffiliateQueueList(userId, affStat ?? "queue", staleThreshold),
+  ]);
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-semibold flex items-center gap-2">Affiliate Overview</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <GlassStatCard
+      <h3 className="text-lg font-semibold">Affiliate Overview</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <StatCard
           title="Queue"
           value={stats.queueCount}
-          icon={InboxIcon}
+          icon="inbox"
           description="Requests waiting for links"
+          deltaDay={stats.queueDeltaDay}
+          deltaWeek={stats.queueDeltaWeek}
+          statKey="queue"
+          tone="info"
         />
-        <GlassStatCard
+        <StatCard
           title="Stale"
           value={stats.staleCount}
-          icon={AlertTriangleIcon}
-          description="Over 48 hours old"
+          icon="alert"
+          description="Over the stale threshold"
+          statKey="stale"
+          tone="danger"
         />
-        <GlassStatCard
+        <StatCard
           title="My Claimed"
           value={stats.claimedCount}
-          icon={UserIcon}
+          icon="user"
           description="Assigned to you"
+          deltaDay={stats.claimedDeltaDay}
+          statKey="mine"
+          tone="success"
         />
       </div>
-
-      <h3 className="text-lg font-semibold flex items-center gap-2 pt-2">Queue</h3>
-      <EmptyState message="No requests in the queue right now." />
+      <AffiliateQueueSection items={queue} activeStat={affStat} />
     </div>
   );
 }
 
-async function AdminSection() {
+// ─── Admin block ──────────────────────────────────────────────────────────
+
+async function AdminBlock() {
   const stats = await getAdminStats();
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-semibold flex items-center gap-2">Admin Overview</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <GlassStatCard
+      <h3 className="text-lg font-semibold">Admin Overview</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <StatCard
           title="Total Users"
           value={stats.totalUsers}
-          icon={UserIcon}
+          icon="user"
+          tone="neutral"
+          clickable={false}
         />
-        <GlassStatCard
+        <StatCard
           title="Total Requests"
           value={stats.totalRequests}
-          icon={InboxIcon}
+          icon="file"
+          deltaDay={stats.requestsDeltaDay}
+          deltaWeek={stats.requestsDeltaWeek}
+          tone="info"
+          clickable={false}
         />
-        <GlassStatCard
+        <StatCard
           title="Pending"
           value={stats.pendingCount}
-          icon={ClockIcon}
+          icon="clock"
+          tone="warning"
+          clickable={false}
         />
-        <GlassStatCard
+        <StatCard
           title="Filled"
           value={stats.filledCount}
-          icon={CheckCircleIcon}
+          icon="check"
+          tone="success"
+          clickable={false}
         />
       </div>
     </div>
   );
 }
-
-

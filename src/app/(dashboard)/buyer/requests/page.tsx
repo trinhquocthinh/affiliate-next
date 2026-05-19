@@ -575,7 +575,9 @@ export default function BuyerRequestsPage() {
                             <Label className="text-sm">Platform</Label>
                             <Select value={editPlatform} onValueChange={(v) => v && setEditPlatform(v)}>
                               <SelectTrigger>
-                                <SelectValue />
+                                <SelectValue>
+                                  {({ SHOPEE: "Shopee", TIKTOK: "TikTok", OTHER: "Other" } as Record<string, string>)[editPlatform] ?? editPlatform}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="SHOPEE">Shopee</SelectItem>
@@ -669,7 +671,9 @@ export default function BuyerRequestsPage() {
                         </p>
                         <Select value={closeReason} onValueChange={(v) => { setCloseReason(v ?? "BOUGHT"); setOrderId(""); }}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Reason" />
+                            <SelectValue>
+                              {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", OTHER: "Other" } as Record<string, string>)[closeReason] ?? "Reason"}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="BOUGHT">Bought</SelectItem>
