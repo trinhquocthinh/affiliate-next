@@ -15,14 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -40,14 +32,15 @@ import {
   InboxIcon,
   AlertTriangleIcon,
   UserIcon,
-  ClockIcon,
   SearchIcon,
   ExternalLinkIcon,
   CopyIcon,
   DownloadIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   LoaderIcon,
+  Link2Icon,
 } from "lucide-react";
 import {
   TooltipProvider,
@@ -89,15 +82,15 @@ type BuyerOption = {
 };
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
-  NEW: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  FILLED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  CLOSED: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  NEW: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+  FILLED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
+  CLOSED: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20",
 };
 
 const PLATFORM_STYLES: Record<string, string> = {
-  SHOPEE: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-  TIKTOK: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  OTHER: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  SHOPEE: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+  TIKTOK: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+  OTHER: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20",
 };
 
 const SORT_OPTIONS = [
@@ -488,20 +481,23 @@ export default function AffiliateQueuePage() {
   return (
     <>
       <AppHeader title="Affiliate Queue" />
-      <div className="flex-1 p-4 md:p-6 space-y-4">
-        {/* Overview Stats — always shows unfiltered totals */}
-        <TooltipProvider>
-          <div className="grid gap-3 grid-cols-2">
-            <Card>
-              <CardContent className="flex items-center gap-3 p-4">
-                <InboxIcon className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-2xl font-bold">
-                    {summary.processedCount}
-                    <span className="text-base font-normal text-muted-foreground"> / {summary.total}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    Total (Processed / All)
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-400 mx-auto w-full pb-20">
+
+          {/* Top Metrics Cards */}
+          <TooltipProvider>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+              <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3">
+                    <InboxIcon size={20} className="text-slate-400 dark:text-slate-500" />
+                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      {summary.processedCount}{" "}
+                      <span className="text-sm font-medium text-slate-400 dark:text-slate-500">/ {summary.total}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500 mt-2">
+                    Total [Processed / All]
                     <InfoTooltip
                       content={
                         <div className="flex flex-col gap-1">
@@ -510,399 +506,374 @@ export default function AffiliateQueuePage() {
                         </div>
                       }
                     />
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-3 p-4">
-                <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold">{summary.staleCount}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangleIcon size={20} className="text-amber-500" />
+                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{summary.staleCount}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500 mt-2">
                     Stale
                     <InfoTooltip
                       content={<p>Requests that have not been closed for too long</p>}
                       contentClassName="max-w-48"
                     />
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <p className="text-xs text-muted-foreground/70 italic">These metrics are not affected by filters</p>
-        </TooltipProvider>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mb-6 ml-2">These metrics are not affected by filters</p>
+          </TooltipProvider>
 
-        {/* Discord Linking */}
-        <Card>
-          <CardContent className="p-4">
-            <button
-              type="button"
-              className="flex items-center justify-between w-full text-left"
-              onClick={() => setDiscordExpanded(!discordExpanded)}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔗</span>
-                <span className="text-sm font-medium">Discord</span>
-                {discordId ? (
-                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-xs">
-                    Đã liên kết
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs">Chưa liên kết</Badge>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">{discordExpanded ? "▲" : "▼"}</span>
-            </button>
-            {discordExpanded && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Liên kết Discord để fill link trực tiếp từ group chat.
-                  Lấy User ID: Discord Settings → Advanced → bật Developer Mode → chuột phải avatar → Copy User ID.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Discord User ID (vd: 123456789012345678)"
-                    value={discordIdInput}
-                    onChange={(e) => setDiscordIdInput(e.target.value)}
-                    className="flex-1 text-sm"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={saveDiscordLink}
-                    disabled={discordLinking || discordIdInput === (discordId || "")}
-                  >
-                    {discordLinking ? <LoaderIcon className="h-4 w-4 animate-spin" /> : "Lưu"}
-                  </Button>
-                  {discordId && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        setDiscordIdInput("");
-                        setDiscordLinking(true);
-                        try {
-                          const data = await apiFetch<{ ok: boolean }>("/api/users/me/discord", {
-                            method: "PUT",
-                            body: JSON.stringify({ discordId: null }),
-                          });
-                          if (data.ok) {
-                            setDiscordId(null);
-                            toast.success("Đã gỡ liên kết Discord");
-                          }
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Lỗi kết nối");
-                        } finally {
-                          setDiscordLinking(false);
-                        }
-                      }}
-                      disabled={discordLinking}
-                    >
-                      Gỡ
-                    </Button>
+          {/* Discord Linking */}
+          <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden mb-6">
+            <CardContent className="p-0">
+              <button
+                type="button"
+                className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                onClick={() => setDiscordExpanded(!discordExpanded)}
+              >
+                <div className="flex items-center gap-3">
+                  <Link2Icon size={18} className="text-slate-400 dark:text-slate-500" />
+                  <span className="font-bold text-sm text-slate-700 dark:text-slate-300">Discord</span>
+                  {discordId ? (
+                    <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-500/30">Đã liên kết</span>
+                  ) : (
+                    <span className="text-[10px] bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 px-2.5 py-0.5 rounded-md font-semibold border border-slate-200 dark:border-slate-700">Chưa liên kết</span>
                   )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                <ChevronDownIcon size={16} className={`text-slate-400 transition-transform ${discordExpanded ? "rotate-180" : ""}`} />
+              </button>
+              {discordExpanded && (
+                <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Liên kết Discord để fill link trực tiếp từ group chat.
+                    Lấy User ID: Discord Settings → Advanced → bật Developer Mode → chuột phải avatar → Copy User ID.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Discord User ID (vd: 123456789012345678)"
+                      value={discordIdInput}
+                      onChange={(e) => setDiscordIdInput(e.target.value)}
+                      className="flex-1 text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={saveDiscordLink}
+                      disabled={discordLinking || discordIdInput === (discordId || "")}
+                    >
+                      {discordLinking ? <LoaderIcon className="h-4 w-4 animate-spin" /> : "Lưu"}
+                    </Button>
+                    {discordId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          setDiscordIdInput("");
+                          setDiscordLinking(true);
+                          try {
+                            const data = await apiFetch<{ ok: boolean }>("/api/users/me/discord", {
+                              method: "PUT",
+                              body: JSON.stringify({ discordId: null }),
+                            });
+                            if (data.ok) {
+                              setDiscordId(null);
+                              toast.success("Đã gỡ liên kết Discord");
+                            }
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Lỗi kết nối");
+                          } finally {
+                            setDiscordLinking(false);
+                          }
+                        }}
+                        disabled={discordLinking}
+                      >
+                        Gỡ
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-3">
-          {/* Row 1: Search + Export */}
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* Toolbar */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+            {/* Search */}
+            <div className="relative w-full lg:flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <Input
                 placeholder="Search requestsId, product name, requester name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="pl-10 bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 shadow-sm h-10.5"
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={handleExportCSV}
-              disabled={exporting}
-              className="shrink-0"
-            >
-              <DownloadIcon className="h-4 w-4 mr-2" />
-              {exporting ? "Exporting..." : "CSV"}
-            </Button>
-          </div>
 
-          {/* Row 2: Filter dropdowns */}
-          <div className="flex flex-wrap gap-3">
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "ALL")} disabled={fetching}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue>
-                  {({ ALL: "All Status", OPEN: "Open", NEW: "Pending", FILLED: "Ready", CLOSED: "Closed" } as Record<string, string>)[statusFilter] ?? "All Status"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Status</SelectItem>
-                <SelectItem value="OPEN">Open</SelectItem>
-                <SelectItem value="NEW">Pending</SelectItem>
-                <SelectItem value="FILLED">Ready</SelectItem>
-                <SelectItem value="CLOSED">Closed</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "ALL")} disabled={fetching}>
+                <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-30 shadow-sm">
+                  <SelectValue>
+                    {({ ALL: "All Status", OPEN: "Open", NEW: "Pending", FILLED: "Ready", CLOSED: "Closed" } as Record<string, string>)[statusFilter] ?? "All Status"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="OPEN">Open</SelectItem>
+                  <SelectItem value="NEW">Pending</SelectItem>
+                  <SelectItem value="FILLED">Ready</SelectItem>
+                  <SelectItem value="CLOSED">Closed</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={buyerFilter} onValueChange={(v) => setBuyerFilter(v ?? "ALL")} disabled={fetching}>
-              <SelectTrigger className="w-40">
-                <SelectValue>
-                  {buyerFilter === "ALL"
-                    ? "All Buyers"
-                    : (buyers.find((b) => b.id === buyerFilter)?.displayName ||
-                       buyers.find((b) => b.id === buyerFilter)?.email ||
-                       "All Buyers")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Buyers</SelectItem>
-                {buyers.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.displayName || b.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortValue} onValueChange={(v) => setSortValue(v ?? "createdAt:desc")} disabled={fetching}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue>
-                  {SORT_OPTIONS.find((o) => o.value === sortValue)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        )}
-
-        {/* Empty */}
-        {!loading && items.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <InboxIcon className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Queue is empty</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                No requests matching your filters.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Desktop Table */}
-        {!loading && items.length > 0 && (
-          <>
-            <div className="hidden md:block rounded-lg border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-40">ID</TableHead>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="max-w-xs">Product</TableHead>
-                    <TableHead>Requester</TableHead>
-                    <TableHead>Affiliate Owner</TableHead>
-                    <TableHead>Affiliate Link</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => openDetail(item)}
-                    >
-                      <TableCell className="font-mono text-sm">
-                        {item.id}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground font-mono whitespace-nowrap">
-                        {item.orderId || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {formatRelativeTime(item.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`text-xs ${PLATFORM_STYLES[item.platform] || ""}`}>
-                          {item.platform}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex items-center gap-1">
-                          <Badge className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}>
-                            {statusLabel(item.status)}
-                          </Badge>
-                          {item.isStale && (
-                            <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
-                          )}
-                          {item.hasPotentialDuplicate && (
-                            <Badge variant="secondary" className="text-xs text-amber-600">Dup</Badge>
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-sm">
-                        {item.productName || item.productUrlRaw}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {item.createdBy.email}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {item.affiliateOwner ? (
-                          <span className="flex items-center gap-1">
-                            <UserIcon className="h-3 w-3" />
-                            {item.affiliateOwner.displayName || item.affiliateOwner.email}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {item.affiliateLink ? (
-                          <a
-                            href={item.affiliateLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-primary hover:underline text-sm flex items-center gap-1"
-                          >
-                            Open <ExternalLinkIcon className="h-3 w-3" />
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
+              <Select value={buyerFilter} onValueChange={(v) => setBuyerFilter(v ?? "ALL")} disabled={fetching}>
+                <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-32.5 shadow-sm">
+                  <SelectValue>
+                    {buyerFilter === "ALL"
+                      ? "All Buyers"
+                      : (buyers.find((b) => b.id === buyerFilter)?.displayName ||
+                        buyers.find((b) => b.id === buyerFilter)?.email ||
+                        "All Buyers")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Buyers</SelectItem>
+                  {buyers.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.displayName || b.email}
+                    </SelectItem>
                   ))}
-                </TableBody>
-              </Table>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortValue} onValueChange={(v) => setSortValue(v ?? "createdAt:desc")} disabled={fetching}>
+                <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-47.5 shadow-sm">
+                  <SelectValue>
+                    {SORT_OPTIONS.find((o) => o.value === sortValue)?.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                onClick={handleExportCSV}
+                disabled={exporting}
+                className="bg-white hover:bg-slate-50 dark:bg-[#131B2F] dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl shadow-sm text-xs h-10.5"
+              >
+                <DownloadIcon size={14} className="mr-2" />
+                {exporting ? "Exporting..." : "CSV"}
+              </Button>
             </div>
+          </div>
 
-            {/* Desktop Pagination */}
-            {totalPages > 1 && (
-              <div className="hidden md:flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    <ChevronLeftIcon className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm">
-                    {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    <ChevronRightIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+          {/* Loading */}
+          {loading && (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          )}
 
-            {/* Mobile Card List with infinite scroll */}
-            <div className="md:hidden space-y-3">
-              {mobileItems.map((item) => (
-                <Card
-                  key={item.id}
-                  className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
-                  onClick={() => openDetail(item)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <code className="font-mono text-sm font-medium">
-                            {item.id}
-                          </code>
-                          <Badge className={`text-xs ${PLATFORM_STYLES[item.platform] || ""}`}>
+          {/* Empty */}
+          {!loading && items.length === 0 && (
+            <div className="bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+              <InboxIcon className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Queue is empty</h3>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No requests matching your filters.</p>
+            </div>
+          )}
+
+          {/* Desktop Table + Mobile Cards */}
+          {!loading && items.length > 0 && (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                  <thead className="text-[11px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-[#0B1120]/50 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
+                    <tr>
+                      <th className="px-5 py-4">ID</th>
+                      <th className="px-5 py-4">Order ID</th>
+                      <th className="px-5 py-4">Created</th>
+                      <th className="px-5 py-4">Platform</th>
+                      <th className="px-5 py-4">Status</th>
+                      <th className="px-5 py-4">Product</th>
+                      <th className="px-5 py-4">Requester</th>
+                      <th className="px-5 py-4">Affiliate Owner</th>
+                      <th className="px-5 py-4">Affiliate Link</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                    {items.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-slate-50 dark:hover:bg-[#1A233A]/50 transition-colors cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
+                        onClick={() => openDetail(item)}
+                      >
+                        <td className="px-5 py-3.5 font-mono">{item.id}</td>
+                        <td className="px-5 py-3.5 text-slate-400 dark:text-slate-600">{item.orderId || "—"}</td>
+                        <td className="px-5 py-3.5">{formatRelativeTime(item.createdAt)}</td>
+                        <td className="px-5 py-3.5">
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${PLATFORM_STYLES[item.platform] || PLATFORM_STYLES.OTHER}`}>
                             {item.platform}
-                          </Badge>
-                          <Badge className={`text-xs ${STATUS_BADGE_STYLES[item.status] || ""}`}>
-                            {statusLabel(item.status)}
-                          </Badge>
-                          {item.isStale && (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertTriangleIcon className="mr-1 h-3 w-3" />
-                              Stale
-                            </Badge>
-                          )}
-                          {item.hasPotentialDuplicate && (
-                            <Badge variant="secondary" className="text-xs text-amber-600">
-                              Duplicate
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm truncate">
-                          {item.productName || item.productUrlRaw}
-                        </p>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          Order: {item.orderId || "—"}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <ClockIcon className="h-3 w-3" />
-                            {formatRelativeTime(item.createdAt)}
                           </span>
-                          <span>
-                            by {item.createdBy.email}
-                          </span>
-                          {item.affiliateOwner && (
-                            <span className="flex items-center gap-1">
-                              <UserIcon className="h-3 w-3" />
-                              {item.affiliateOwner.displayName || item.affiliateOwner.email}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-full border ${STATUS_BADGE_STYLES[item.status] || STATUS_BADGE_STYLES.NEW}`}>
+                              {statusLabel(item.status)}
                             </span>
+                            {item.isStale && <AlertTriangleIcon size={14} className="text-amber-500" />}
+                            {item.hasPotentialDuplicate && (
+                              <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-amber-200 dark:border-amber-500/20 shadow-sm">Dup</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 max-w-55 truncate" title={item.productName || item.productUrlRaw}>
+                          {item.productName || item.productUrlRaw}
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400">{item.createdBy.email}</td>
+                        <td className="px-5 py-3.5 text-slate-400 dark:text-slate-500">
+                          {item.affiliateOwner ? (
+                            <div className="flex items-center gap-1.5">
+                              <UserIcon size={12} className="text-slate-400" />
+                              <span>{item.affiliateOwner.displayName || item.affiliateOwner.email}</span>
+                            </div>
+                          ) : "—"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {item.affiliateLink ? (
+                            <a
+                              href={item.affiliateLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline"
+                            >
+                              <span>Open</span>
+                              <ExternalLinkIcon size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop Pagination */}
+              {totalPages > 1 && (
+                <div className="hidden lg:flex items-center justify-between mt-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                      <ChevronLeftIcon className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">{page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile Cards */}
+              <div className="lg:hidden space-y-4">
+                {mobileItems.map((item) => (
+                  <Card
+                    key={item.id}
+                    className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm cursor-pointer"
+                    onClick={() => openDetail(item)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{item.id}</span>
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{formatRelativeTime(item.createdAt)}</span>
+                      </div>
+                      <div className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-2">
+                        {item.productName || item.productUrlRaw}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mb-4">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${PLATFORM_STYLES[item.platform] || PLATFORM_STYLES.OTHER}`}>
+                          {item.platform}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-full border ${STATUS_BADGE_STYLES[item.status] || STATUS_BADGE_STYLES.NEW}`}>
+                            {statusLabel(item.status)}
+                          </span>
+                          {item.isStale && <AlertTriangleIcon size={14} className="text-amber-500" />}
+                          {item.hasPotentialDuplicate && (
+                            <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-amber-200 dark:border-amber-500/20">Dup</span>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {/* Sentinel for infinite scroll */}
-              <div ref={sentinelRef} className="h-1" />
-              {mobileLoadingMore && (
-                <div className="flex items-center justify-center py-4">
-                  <LoaderIcon className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              {!mobileHasMore && mobileItems.length > 0 && (
-                <p className="text-center text-sm text-muted-foreground py-4">
-                  No more requests
-                </p>
-              )}
-            </div>
-          </>
-        )}
+                      <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs border-t border-slate-100 dark:border-slate-800/50 pt-3">
+                        <div>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-1">Requester</p>
+                          <p className="text-slate-600 dark:text-slate-300 font-medium truncate">{item.createdBy.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-1">Owner</p>
+                          <div className="text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1">
+                            {item.affiliateOwner && <UserIcon size={12} className="text-slate-400" />}
+                            {item.affiliateOwner
+                              ? (item.affiliateOwner.displayName || item.affiliateOwner.email)
+                              : "—"}
+                          </div>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider mb-1">Link</p>
+                          {item.affiliateLink ? (
+                            <a
+                              href={item.affiliateLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+                            >
+                              <span>Open</span>
+                              <ExternalLinkIcon size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600 font-medium">—</span>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                <div ref={sentinelRef} className="h-1" />
+                {mobileLoadingMore && (
+                  <div className="flex items-center justify-center py-4">
+                    <LoaderIcon className="h-5 w-5 animate-spin text-slate-400 dark:text-slate-500" />
+                  </div>
+                )}
+                {!mobileHasMore && mobileItems.length > 0 && (
+                  <p className="text-center text-sm text-slate-500 py-4">No more requests</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
-        {/* Detail Modal */}
-        <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+      {/* Detail Modal */}
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
           <DialogContent className="p-0 gap-0 sm:max-w-lg lg:max-w-5xl">
             {selected && (
               <div className="flex flex-col rounded-xl overflow-hidden">
@@ -983,14 +954,14 @@ export default function AffiliateQueuePage() {
                               <Input
                                 value={editOrderId}
                                 onChange={(e) => setEditOrderId(e.target.value)}
-                                className="h-8 text-sm font-mono"
+                                className="h-9 text-sm font-mono"
                               />
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={handleUpdateOrderId}
                                 disabled={actionLoading === "editOrderId" || !editOrderId.trim() || editOrderId.trim() === selected.orderId}
-                                className="h-8 shrink-0"
+                                className="h-9 shrink-0"
                               >
                                 {actionLoading === "editOrderId" ? "Saving..." : "Save"}
                               </Button>
@@ -1092,7 +1063,6 @@ export default function AffiliateQueuePage() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
     </>
   );
 }
