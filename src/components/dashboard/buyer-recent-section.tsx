@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { formatRelativeTime } from "@/lib/utils";
+import { progressStart, progressDone } from "@/lib/progress-store";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -58,12 +59,23 @@ export function BuyerRecentSection({
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  // Mirror navigation pending state into the global progress bar.
+  useEffect(() => {
+    if (isPending) {
+      progressStart();
+      return () => progressDone();
+    }
+  }, [isPending]);
 
   function handleRangeChange(v: string | null) {
     if (!v) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set("range", v);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
   }
 
   function openDetail(id: string) {
@@ -87,7 +99,7 @@ export function BuyerRecentSection({
             <p className="text-xs text-muted-foreground mt-0.5">{filterLabel}</p>
           )}
         </div>
-        <Select value={String(range)} onValueChange={handleRangeChange}>
+        <Select value={String(range)} onValueChange={handleRangeChange} disabled={isPending}>
           <SelectTrigger className="w-40">
             <SelectValue>
               {RANGE_OPTIONS.find((o) => o.value === String(range))?.label}
