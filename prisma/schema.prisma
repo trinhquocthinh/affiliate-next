@@ -43,6 +43,7 @@ model User {
   lastLoginAt              DateTime?
   passwordChangedAt        DateTime?
   discordId                String?    @unique
+  columnPreferences        Json?
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 

@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/swr-fetcher";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { DEFAULT_CONFIG } from "@/lib/constants";
+import {
+  AFFILIATE_COLUMNS,
+  parseAllowedColumns,
+  type AffiliateColumnId,
+} from "@/lib/affiliate-columns";
 
 type ConfigMap = Record<string, string>;
 
@@ -52,6 +57,59 @@ export default function AdminConfigPage() {
   const loading = isLoading;
 
   const config: ConfigMap = { ...remoteConfig, ...overrides };
+
+  // ── Affiliate Queue Columns ────────────────────────────────────────────────
+  // Local state for the admin's toggle UI. Hydrated from `config` after fetch.
+  const initialAllowedColumns = useMemo(
+    () => new Set<AffiliateColumnId>(parseAllowedColumns(remoteConfig.AFFILIATE_ALLOWED_COLUMNS)),
+    [remoteConfig.AFFILIATE_ALLOWED_COLUMNS],
+  );
+  const [allowedColumns, setAllowedColumns] = useState<Set<AffiliateColumnId>>(
+    initialAllowedColumns,
+  );
+  const [columnsDirty, setColumnsDirty] = useState(false);
+  const [savingColumns, setSavingColumns] = useState(false);
+
+  // Sync local state when the server value changes (e.g., first load).
+  useEffect(() => {
+    if (!columnsDirty) {
+      setAllowedColumns(initialAllowedColumns);
+    }
+  }, [initialAllowedColumns, columnsDirty]);
+
+  function toggleColumn(id: AffiliateColumnId, checked: boolean) {
+    setColumnsDirty(true);
+    setAllowedColumns((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  async function saveAllowedColumns() {
+    const value = JSON.stringify(
+      AFFILIATE_COLUMNS.filter((c) => allowedColumns.has(c.id) || c.mandatory).map((c) => c.id),
+    );
+    setSavingColumns(true);
+    try {
+      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>("/api/config", {
+        method: "PUT",
+        body: JSON.stringify({ key: "AFFILIATE_ALLOWED_COLUMNS", value }),
+      });
+      if (res.ok) {
+        toast.success("Affiliate columns updated");
+        setColumnsDirty(false);
+        mutate();
+      } else {
+        toast.error(res.error?.message || "Failed to save");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSavingColumns(false);
+    }
+  }
 
   function setField(key: string, value: string) {
     setOverrides((prev) => ({ ...prev, [key]: value }));
@@ -154,6 +212,47 @@ export default function AdminConfigPage() {
             </CardContent>
           </Card>
         ))}
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Affiliate Queue Columns</CardTitle>
+            <CardDescription className="text-xs">
+              Columns affiliates are allowed to see and toggle in their queue.
+              Mandatory columns are always enabled.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {AFFILIATE_COLUMNS.map((col) => {
+              const checked = col.mandatory || allowedColumns.has(col.id);
+              return (
+                <div
+                  key={col.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">{col.label}</span>
+                    <span className="text-[11px] text-muted-foreground font-mono">{col.id}</span>
+                  </div>
+                  <Switch
+                    checked={checked}
+                    onCheckedChange={(v) => toggleColumn(col.id, !!v)}
+                    disabled={!!col.mandatory}
+                    aria-label={`Allow ${col.label} column`}
+                  />
+                </div>
+              );
+            })}
+            <div className="flex justify-end pt-1">
+              <Button
+                size="sm"
+                onClick={saveAllowedColumns}
+                disabled={!columnsDirty || savingColumns}
+              >
+                {savingColumns ? "Saving..." : "Save Columns"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Button variant="outline" onClick={resetToDefaults} disabled={resetting} className="w-full">
           {resetting ? "Resetting..." : "Reset to Defaults"}
