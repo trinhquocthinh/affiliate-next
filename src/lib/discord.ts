@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { PLATFORM_LABELS } from "@/lib/constants";
 
 // ──────────────────────────────────────────────────────────────
@@ -15,6 +16,7 @@ export const getDiscordConfig = () => ({
   applicationId: env("DISCORD_APPLICATION_ID"),
   channelId: env("DISCORD_CHANNEL_ID"),
   adminChannelId: env("DISCORD_ADMIN_CHANNEL_ID"),
+  publicKey: env("DISCORD_PUBLIC_KEY"),
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -245,6 +247,37 @@ export function buildFillModal(requestId: string) {
       },
     ],
   };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Signature verification
+// ──────────────────────────────────────────────────────────────
+
+export async function verifyInteraction(
+  rawBody: string,
+  signature: string,
+  timestamp: string,
+): Promise<boolean> {
+  const { publicKey } = getDiscordConfig();
+  try {
+    const key = crypto.createPublicKey({
+      key: Buffer.concat([
+        // Ed25519 DER prefix
+        Buffer.from("302a300506032b6570032100", "hex"),
+        Buffer.from(publicKey, "hex"),
+      ]),
+      format: "der",
+      type: "spki",
+    });
+    return crypto.verify(
+      null,
+      Buffer.from(timestamp + rawBody),
+      key,
+      Buffer.from(signature, "hex"),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
