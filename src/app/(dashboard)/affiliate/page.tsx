@@ -6,6 +6,27 @@ import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/utils";
 import { apiFetch } from "@/lib/swr-fetcher";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useAffiliateColumns } from "@/hooks/use-affiliate-columns";
+import {
+  affiliateColumnValue,
+  renderAffiliateCell,
+  type AffiliateQueueRow,
+} from "@/components/dashboard/affiliate-queue-cells";
+import type { AffiliateColumnId } from "@/lib/affiliate-columns";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { AppHeader } from "@/components/layout/app-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +50,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
   InboxIcon,
   AlertTriangleIcon,
   UserIcon,
@@ -41,6 +70,8 @@ import {
   ChevronRightIcon,
   LoaderIcon,
   Link2Icon,
+  Columns3Icon,
+  GripVerticalIcon,
 } from "lucide-react";
 import {
   TooltipProvider,
@@ -121,6 +152,46 @@ type QueueResponse = {
   error?: { message?: string };
 };
 
+function SortableHeader({
+  id,
+  label,
+  draggable,
+}: {
+  id: AffiliateColumnId;
+  label: string;
+  draggable: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !draggable,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    cursor: draggable ? "grab" : "default",
+  };
+  return (
+    <th
+      ref={setNodeRef}
+      style={style}
+      className="px-5 py-4 select-none"
+      {...attributes}
+      {...(draggable ? listeners : {})}
+    >
+      <span className="inline-flex items-center gap-1.5">
+        {draggable && (
+          <GripVerticalIcon
+            size={12}
+            className="text-slate-300 dark:text-slate-600 shrink-0"
+          />
+        )}
+        {label}
+      </span>
+    </th>
+  );
+}
+
 export default function AffiliateQueuePage() {
   // Pagination state
   const [page, setPage] = useState(1);
@@ -155,6 +226,24 @@ export default function AffiliateQueuePage() {
 
   // CSV export loading
   const [exporting, setExporting] = useState(false);
+
+  // Customizable columns (admin gating + per-user prefs)
+  const {
+    columns: tableColumns,
+    setVisibility: setColumnVisibility,
+    reorder: reorderColumns,
+    resetDefaults: resetColumnDefaults,
+  } = useAffiliateColumns();
+  const visibleTableColumns = tableColumns.filter((c) => c.visible);
+
+  // dnd-kit sensors — small activation distance so click-targets (sort header
+  // text, dropdown trigger) still fire when the user merely clicks.
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  function handleColumnDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    reorderColumns(active.id as AffiliateColumnId, over.id as AffiliateColumnId);
+  }
 
   // Discord linking
   const [discordId, setDiscordId] = useState<string | null>(null);
@@ -271,6 +360,10 @@ export default function AffiliateQueuePage() {
 
   // CSV export - fetch all data
   async function handleExportCSV() {
+    if (visibleTableColumns.length === 0) {
+      toast.error("Enable at least one column before exporting");
+      return;
+    }
     setExporting(true);
     try {
       const params = buildParams(1);
@@ -291,19 +384,12 @@ export default function AffiliateQueuePage() {
         currentPage++;
       }
 
-      const headers = ["ID", "Order ID", "Created", "Platform", "Status", "Product Name", "Product URL", "Requester", "Affiliate Owner", "Affiliate Link"];
-      const rows = allItems.map((item) => [
-        item.id,
-        item.orderId || "",
-        new Date(item.createdAt).toISOString(),
-        item.platform,
-        item.status,
-        item.productName || "",
-        decodeURIComponent(item.productUrlRaw.split("?")[0]),
-        item.createdBy.email,
-        item.affiliateOwner?.displayName || item.affiliateOwner?.email || "",
-        item.affiliateLink ? decodeURIComponent(item.affiliateLink) : "",
-      ]);
+      // WYSIWYG: headers + row values are derived from the user's current
+      // visible-column order. Hidden / disallowed columns are excluded.
+      const headers = visibleTableColumns.map((c) => c.label);
+      const rows = allItems.map((item) =>
+        visibleTableColumns.map((c) => affiliateColumnValue(item as AffiliateQueueRow, c.id)),
+      );
 
       const csvContent = [
         headers.join(","),
@@ -665,10 +751,48 @@ export default function AffiliateQueuePage() {
                 </SelectContent>
               </Select>
 
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="bg-white hover:bg-slate-50 dark:bg-[#131B2F] dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl shadow-sm text-xs h-10.5"
+                    />
+                  }
+                >
+                  <Columns3Icon size={14} className="mr-2" />
+                  Columns
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+                    Visible columns
+                  </div>
+                  <DropdownMenuSeparator />
+                  {tableColumns.length === 0 ? (
+                    <DropdownMenuItem disabled>No columns available</DropdownMenuItem>
+                  ) : (
+                    tableColumns.map((col) => (
+                      <DropdownMenuCheckboxItem
+                        key={col.id}
+                        checked={col.visible}
+                        disabled={!!col.mandatory}
+                        onSelect={(e) => e.preventDefault()}
+                        onCheckedChange={(checked) => setColumnVisibility(col.id, !!checked)}
+                      >
+                        {col.label}
+                        {col.mandatory && (
+                          <span className="ml-auto text-[10px] text-slate-400">Required</span>
+                        )}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button
                 variant="outline"
                 onClick={handleExportCSV}
-                disabled={exporting}
+                disabled={exporting || visibleTableColumns.length === 0}
                 className="bg-white hover:bg-slate-50 dark:bg-[#131B2F] dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl shadow-sm text-xs h-10.5"
               >
                 <DownloadIcon size={14} className="mr-2" />
@@ -700,78 +824,61 @@ export default function AffiliateQueuePage() {
             <>
               {/* Desktop Table */}
               <div className="hidden lg:block bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                  <thead className="text-[11px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-[#0B1120]/50 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
-                    <tr>
-                      <th className="px-5 py-4">ID</th>
-                      <th className="px-5 py-4">Order ID</th>
-                      <th className="px-5 py-4">Created</th>
-                      <th className="px-5 py-4">Platform</th>
-                      <th className="px-5 py-4">Status</th>
-                      <th className="px-5 py-4">Product</th>
-                      <th className="px-5 py-4">Requester</th>
-                      <th className="px-5 py-4">Affiliate Owner</th>
-                      <th className="px-5 py-4">Affiliate Link</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                    {items.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-slate-50 dark:hover:bg-[#1A233A]/50 transition-colors cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
-                        onClick={() => openDetail(item)}
-                      >
-                        <td className="px-5 py-3.5 font-mono">{item.id}</td>
-                        <td className="px-5 py-3.5 text-slate-400 dark:text-slate-600">{item.orderId || "—"}</td>
-                        <td className="px-5 py-3.5">{formatRelativeTime(item.createdAt)}</td>
-                        <td className="px-5 py-3.5">
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${PLATFORM_STYLES[item.platform] || PLATFORM_STYLES.OTHER}`}>
-                            {item.platform}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-full border ${STATUS_BADGE_STYLES[item.status] || STATUS_BADGE_STYLES.NEW}`}>
-                              {statusLabel(item.status)}
-                            </span>
-                            {item.isStale && <AlertTriangleIcon size={14} className="text-amber-500" />}
-                            {item.hasPotentialDuplicate && (
-                              <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-amber-200 dark:border-amber-500/20 shadow-sm">Dup</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 max-w-55 truncate" title={item.productName || item.productUrlRaw}>
-                          {item.productName || item.productUrlRaw}
-                        </td>
-                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400">{item.createdBy.email}</td>
-                        <td className="px-5 py-3.5 text-slate-400 dark:text-slate-500">
-                          {item.affiliateOwner ? (
-                            <div className="flex items-center gap-1.5">
-                              <UserIcon size={12} className="text-slate-400" />
-                              <span>{item.affiliateOwner.displayName || item.affiliateOwner.email}</span>
-                            </div>
-                          ) : "—"}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {item.affiliateLink ? (
-                            <a
-                              href={item.affiliateLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline"
-                            >
-                              <span>Open</span>
-                              <ExternalLinkIcon size={12} />
-                            </a>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-600">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {visibleTableColumns.length === 0 ? (
+                  <div className="p-12 flex flex-col items-center justify-center text-center">
+                    <Columns3Icon className="h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+                      All columns are hidden
+                    </h3>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+                      Enable at least one column from the Columns menu, or restore the defaults.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={resetColumnDefaults}>
+                      Restore default columns
+                    </Button>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={dndSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleColumnDragEnd}
+                  >
+                    <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <thead className="text-[11px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-[#0B1120]/50 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
+                        <SortableContext
+                          items={visibleTableColumns.map((c) => c.id)}
+                          strategy={horizontalListSortingStrategy}
+                        >
+                          <tr>
+                            {visibleTableColumns.map((col) => (
+                              <SortableHeader
+                                key={col.id}
+                                id={col.id}
+                                label={col.label}
+                                draggable={!col.mandatory}
+                              />
+                            ))}
+                          </tr>
+                        </SortableContext>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                        {items.map((item) => (
+                          <tr
+                            key={item.id}
+                            className="hover:bg-slate-50 dark:hover:bg-[#1A233A]/50 transition-colors cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
+                            onClick={() => openDetail(item)}
+                          >
+                            {visibleTableColumns.map((col) => (
+                              <td key={col.id} className="px-5 py-3.5">
+                                {renderAffiliateCell(item as AffiliateQueueRow, col.id)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </DndContext>
+                )}
               </div>
 
               {/* Desktop Pagination */}

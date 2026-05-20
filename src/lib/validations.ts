@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { MAX_BATCH_SIZE, MAX_NOTE_LENGTH } from "./constants";
+import {
+  AFFILIATE_COLUMN_IDS,
+  MANDATORY_AFFILIATE_COLUMN_IDS,
+  type AffiliateColumnId,
+} from "./affiliate-columns";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address").transform((v) => v.toLowerCase().trim()),
@@ -126,10 +131,91 @@ export const resetPasswordSchema = z.object({
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
 });
 
-export const updateConfigSchema = z.object({
-  key: z.string().min(1),
-  value: z.string(),
-});
+export const updateConfigSchema = z
+  .object({
+    key: z.string().min(1),
+    value: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.key === "AFFILIATE_ALLOWED_COLUMNS") {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(data.value);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "AFFILIATE_ALLOWED_COLUMNS must be a JSON-encoded string array",
+          path: ["value"],
+        });
+        return;
+      }
+      if (!Array.isArray(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "AFFILIATE_ALLOWED_COLUMNS must be a JSON array",
+          path: ["value"],
+        });
+        return;
+      }
+      const allowedIds = new Set<string>(AFFILIATE_COLUMN_IDS);
+      for (const id of parsed) {
+        if (typeof id !== "string" || !allowedIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unknown affiliate column id: ${String(id)}`,
+            path: ["value"],
+          });
+          return;
+        }
+      }
+    }
+  });
+
+const affiliateColumnIdSchema = z.enum(
+  AFFILIATE_COLUMN_IDS as readonly [AffiliateColumnId, ...AffiliateColumnId[]],
+);
+
+export const columnPreferencesSchema = z
+  .array(
+    z.object({
+      id: affiliateColumnIdSchema,
+      visible: z.boolean(),
+      order: z.number().int().min(0),
+    }),
+  )
+  .max(AFFILIATE_COLUMN_IDS.length, "Too many column entries")
+  .superRefine((data, ctx) => {
+    const ids = new Set<string>();
+    const orders = new Set<number>();
+    for (const entry of data) {
+      if (ids.has(entry.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate column id: ${entry.id}`,
+        });
+        return;
+      }
+      ids.add(entry.id);
+      if (orders.has(entry.order)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate order value: ${entry.order}`,
+        });
+        return;
+      }
+      orders.add(entry.order);
+    }
+    for (const mandatoryId of MANDATORY_AFFILIATE_COLUMN_IDS) {
+      const entry = data.find((d) => d.id === mandatoryId);
+      if (entry && !entry.visible) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Column "${mandatoryId}" cannot be hidden`,
+        });
+        return;
+      }
+    }
+  });
 
 export const adminCorrectSchema = z.object({
   orderId: z.string().max(100).trim().nullable().optional(),

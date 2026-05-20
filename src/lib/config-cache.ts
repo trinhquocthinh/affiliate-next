@@ -1,6 +1,10 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CONFIG } from "@/lib/constants";
+import {
+  parseAllowedColumns,
+  type AffiliateColumnId,
+} from "@/lib/affiliate-columns";
 
 export type AppConfigMap = {
   STALE_REQUEST_HOURS: number;
@@ -10,6 +14,7 @@ export type AppConfigMap = {
   DISCORD_WEBHOOK_URL: string | null;
   DISCORD_CURRENT_THREAD_ID: string | null;
   DISCORD_CURRENT_THREAD_DATE: string | null;
+  AFFILIATE_ALLOWED_COLUMNS: AffiliateColumnId[];
 };
 
 /**
@@ -42,6 +47,7 @@ export const getAppConfig = unstable_cache(
       DISCORD_WEBHOOK_URL: map["DISCORD_WEBHOOK_URL"] ?? null,
       DISCORD_CURRENT_THREAD_ID: map["DISCORD_CURRENT_THREAD_ID"] ?? null,
       DISCORD_CURRENT_THREAD_DATE: map["DISCORD_CURRENT_THREAD_DATE"] ?? null,
+      AFFILIATE_ALLOWED_COLUMNS: parseAllowedColumns(map["AFFILIATE_ALLOWED_COLUMNS"]),
     };
   },
   ["app-config"],
