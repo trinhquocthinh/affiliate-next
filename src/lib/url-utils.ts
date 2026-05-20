@@ -149,17 +149,17 @@ export function detectPlatformFromUrl(url: string): UrlDetectionResult {
 
   const hostname = parsed.hostname.toLowerCase();
 
-  if (SHORTLINK_DOMAINS.has(hostname)) {
-    // Try to give a platform hint even for shortlinks
-    let platform: DetectedPlatform | null = null;
-    if (hostname === "shp.ee" || hostname === "s.shopee.vn") platform = "SHOPEE";
-    else if (hostname === "vm.tiktok.com" || hostname === "vt.tiktok.com") platform = "TIKTOK";
-    return {
-      platform,
-      isShortlink: true,
-      errorMessage: "Shortlinks are not supported. Please use the full product URL.",
-    };
-  }
+  // if (SHORTLINK_DOMAINS.has(hostname)) {
+  //   // Try to give a platform hint even for shortlinks
+  //   let platform: DetectedPlatform | null = null;
+  //   if (hostname === "shp.ee" || hostname === "s.shopee.vn") platform = "SHOPEE";
+  //   else if (hostname === "vm.tiktok.com" || hostname === "vt.tiktok.com") platform = "TIKTOK";
+  //   return {
+  //     platform,
+  //     isShortlink: true,
+  //     errorMessage: "Shortlinks are not supported. Please use the full product URL.",
+  //   };
+  // }
 
   // Check exact Shopee domain or subdomain
   const isShopee =

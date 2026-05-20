@@ -50,7 +50,6 @@ export default function BuyerRequestPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CreatedResult[] | null>(null);
 
-  // Per-item debounce timers for preview fetch
   const previewTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const isBatch = items.length > 1;
@@ -80,26 +79,22 @@ export default function BuyerRequestPage() {
       prev.map((i) =>
         i.id === id
           ? {
-              ...i,
-              productUrl: value,
-              detectedPlatform: detection.platform,
-              urlError: detection.errorMessage ?? null,
-              isLoadingName: detection.errorMessage ? false : i.isLoadingName,
-              // Clear auto-filled name so the new URL can replace it
-              productName: i.isNameAutoFilled ? "" : i.productName,
-              isNameAutoFilled: i.isNameAutoFilled ? false : i.isNameAutoFilled,
-            }
+            ...i,
+            productUrl: value,
+            detectedPlatform: detection.platform,
+            urlError: detection.errorMessage ?? null,
+            isLoadingName: detection.errorMessage ? false : i.isLoadingName,
+            productName: i.isNameAutoFilled ? "" : i.productName,
+            isNameAutoFilled: i.isNameAutoFilled ? false : i.isNameAutoFilled,
+          }
           : i,
       ),
     );
 
-    // Cancel any pending preview fetch for this item
     clearTimeout(previewTimers.current.get(id));
 
-    // Only fetch preview if URL is valid (no error) and non-empty
     if (!detection.errorMessage && value.trim()) {
       const timer = setTimeout(async () => {
-        // Mark loading
         setItems((prev) =>
           prev.map((i) => (i.id === id ? { ...i, isLoadingName: true } : i)),
         );
@@ -113,12 +108,11 @@ export default function BuyerRequestPage() {
               prev.map((i) =>
                 i.id === id
                   ? {
-                      ...i,
-                      isLoadingName: false,
-                      // Fill if empty or was previously auto-filled
-                      productName: i.productName.trim() ? i.productName : title,
-                      isNameAutoFilled: !i.productName.trim(),
-                    }
+                    ...i,
+                    isLoadingName: false,
+                    productName: i.productName.trim() ? i.productName : title,
+                    isNameAutoFilled: !i.productName.trim(),
+                  }
                   : i,
               ),
             );
@@ -146,14 +140,12 @@ export default function BuyerRequestPage() {
       return;
     }
 
-    // Block if any item has a URL error
     const hasErrors = validItems.some((i) => i.urlError);
     if (hasErrors) {
       toast.error("Please fix the URL errors before submitting");
       return;
     }
 
-    // Derive platform — mixed batch is not allowed
     const platforms = new Set(validItems.map((i) => i.detectedPlatform ?? "OTHER"));
     if (platforms.size > 1) {
       toast.error(
@@ -265,139 +257,134 @@ export default function BuyerRequestPage() {
     <>
       <AppHeader title="New Request" />
       <div className="flex-1 p-4 sm:p-6 lg:p-8">
-        <form onSubmit={handleSubmit} className="max-w-1xl mx-auto w-full pb-20">
+        <form onSubmit={handleSubmit} className="max-w-1xl mx-auto w-full pb-20 animate-in fade-in duration-500">
+          {/* Header */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Create New Request</h2>
-            <p className="text-slate-400 text-sm">Add products you want affiliates to promote.</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">
+              Create New Request
+            </h1>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Add products you want affiliates to promote.
+            </p>
           </div>
 
-          <div className="space-y-8">
-            {/* Products List */}
-            <div>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h3 className="text-sm font-medium text-slate-300">Products</h3>
-                <span className="text-xs text-slate-500 font-medium">{items.length}/50</span>
-              </div>
+          <div className="space-y-4">
+            {/* Products header */}
+            <div className="flex justify-between items-center px-1 mb-2">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Products</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-slate-500">{items.length}/50</span>
+            </div>
 
-              <div className="space-y-4">
-                {items.map((item, index) => {
-                  const platformBadge = item.detectedPlatform
-                    ? PLATFORM_BADGE[item.detectedPlatform]
-                    : null;
-                  const urlHasError = Boolean(item.urlError);
+            {/* Product Cards */}
+            {items.map((item, index) => {
+              const platformBadge = item.detectedPlatform
+                ? PLATFORM_BADGE[item.detectedPlatform]
+                : null;
+              const urlHasError = Boolean(item.urlError);
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="bg-[#131B2F] border border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm relative group transition-all hover:border-slate-700"
-                    >
-                      <div className="flex justify-between items-center mb-5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-emerald-500/70 bg-emerald-500/10 px-2 py-1 rounded">
-                            #{index + 1}
-                          </span>
-                          {platformBadge && (
-                            <span
-                              className={`text-xs font-semibold px-2 py-1 rounded border ${platformBadge.className}`}
-                            >
-                              {platformBadge.label}
-                            </span>
-                          )}
-                        </div>
-                        {items.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.id)}
-                            className="text-slate-500 hover:text-red-400 transition-colors p-1"
-                            title="Remove product"
-                          >
-                            <TrashIcon size={16} />
-                          </button>
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm relative group transition-all"
+                >
+                  <div className="flex justify-between items-start mb-5">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-md text-[11px]">
+                        #{index + 1}
+                      </span>
+                      {platformBadge && (
+                        <span className={`text-xs font-semibold px-2 py-1 rounded border ${platformBadge.className}`}>
+                          {platformBadge.label}
+                        </span>
+                      )}
+                    </div>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.id)}
+                        className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors p-1"
+                        title="Remove product"
+                      >
+                        <TrashIcon size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                        Product URL <span className="text-emerald-500">*</span>
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={item.productUrl}
+                        onChange={(e) => handleUrlChange(item.id, decodeURIComponent(e.target.value.split("?")[0]))}
+                        className={`w-full bg-slate-50 dark:bg-[#0B1120] border rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all shadow-sm ${urlHasError
+                            ? "border-red-400 dark:border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
+                            : "border-slate-200 dark:border-slate-800/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          }`}
+                      />
+                      {urlHasError && (
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
+                          <AlertTriangleIcon size={12} />
+                          {item.urlError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                        Product Name{" "}
+                        <span className="text-slate-400 dark:text-slate-500 font-medium normal-case tracking-normal">(optional)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder={item.isLoadingName ? "Fetching product name..." : "e.g. Nike Air Max 90"}
+                          value={item.productName}
+                          onChange={(e) => updateItemField(item.id, "productName", e.target.value)}
+                          disabled={item.isLoadingName}
+                          className="w-full bg-slate-50 dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800/80 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-sm disabled:opacity-60 disabled:cursor-wait"
+                        />
+                        {item.isLoadingName && (
+                          <Loader2Icon
+                            size={14}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
+                          />
                         )}
                       </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                            Product URL <span className="text-emerald-500">*</span>
-                          </label>
-                          <input
-                            type="url"
-                            placeholder="https://..."
-                            value={item.productUrl}
-                            onChange={(e) => handleUrlChange(item.id, e.target.value)}
-                            className={`w-full bg-[#0B1120] border rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-all ${
-                              urlHasError
-                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
-                                : "border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50"
-                            }`}
-                          />
-                          {urlHasError && (
-                            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
-                              <AlertTriangleIcon size={12} />
-                              {item.urlError}
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                            Product Name{" "}
-                            <span className="text-slate-500 font-normal">(optional)</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder={
-                                item.isLoadingName
-                                  ? "Fetching product name..."
-                                  : "e.g. Nike Air Max 90"
-                              }
-                              value={item.productName}
-                              onChange={(e) =>
-                                updateItemField(item.id, "productName", e.target.value)
-                              }
-                              disabled={item.isLoadingName}
-                              className="w-full bg-[#0B1120] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all disabled:opacity-60 disabled:cursor-wait"
-                            />
-                            {item.isLoadingName && (
-                              <Loader2Icon
-                                size={14}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              );
+            })}
 
-              {items.length < 50 && (
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 border border-dashed border-slate-700 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-sm font-medium"
-                >
-                  <PlusIcon size={18} />
-                  Add another product
-                </button>
-              )}
+            {/* Add Another Button */}
+            {items.length < 50 && (
+              <button
+                type="button"
+                onClick={addItem}
+                className="w-full border-2 border-dashed border-slate-300 dark:border-slate-700/80 rounded-2xl py-4 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold text-sm mb-6 group"
+              >
+                <PlusIcon size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                <span>Add another product</span>
+              </button>
+            )}
 
-              <div className="mt-8 pt-6 border-t border-slate-800">
-                <button
-                  type="submit"
-                  disabled={loading || hasAnyUrlError}
-                  className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
-                >
-                  {loading
-                    ? "Creating..."
-                    : isBatch
-                    ? `Submit ${items.filter((i) => i.productUrl.trim() && !i.urlError).length} Request(s)`
-                    : "Submit Request"}
-                </button>
-              </div>
-            </div>
+            <hr className="border-slate-200 dark:border-slate-800/80 my-8" />
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading || hasAnyUrlError}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white dark:text-slate-900 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-sm tracking-wide flex items-center justify-center gap-2"
+            >
+              {loading
+                ? "Creating..."
+                : isBatch
+                  ? `Submit ${items.filter((i) => i.productUrl.trim() && !i.urlError).length} Request(s)`
+                  : "Submit Request"}
+            </button>
           </div>
         </form>
       </div>
