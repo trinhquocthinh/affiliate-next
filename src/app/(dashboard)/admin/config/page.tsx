@@ -54,6 +54,7 @@ export default function AdminConfigPage() {
   const [overrides, setOverrides] = useState<ConfigMap>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [runningCleanup, setRunningCleanup] = useState(false);
   const loading = isLoading;
 
   const config: ConfigMap = { ...remoteConfig, ...overrides };
@@ -147,6 +148,35 @@ export default function AdminConfigPage() {
     }
   }
 
+  async function runCleanupNow() {
+    if (!confirm("Run bulk close now? This will close all stale active requests older than the configured threshold.")) {
+      return;
+    }
+    setRunningCleanup(true);
+    try {
+      const res = await apiFetch<{
+        ok: boolean;
+        data?: { closedCount: number; olderThanDays: number };
+        error?: { message?: string };
+      }>("/api/requests/bulk-close", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      if (res.ok && res.data) {
+        toast.success(
+          `Closed ${res.data.closedCount} request${res.data.closedCount === 1 ? "" : "s"} (≥ ${res.data.olderThanDays} days old)`,
+        );
+        mutate();
+      } else {
+        toast.error(res.error?.message || "Cleanup failed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Cleanup failed");
+    } finally {
+      setRunningCleanup(false);
+    }
+  }
+
   async function resetToDefaults() {
     if (!confirm("Reset all config values to defaults?")) return;
     setResetting(true);
@@ -209,6 +239,22 @@ export default function AdminConfigPage() {
                   {saving === field.key ? "Saving..." : "Save"}
                 </Button>
               </div>
+              {field.key === "BULK_CLOSE_MIN_DAYS" && (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">
+                    Manually trigger the cleanup using the saved threshold. Runs
+                    automatically every day at 00:00 UTC.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={runCleanupNow}
+                    disabled={runningCleanup}
+                  >
+                    {runningCleanup ? "Running..." : "Run Cleanup Now"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

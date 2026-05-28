@@ -20,6 +20,15 @@
     },
     "src/app/api/requests/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/requests/bulk-close/route.ts": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/requests/bulk-close",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
