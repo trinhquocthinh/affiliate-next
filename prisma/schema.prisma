@@ -19,6 +19,7 @@ datasource db {
 enum Role {
   BUYER
   AFFILIATE
+  AFFILIATE_MASTER
   ADMIN
 }
 
@@ -55,6 +56,7 @@ model User {
   updatedRequests     Request[]  @relation("LastUpdatedBy")
   auditLogs           AuditLog[] @relation("Actor")
   targetedAuditLogs   AuditLog[] @relation("AuditTarget")
+  importedRuns        ReconciliationRun[] @relation("ImportedBy")
 }
 
 model Session {
@@ -119,6 +121,10 @@ enum AuditAction {
   REJECT_USER
   DELETE_USER
   REOPEN_USER
+  EDIT_ORDER_ID
+  EDIT_ORDER_AMOUNT
+  OVERRIDE_CLAIM
+  ANONYMIZE_USER
 }
 
 model Request {
@@ -138,6 +144,7 @@ model Request {
   closeReason      CloseReason?
   closeNote        String?
   orderId          String?
+  orderAmount      Decimal?      @db.Decimal(12, 2) // BR-015
   closedAt         DateTime?
   closedById       String?
   closedBy         User?         @relation("ClosedBy", fields: [closedById], references: [id])
@@ -145,6 +152,9 @@ model Request {
   affiliateOwner   User?         @relation("AffiliateOwner", fields: [affiliateOwnerId], references: [id])
   notes              String?
   buyerNote          String?
+  subIdStamped       Boolean       @default(false) // SPEC-012, BR-061
+  productItemId      String?       // BR-064 — khoá ghép phụ
+  orderIdWarning     Boolean       @default(false) // SPEC-004
   lastUpdatedAt      DateTime      @updatedAt
   lastUpdatedById    String?
   lastUpdatedBy      User?         @relation("LastUpdatedBy", fields: [lastUpdatedById], references: [id])
@@ -154,13 +164,16 @@ model Request {
   discordNotifiedAt  DateTime?
   discordMessageId   String?
 
-  auditLogs AuditLog[]
+  auditLogs          AuditLog[]
+  reconciliationRows ReconciliationRow[] @relation("MatchedRequest")
 
   @@index([status])
+  @@index([status, createdAt])
   @@index([createdById])
   @@index([affiliateOwnerId])
   @@index([productUrlNorm, createdAt])
   @@index([createdAt])
+  @@index([productItemId])
 }
 
 model AuditLog {
@@ -191,3 +204,53 @@ model AppConfig {
 
   @@map("app_config")
 }
+
+// ──────────────────────────────────────────────────────────────
+// Reconciliation
+// ──────────────────────────────────────────────────────────────
+
+enum MatchMethod {
+  SUB_ID
+  ORDER_ITEM
+  NONE
+}
+
+model ReconciliationRun {
+  id           String              @id @default(cuid())
+  platform     Platform
+  fileName     String
+  importedById String
+  importedBy   User                @relation("ImportedBy", fields: [importedById], references: [id])
+  rowCount     Int
+  matchedCount Int
+  importedAt   DateTime            @default(now())
+  rows         ReconciliationRow[]
+
+  @@index([importedById])
+  @@index([importedAt])
+}
+
+model ReconciliationRow {
+  id              String            @id @default(cuid())
+  runId           String
+  run             ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  orderId         String
+  itemId          String
+  itemName        String
+  orderedAt       DateTime
+  orderStatus     String
+  affiliateStatus String
+  price           Decimal           @db.Decimal(12, 2)
+  orderValue      Decimal           @db.Decimal(12, 2)
+  netCommission   Decimal           @db.Decimal(12, 2)
+  subId1          String?
+  matchedRequestId String?
+  matchedRequest  Request?          @relation("MatchedRequest", fields: [matchedRequestId], references: [id], onDelete: SetNull)
+  matchMethod     MatchMethod       @default(NONE)
+
+  @@index([runId])
+  @@index([orderId])
+  @@index([matchedRequestId])
+  @@index([subId1])
+}
+

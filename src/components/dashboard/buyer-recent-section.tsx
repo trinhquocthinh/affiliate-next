@@ -18,7 +18,6 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -117,7 +116,7 @@ export function BuyerRecentSection({
 
       {items.length === 0 ? (
         <CyberCard className="p-10 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-(--accent-cyber-soft) text-(--accent-cyber) flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
             <PlusCircleIcon className="h-7 w-7" />
           </div>
           <h4 className="text-base font-semibold mb-1">No requests in this window</h4>
@@ -149,7 +148,7 @@ export function BuyerRecentSection({
                 {items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-(--accent-cyber)"
+                    className="cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-primary"
                     onClick={() => openDetail(item.id)}
                   >
                     <TableCell className="font-mono text-xs">{item.id}</TableCell>
@@ -165,7 +164,7 @@ export function BuyerRecentSection({
                         {item.isStale && <StaleBadge />}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell suppressHydrationWarning className="text-sm text-muted-foreground whitespace-nowrap">
                       {formatRelativeTime(item.createdAt)}
                     </TableCell>
                     <TableCell>

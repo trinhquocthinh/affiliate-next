@@ -5,6 +5,7 @@ import { editRequestSchema } from "@/lib/validations";
 import { normalizeProductUrl } from "@/lib/url-utils";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
 // PATCH /api/requests/[id]/edit — buyer edits their own request before it's closed
 export async function PATCH(
@@ -41,8 +42,8 @@ export async function PATCH(
       );
     }
 
-    // Buyers can only edit their own requests; admins can edit any
-    if (!actor.isAdmin && existing.createdById !== actor.userId) {
+    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    if (!canAccessRequest(domainActor, existing, "request.edit")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },
         { status: 403 },

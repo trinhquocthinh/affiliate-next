@@ -48,12 +48,6 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        {/* Background Animated Blobs */}
-        <div className="fixed inset-0 z-1 overflow-hidden pointer-events-none">
-          <div className="absolute rounded-full blur-[80px] animate-float w-125 h-125 bg-[#008a62]/15 dark:bg-[#008a62]/25 -top-[10%] -left-[10%]" />
-          <div className="absolute rounded-full blur-[80px] animate-float w-100 h-100 bg-indigo-600/10 dark:bg-indigo-600/20 -bottom-[10%] -right-[5%]" style={{ animationDelay: "-5s" }} />
-          <div className="absolute rounded-full blur-[80px] animate-float w-75 h-75 bg-sky-400/15 top-[40%] left-[50%]" style={{ animationDelay: "-10s" }} />
-        </div>
 
         <SWRProvider>{children}</SWRProvider>
         <GlobalProgress />

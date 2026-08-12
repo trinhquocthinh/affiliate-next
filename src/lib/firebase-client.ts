@@ -84,6 +84,11 @@ function ensureAppCheck(): AppCheck {
 
 /** Returns a fresh App Check token for the current browser session. */
 export async function getAppCheckToken(): Promise<string> {
+  // Allow skipping App Check on Preview/UAT environments where the
+  // dynamically-generated Vercel domain cannot be registered with reCAPTCHA.
+  if (process.env.NEXT_PUBLIC_SKIP_APPCHECK === "1") {
+    return "";
+  }
   const { token } = await getToken(ensureAppCheck(), /* forceRefresh */ false);
   return token;
 }

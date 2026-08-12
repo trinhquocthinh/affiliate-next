@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { closeRequestSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/close
 export async function POST(
@@ -47,14 +48,12 @@ export async function POST(
       );
     }
 
-    // Buyer can only close their own requests (any non-CLOSED status)
-    if (actor.role === "BUYER") {
-      if (existing.createdById !== actor.userId) {
-        return NextResponse.json(
-          { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-          { status: 403 },
-        );
-      }
+    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    if (!canAccessRequest(domainActor, existing, "request.close")) {
+      return NextResponse.json(
+        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
+        { status: 403 },
+      );
     }
 
     const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);

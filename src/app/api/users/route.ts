@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { getApiActorContext, assertAdmin } from "@/lib/auth-utils";
-import { updateUserSchema } from "@/lib/validations";
+
 import { logAuditEvent } from "@/lib/audit";
 
 // GET /api/users — list all users (admin only)

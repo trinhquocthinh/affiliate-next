@@ -7,20 +7,15 @@ import { cn } from "@/lib/utils";
  */
 
 const STATUS_TONES: Record<string, string> = {
-  NEW: "border-amber-400/50 text-amber-700 bg-amber-50 dark:border-amber-400/40 dark:text-amber-300 dark:bg-amber-950/40",
-  FILLED:
-    "border-emerald-500/50 text-emerald-700 bg-emerald-50 dark:border-emerald-400/40 dark:text-emerald-300 dark:bg-emerald-950/40",
-  CLOSED:
-    "border-slate-300 text-slate-600 bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:bg-slate-800/50",
+  NEW: "border-warning/50 text-warning bg-warning/10",
+  FILLED: "border-primary/50 text-primary bg-primary/10",
+  CLOSED: "border-slate-300 text-slate-600 bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:bg-slate-800/50",
 };
 
 const PLATFORM_TONES: Record<string, string> = {
-  SHOPEE:
-    "border-orange-400/50 text-orange-700 bg-orange-50 dark:border-orange-400/40 dark:text-orange-300 dark:bg-orange-950/40",
-  TIKTOK:
-    "border-sky-400/50 text-sky-700 bg-sky-50 dark:border-sky-400/40 dark:text-sky-300 dark:bg-sky-950/40",
-  OTHER:
-    "border-slate-300 text-slate-600 bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:bg-slate-800/50",
+  SHOPEE: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+  TIKTOK: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+  OTHER: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20",
 };
 
 function statusLabel(status: string) {
@@ -57,7 +52,7 @@ export function StaleBadge({ className }: { className?: string }) {
     <Badge
       variant="outline"
       className={cn(
-        "font-semibold border-rose-400/50 text-rose-700 bg-rose-50 dark:border-rose-400/40 dark:text-rose-300 dark:bg-rose-950/40",
+        "font-semibold border-destructive/50 text-destructive bg-destructive/10",
         className,
       )}
     >

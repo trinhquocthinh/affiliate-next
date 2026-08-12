@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { saveBuyerNoteSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/buyer-note — buyer updates their own note
 export async function POST(
@@ -11,7 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
@@ -41,7 +44,7 @@ export async function POST(
     }
 
     // Buyer can only edit their own requests
-    if (existing.createdById !== actor.userId && !actor.isAdmin) {
+    if (!canAccessRequest(actor, existing, "request.buyer_note")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },
         { status: 403 },
@@ -62,13 +65,13 @@ export async function POST(
       where: { id },
       data: {
         buyerNote: buyerNote || null,
-        lastUpdatedById: actor.userId,
+        lastUpdatedById: actor.id,
       },
     });
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "SAVE_NOTE",
       oldValue: { buyerNote: existing.buyerNote },
       newValue: { buyerNote },

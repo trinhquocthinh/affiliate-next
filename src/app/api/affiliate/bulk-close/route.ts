@@ -3,11 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { bulkCloseSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
+import { assertPermission, getPermissionScope, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/affiliate/bulk-close — bulk close old requests
 export async function POST(request: Request) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
@@ -15,9 +18,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!actor.isAffiliate) {
+    try {
+      assertPermission(actor, "affiliate.bulk_close");
+    } catch (e: any) {
       return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
+        { ok: false, error: { code: "FORBIDDEN", message: e.message } },
         { status: 403 },
       );
     }
@@ -35,10 +40,11 @@ export async function POST(request: Request) {
     const { olderThanDays, closeNote, dryRun } = parsed.data;
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 3600000);
 
-    // Build candidate filter
-    const ownershipFilter = actor.isAdmin
-      ? {} // Admin can close all
-      : { OR: [{ affiliateOwnerId: null }, { affiliateOwnerId: actor.userId }] };
+    // Build candidate filter based on scope
+    const scope = getPermissionScope(actor, "affiliate.bulk_close");
+    const ownershipFilter = scope === "any"
+      ? {} 
+      : { OR: [{ affiliateOwnerId: null }, { affiliateOwnerId: actor.id }] };
 
     const candidateWhere = {
       status: { in: ["NEW" as const, "FILLED" as const] },
@@ -94,13 +100,13 @@ export async function POST(request: Request) {
         closeReason: "STALE",
         closeNote: defaultCloseNote,
         closedAt: now,
-        closedById: actor.userId,
-        lastUpdatedById: actor.userId,
+        closedById: actor.id,
+        lastUpdatedById: actor.id,
       },
     });
 
     await logAuditEvent({
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "BULK_CLOSE",
       newValue: {
         closedCount: result.count,

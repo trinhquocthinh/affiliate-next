@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { getAppConfig } from "@/lib/config-cache";
+import { canAccessRequest, assertPermission, PermissionError, Actor } from "@/domain/permissions/resolve";
 
 // GET /api/requests/[id] — get single request
 export async function GET(
@@ -9,7 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
@@ -36,8 +39,7 @@ export async function GET(
       );
     }
 
-    // Buyers can only see their own requests
-    if (actor.role === "BUYER" && item.createdById !== actor.userId) {
+    if (!canAccessRequest(actor, item, "request.view")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
         { status: 403 },
@@ -84,18 +86,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
-    if (!actor.isAdmin) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Admin access required" } },
-        { status: 403 },
-      );
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
+    try {
+      assertPermission(actor, "request.order_id.edit_any_status");
+    } catch (e: any) {
+      if (e instanceof PermissionError) {
+        return NextResponse.json(
+          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
+          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+        );
+      }
+      throw e;
     }
 
     const { id } = await params;
@@ -125,7 +128,7 @@ export async function PATCH(
 
     const updated = await prisma.request.update({
       where: { id },
-      data: { orderId: orderId.trim(), lastUpdatedAt: new Date(), lastUpdatedById: actor.userId },
+      data: { orderId: orderId.trim(), lastUpdatedAt: new Date(), lastUpdatedById: actor!.id },
     });
 
     return NextResponse.json({ ok: true, data: { orderId: updated.orderId } });

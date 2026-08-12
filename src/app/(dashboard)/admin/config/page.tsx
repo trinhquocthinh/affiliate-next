@@ -1,205 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
-import { toast } from "sonner";
-import { apiFetch } from "@/lib/swr-fetcher";
+import { useAdminConfig } from "@/hooks/use-admin-config";
+import { useAffiliateAllowedColumns } from "@/hooks/use-affiliate-allowed-columns";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { DEFAULT_CONFIG } from "@/lib/constants";
-import {
-  AFFILIATE_COLUMNS,
-  parseAllowedColumns,
-  type AffiliateColumnId,
-} from "@/lib/affiliate-columns";
-
-type ConfigMap = Record<string, string>;
-
-const CONFIG_FIELDS = [
-  {
-    key: "PLATFORMS",
-    label: "Platforms",
-    description: "Comma-separated list of allowed platforms (e.g. SHOPEE,TIKTOK,OTHER)",
-    type: "text" as const,
-  },
-  {
-    key: "STALE_REQUEST_HOURS",
-    label: "Stale Request Hours",
-    description: "Hours after which a pending request is considered stale",
-    type: "number" as const,
-  },
-  {
-    key: "DUPLICATE_WINDOW_HOURS",
-    label: "Duplicate Window Hours",
-    description: "Hours within which duplicate URL detection is active",
-    type: "number" as const,
-  },
-  {
-    key: "BULK_CLOSE_MIN_DAYS",
-    label: "Bulk Close Min Days",
-    description: "Minimum age in days for bulk close eligibility",
-    type: "number" as const,
-  },
-];
-
-type ConfigResponse = { ok: boolean; data?: ConfigMap; error?: { message?: string } };
+import { CONFIG_FIELDS } from "@/lib/constants";
+import { AFFILIATE_COLUMNS } from "@/lib/affiliate-columns";
 
 export default function AdminConfigPage() {
-  const { data, isLoading, mutate } = useSWR<ConfigResponse>("/api/config");
-  const remoteConfig = data?.ok ? data.data ?? {} : {};
-  const [overrides, setOverrides] = useState<ConfigMap>({});
-  const [saving, setSaving] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
-  const [runningCleanup, setRunningCleanup] = useState(false);
-  const loading = isLoading;
+  const admin = useAdminConfig();
+  const columns = useAffiliateAllowedColumns({
+    remoteValue: admin.remoteConfig.AFFILIATE_ALLOWED_COLUMNS,
+    mutate: admin.mutate,
+  });
 
-  const config: ConfigMap = { ...remoteConfig, ...overrides };
-
-  // ── Affiliate Queue Columns ────────────────────────────────────────────────
-  // Local state for the admin's toggle UI. Hydrated from `config` after fetch.
-  const initialAllowedColumns = useMemo(
-    () => new Set<AffiliateColumnId>(parseAllowedColumns(remoteConfig.AFFILIATE_ALLOWED_COLUMNS)),
-    [remoteConfig.AFFILIATE_ALLOWED_COLUMNS],
-  );
-  const [allowedColumns, setAllowedColumns] = useState<Set<AffiliateColumnId>>(
-    initialAllowedColumns,
-  );
-  const [columnsDirty, setColumnsDirty] = useState(false);
-  const [savingColumns, setSavingColumns] = useState(false);
-
-  // Sync local state when the server value changes (e.g., first load).
-  useEffect(() => {
-    if (!columnsDirty) {
-      setAllowedColumns(initialAllowedColumns);
-    }
-  }, [initialAllowedColumns, columnsDirty]);
-
-  function toggleColumn(id: AffiliateColumnId, checked: boolean) {
-    setColumnsDirty(true);
-    setAllowedColumns((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
-
-  async function saveAllowedColumns() {
-    const value = JSON.stringify(
-      AFFILIATE_COLUMNS.filter((c) => allowedColumns.has(c.id) || c.mandatory).map((c) => c.id),
-    );
-    setSavingColumns(true);
-    try {
-      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>("/api/config", {
-        method: "PUT",
-        body: JSON.stringify({ key: "AFFILIATE_ALLOWED_COLUMNS", value }),
-      });
-      if (res.ok) {
-        toast.success("Affiliate columns updated");
-        setColumnsDirty(false);
-        mutate();
-      } else {
-        toast.error(res.error?.message || "Failed to save");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSavingColumns(false);
-    }
-  }
-
-  function setField(key: string, value: string) {
-    setOverrides((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function saveField(key: string) {
-    const value = config[key];
-    if (value === undefined) return;
-
-    setSaving(key);
-    try {
-      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        "/api/config",
-        {
-          method: "PUT",
-          body: JSON.stringify({ key, value }),
-        },
-      );
-      if (res.ok) {
-        toast.success(`${key} updated`);
-        // Clear local override so SWR data becomes the source of truth
-        setOverrides((prev) => {
-          const next = { ...prev };
-          delete next[key];
-          return next;
-        });
-        mutate();
-      } else {
-        toast.error(res.error?.message || "Failed to save");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSaving(null);
-    }
-  }
-
-  async function runCleanupNow() {
-    if (!confirm("Run bulk close now? This will close all stale active requests older than the configured threshold.")) {
-      return;
-    }
-    setRunningCleanup(true);
-    try {
-      const res = await apiFetch<{
-        ok: boolean;
-        data?: { closedCount: number; olderThanDays: number };
-        error?: { message?: string };
-      }>("/api/requests/bulk-close", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      if (res.ok && res.data) {
-        toast.success(
-          `Closed ${res.data.closedCount} request${res.data.closedCount === 1 ? "" : "s"} (≥ ${res.data.olderThanDays} days old)`,
-        );
-        mutate();
-      } else {
-        toast.error(res.error?.message || "Cleanup failed");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Cleanup failed");
-    } finally {
-      setRunningCleanup(false);
-    }
-  }
-
-  async function resetToDefaults() {
-    if (!confirm("Reset all config values to defaults?")) return;
-    setResetting(true);
-    try {
-      for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
-        try {
-          await apiFetch("/api/config", {
-            method: "PUT",
-            body: JSON.stringify({ key, value }),
-          });
-        } catch {
-          // continue
-        }
-      }
-      setOverrides({});
-      await mutate();
-      toast.success("Reset to defaults");
-    } finally {
-      setResetting(false);
-    }
-  }
-
-  if (loading) {
+  if (admin.loading) {
     return (
       <>
         <AppHeader title="System Config" />
@@ -228,15 +47,15 @@ export default function AdminConfigPage() {
               <div className="flex gap-2">
                 <Input
                   type={field.type}
-                  value={config[field.key] || ""}
-                  onChange={(e) => setField(field.key, e.target.value)}
+                  value={admin.config[field.key] || ""}
+                  onChange={(e) => admin.setField(field.key, e.target.value)}
                 />
                 <Button
-                  onClick={() => saveField(field.key)}
-                  disabled={saving === field.key}
+                  onClick={() => admin.saveField(field.key)}
+                  disabled={admin.saving === field.key}
                   size="sm"
                 >
-                  {saving === field.key ? "Saving..." : "Save"}
+                  {admin.saving === field.key ? "Saving..." : "Save"}
                 </Button>
               </div>
               {field.key === "BULK_CLOSE_MIN_DAYS" && (
@@ -248,10 +67,10 @@ export default function AdminConfigPage() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={runCleanupNow}
-                    disabled={runningCleanup}
+                    onClick={admin.runCleanupNow}
+                    disabled={admin.runningCleanup}
                   >
-                    {runningCleanup ? "Running..." : "Run Cleanup Now"}
+                    {admin.runningCleanup ? "Running..." : "Run Cleanup Now"}
                   </Button>
                 </div>
               )}
@@ -269,7 +88,7 @@ export default function AdminConfigPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {AFFILIATE_COLUMNS.map((col) => {
-              const checked = col.mandatory || allowedColumns.has(col.id);
+              const checked = col.mandatory || columns.allowedColumns.has(col.id);
               return (
                 <div
                   key={col.id}
@@ -281,7 +100,7 @@ export default function AdminConfigPage() {
                   </div>
                   <Switch
                     checked={checked}
-                    onCheckedChange={(v) => toggleColumn(col.id, !!v)}
+                    onCheckedChange={(v) => columns.toggleColumn(col.id, !!v)}
                     disabled={!!col.mandatory}
                     aria-label={`Allow ${col.label} column`}
                   />
@@ -291,17 +110,17 @@ export default function AdminConfigPage() {
             <div className="flex justify-end pt-1">
               <Button
                 size="sm"
-                onClick={saveAllowedColumns}
-                disabled={!columnsDirty || savingColumns}
+                onClick={columns.saveAllowedColumns}
+                disabled={!columns.columnsDirty || columns.savingColumns}
               >
-                {savingColumns ? "Saving..." : "Save Columns"}
+                {columns.savingColumns ? "Saving..." : "Save Columns"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Button variant="outline" onClick={resetToDefaults} disabled={resetting} className="w-full">
-          {resetting ? "Resetting..." : "Reset to Defaults"}
+        <Button variant="outline" onClick={admin.resetToDefaults} disabled={admin.resetting} className="w-full">
+          {admin.resetting ? "Resetting..." : "Reset to Defaults"}
         </Button>
       </div>
     </>

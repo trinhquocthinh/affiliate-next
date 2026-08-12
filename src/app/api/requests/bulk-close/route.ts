@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { getAppConfig } from "@/lib/config-cache";
 import { logAuditEvent } from "@/lib/audit";
+import { assertPermission, Actor } from "@/domain/permissions/resolve";
 
 type AuthResult =
   | { kind: "cron" }
@@ -31,14 +32,18 @@ async function authorize(request: Request): Promise<AuthResult> {
     return { kind: "cron" };
   }
 
-  const actor = await getApiActorContext();
-  if (!actor) {
+  const actorCtx = await getApiActorContext();
+  if (!actorCtx) {
     return { kind: "unauthorized", status: 401, message: "Not authenticated" };
   }
-  if (!actor.isAdmin) {
-    return { kind: "unauthorized", status: 403, message: "Admin access required" };
+
+  const actor: Actor = { id: actorCtx.userId, role: actorCtx.role as any };
+  try {
+    assertPermission(actor, "system.bulk_close");
+    return { kind: "admin", userId: actor.id };
+  } catch (e: any) {
+    return { kind: "unauthorized", status: 403, message: "System bulk close access required" };
   }
-  return { kind: "admin", userId: actor.userId };
 }
 
 async function runBulkClose(

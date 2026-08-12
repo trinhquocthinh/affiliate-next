@@ -282,7 +282,7 @@ export default async function HomePage({
           <div>
             <Badge
               variant="outline"
-              className="mb-3 border-(--accent-cyber)/40 text-(--accent-cyber) bg-(--accent-cyber-soft)"
+              className="mb-3 border-primary/40 text-primary bg-primary/10"
             >
               {actor.role.charAt(0) + actor.role.slice(1).toLowerCase()}
             </Badge>
@@ -303,6 +303,10 @@ export default async function HomePage({
           )}
         </div>
 
+        {actor.isAdmin && <AdminBlock />}
+        {actor.isAffiliate && (
+          <AffiliateBlock userId={actor.userId} stat={stat} staleThreshold={staleThreshold} />
+        )}
         {actor.isBuyer && (
           <BuyerBlock
             userId={actor.userId}
@@ -311,12 +315,52 @@ export default async function HomePage({
             staleThreshold={staleThreshold}
           />
         )}
-        {actor.isAffiliate && (
-          <AffiliateBlock userId={actor.userId} stat={stat} staleThreshold={staleThreshold} />
-        )}
-        {actor.isAdmin && <AdminBlock />}
       </div>
     </>
+  );
+}
+
+// ─── Admin block ──────────────────────────────────────────────────────────
+
+async function AdminBlock() {
+  const stats = await getAdminStats();
+
+  return (
+    <div className="space-y-5">
+      <h3 className="text-lg font-semibold">Admin Overview</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <StatCard
+          title="Total Users"
+          value={stats.totalUsers}
+          icon="user"
+          tone="neutral"
+          clickable={false}
+        />
+        <StatCard
+          title="Total Requests"
+          value={stats.totalRequests}
+          icon="file"
+          deltaDay={stats.requestsDeltaDay}
+          deltaWeek={stats.requestsDeltaWeek}
+          tone="info"
+          clickable={false}
+        />
+        <StatCard
+          title="Pending"
+          value={stats.pendingCount}
+          icon="clock"
+          tone="warning"
+          clickable={false}
+        />
+        <StatCard
+          title="Filled"
+          value={stats.filledCount}
+          icon="check"
+          tone="success"
+          clickable={false}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -423,46 +467,4 @@ async function AffiliateBlock({
   );
 }
 
-// ─── Admin block ──────────────────────────────────────────────────────────
 
-async function AdminBlock() {
-  const stats = await getAdminStats();
-
-  return (
-    <div className="space-y-5">
-      <h3 className="text-lg font-semibold">Admin Overview</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon="user"
-          tone="neutral"
-          clickable={false}
-        />
-        <StatCard
-          title="Total Requests"
-          value={stats.totalRequests}
-          icon="file"
-          deltaDay={stats.requestsDeltaDay}
-          deltaWeek={stats.requestsDeltaWeek}
-          tone="info"
-          clickable={false}
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pendingCount}
-          icon="clock"
-          tone="warning"
-          clickable={false}
-        />
-        <StatCard
-          title="Filled"
-          value={stats.filledCount}
-          icon="check"
-          tone="success"
-          clickable={false}
-        />
-      </div>
-    </div>
-  );
-}

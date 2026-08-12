@@ -1,6 +1,6 @@
 {
   "name": "affiliate-next",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,7 +15,9 @@
     "db:push:prod": "bash scripts/db-push.sh prod",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -52,7 +54,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.9",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -66,6 +67,7 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.0.0"
   }
 }

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 export type ActorContext = {
   userId: string;
   email: string;
-  role: "BUYER" | "AFFILIATE" | "ADMIN";
+  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
   displayName: string | null;
   isAdmin: boolean;
   isAffiliate: boolean;
@@ -30,7 +30,7 @@ export async function getActorContext(): Promise<ActorContext> {
     role,
     displayName: session.user.name ?? null,
     isAdmin: role === "ADMIN",
-    isAffiliate: role === "AFFILIATE" || role === "ADMIN",
+    isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
     isBuyer: role === "BUYER" || role === "ADMIN",
   };
 }
@@ -53,7 +53,7 @@ export async function getApiActorContext(): Promise<ActorContext | null> {
     role,
     displayName: session.user.name ?? null,
     isAdmin: role === "ADMIN",
-    isAffiliate: role === "AFFILIATE" || role === "ADMIN",
+    isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
     isBuyer: role === "BUYER" || role === "ADMIN",
   };
 }

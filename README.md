@@ -288,9 +288,9 @@ This project deploys to two environments via GitHub Actions:
 | Branch | Platform | Environment | Neon DB branch |
 |---|---|---|---|
 | `main` | **Vercel** (region `sin1` — Singapore) | Production | `main` |
-| `uat` | **Netlify** | UAT / staging | `uat` |
+| `uat` | **Vercel** Preview | UAT / staging | `uat` |
 
-> Both deploys run from GitHub Actions. **Disable native Git integration on both Vercel and Netlify** to avoid double deploys.
+> Production deploy runs from GitHub Actions. **Disable native Git integration on Vercel** for `main` to avoid double deploys. Preview deployments are handled natively by Vercel for the `uat` branch.
 
 ### GitHub Actions secrets
 
@@ -302,9 +302,11 @@ This project deploys to two environments via GitHub Actions:
 | `ADMIN_EMAIL` | Admin account email |
 | `ADMIN_PASSWORD` | Admin account password |
 
-> `DATABASE_URL` and `AUTH_URL` are environment-specific — store the prod values in secrets used by the Vercel workflow and the UAT values in the Netlify workflow. Split into two GitHub Environments (`production` / `uat`) for clean separation.
+> `DATABASE_URL` and `AUTH_URL` are environment-specific — store the prod values in secrets used by the Vercel workflow. Vercel Preview deployments use environment variables configured in the Vercel Dashboard for the Preview environment.
 
-**Vercel-only:**
+**Vercel GitHub Actions Configuration (Shared for Production and UAT):**
+
+These secrets must be available to both `production` and `uat` GitHub Environments, or set as Repository Secrets.
 
 | Secret | How to get |
 |---|---|
@@ -312,16 +314,9 @@ This project deploys to two environments via GitHub Actions:
 | `VERCEL_ORG_ID` | Run `vercel link` locally → `.vercel/project.json` |
 | `VERCEL_PROJECT_ID` | Same as above |
 
-**Netlify-only:**
-
-| Secret | How to get |
-|---|---|
-| `NETLIFY_AUTH_TOKEN` | [app.netlify.com/user/applications](https://app.netlify.com/user/applications) |
-| `NETLIFY_SITE_ID` | Netlify site settings → Site ID |
-
 **Security env vars (per environment):**
 
-| Variable | Vercel (prod) | Netlify (UAT) |
+| Variable | Vercel (prod) | Vercel (Preview UAT) |
 |---|---|---|
 | `TURNSTILE_SECRET_KEY` | Prod widget secret key | UAT widget secret key |
 | `FIREBASE_PROJECT_ID` | Firebase project ID | Same project |
@@ -357,17 +352,12 @@ NEXT_PUBLIC_FIREBASE_APP_ID              = <web app id>
 NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY  = <recaptcha v3 site key>
 ```
 
-### Netlify project setup
-
-1. Create the site on Netlify and disable auto-builds (Settings → Build & deploy → Continuous deployment → **Stop builds**).
-2. **Site configuration → Environment variables** — same list as Vercel but with UAT values.
-
 ### Neon database branches
 
 Both environments share one Neon project with two branches:
 
 - `main` branch → Vercel (production)
-- `uat` branch → Netlify (staging) — create from Neon Dashboard: **Branches → New branch from `main`**
+- `uat` branch → Vercel (Preview) — create from Neon Dashboard: **Branches → New branch from `main`**
 
 Always use the **pooled** connection string (host contains `-pooler`).
 

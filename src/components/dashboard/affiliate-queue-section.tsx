@@ -151,7 +151,7 @@ export function AffiliateQueueSection({
                   return (
                     <TableRow
                       key={item.id}
-                      className="group cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-(--accent-cyber)"
+                      className="group cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-primary"
                       onClick={() => openDetail(item.id)}
                     >
                       <TableCell className="font-mono text-xs">{item.id}</TableCell>
@@ -166,6 +166,7 @@ export function AffiliateQueueSection({
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         <span
+                          suppressHydrationWarning
                           className={
                             item.isStale
                               ? "text-rose-600 dark:text-rose-400 font-medium"
