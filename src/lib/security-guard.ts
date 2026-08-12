@@ -181,16 +181,21 @@ export async function verifyRequestSecurity<T = unknown>(
   }
 
   // 2. Firebase App Check.
-  const appCheckToken = request.headers.get("x-firebase-appcheck");
-  if (!appCheckToken) {
-    return fail(401, "APPCHECK_INVALID", "Missing App Check token");
-  }
-  try {
-    const ok = await verifyAppCheck(appCheckToken);
-    if (!ok) return fail(401, "APPCHECK_INVALID", "Invalid App Check token");
-  } catch (err) {
-    console.error("[security-guard] App Check unexpected error", err);
-    return fail(500, "SECURITY_CHECK_FAILED", "Security check failed");
+  // Skip verification on Preview/UAT when SKIP_APPCHECK=1 — the dynamically
+  // generated Vercel preview domain cannot be registered in reCAPTCHA.
+  const skipAppCheck = process.env.SKIP_APPCHECK === "1";
+  if (!skipAppCheck) {
+    const appCheckToken = request.headers.get("x-firebase-appcheck");
+    if (!appCheckToken) {
+      return fail(401, "APPCHECK_INVALID", "Missing App Check token");
+    }
+    try {
+      const ok = await verifyAppCheck(appCheckToken);
+      if (!ok) return fail(401, "APPCHECK_INVALID", "Invalid App Check token");
+    } catch (err) {
+      console.error("[security-guard] App Check unexpected error", err);
+      return fail(500, "SECURITY_CHECK_FAILED", "Security check failed");
+    }
   }
 
   // 3. Cloudflare Turnstile.

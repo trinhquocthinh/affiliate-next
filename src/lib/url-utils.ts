@@ -96,7 +96,7 @@ const SHOPEE_DOMAINS = new Set([
   "shopee.cl",
 ]);
 
-const SHORTLINK_DOMAINS = new Set([
+export const SHORTLINK_DOMAINS = new Set([
   // Shopee shortlinks
   "s.shopee.vn",
   "shp.ee",
@@ -175,4 +175,14 @@ export function detectPlatformFromUrl(url: string): UrlDetectionResult {
   }
 
   return { platform: "OTHER", isShortlink: false };
+}
+
+export function extractProductItemId(url: string, platform: string): string | null {
+  if (platform === "SHOPEE") {
+    const match = /i\.(\d+)\.(\d+)/.exec(url);
+    if (match && match[2]) {
+      return match[2];
+    }
+  }
+  return null;
 }

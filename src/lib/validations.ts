@@ -55,6 +55,7 @@ export const fillLinkSchema = z.object({
     "URL must start with http:// or https://",
   ),
   note: z.string().max(MAX_NOTE_LENGTH).trim().optional(),
+  subIdStamped: z.boolean().optional().default(false),
   expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
 });
 
@@ -105,10 +106,22 @@ export const queueFilterSchema = z.object({
   search: z.string().max(200).trim().optional(),
   statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("ALL"),
   buyerId: z.string().optional(),
+  createdFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format").optional(),
+  createdTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format").optional(),
   sortBy: z.enum(["createdAt", "lastUpdatedAt"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
+}).superRefine((data, ctx) => {
+  if (data.createdFrom && data.createdTo) {
+    if (new Date(data.createdFrom) > new Date(data.createdTo)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ERR_DATE_RANGE_INVALID",
+        path: ["createdFrom"],
+      });
+    }
+  }
 });
 
 export const bulkCloseSchema = z.object({
@@ -225,7 +238,7 @@ export const adminCorrectSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  role: z.enum(["BUYER", "AFFILIATE", "ADMIN"]).optional(),
+  role: z.enum(["BUYER", "AFFILIATE", "AFFILIATE_MASTER", "ADMIN"]).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "PENDING", "REJECTED", "DELETED"]).optional(),
   displayName: z.string().max(100).trim().optional(),
 });
@@ -241,3 +254,8 @@ export const userActionSchema = z
       (typeof data.reason === "string" && data.reason.length > 0),
     { message: "Reason is required when rejecting a user", path: ["reason"] },
   );
+
+export const editOrderSchema = z.object({
+  orderId: z.string().max(100).trim().nullable().optional(),
+  orderAmount: z.number().min(0).nullable().optional(),
+});

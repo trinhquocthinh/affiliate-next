@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { claimRequestSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, hasPermission, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/claim
 export async function POST(
@@ -11,18 +12,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
         { status: 401 },
-      );
-    }
-
-    if (!actor.isAffiliate) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
-        { status: 403 },
       );
     }
 
@@ -58,8 +54,7 @@ export async function POST(
     if (conflict) return conflict;
 
     if (unclaim) {
-      // Unclaim: only owner or admin can unclaim
-      if (!actor.isAdmin && existing.affiliateOwnerId !== actor.userId) {
+      if (!canAccessRequest(actor, existing, "affiliate.unclaim")) {
         return NextResponse.json(
           { ok: false, error: { code: "CONFLICT_CLAIMED", message: "Cannot unclaim another affiliate's request" } },
           { status: 409 },
@@ -68,12 +63,12 @@ export async function POST(
 
       const updated = await prisma.request.update({
         where: { id },
-        data: { affiliateOwnerId: null, lastUpdatedById: actor.userId },
+        data: { affiliateOwnerId: null, lastUpdatedById: actor.id },
       });
 
       await logAuditEvent({
         requestId: id,
-        actorId: actor.userId,
+        actorId: actor.id,
         action: "UNCLAIM_REQUEST",
         oldValue: { affiliateOwnerId: existing.affiliateOwnerId },
         newValue: { affiliateOwnerId: null },
@@ -90,31 +85,42 @@ export async function POST(
     }
 
     // Claim: check if already claimed by another
-    if (existing.affiliateOwnerId && existing.affiliateOwnerId !== actor.userId && !actor.isAdmin) {
-      return NextResponse.json(
-        { ok: false, error: { code: "CONFLICT_CLAIMED", message: "Already claimed by another affiliate" } },
-        { status: 409 },
-      );
+    if (existing.affiliateOwnerId && existing.affiliateOwnerId !== actor.id) {
+      if (!hasPermission(actor, "affiliate.claim.override")) {
+        return NextResponse.json(
+          { ok: false, error: { code: "CONFLICT_CLAIMED", message: "Already claimed by another affiliate" } },
+          { status: 409 },
+        );
+      }
+    } else {
+      if (!hasPermission(actor, "affiliate.claim.unclaimed")) {
+        return NextResponse.json(
+          { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
+          { status: 403 },
+        );
+      }
     }
+
+    const isOverride = existing.affiliateOwnerId && existing.affiliateOwnerId !== actor.id;
 
     const updated = await prisma.request.update({
       where: { id },
-      data: { affiliateOwnerId: actor.userId, lastUpdatedById: actor.userId },
+      data: { affiliateOwnerId: actor.id, lastUpdatedById: actor.id },
     });
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
-      action: "CLAIM_REQUEST",
+      actorId: actor.id,
+      action: isOverride ? "OVERRIDE_CLAIM" : "CLAIM_REQUEST",
       oldValue: { affiliateOwnerId: existing.affiliateOwnerId },
-      newValue: { affiliateOwnerId: actor.userId },
+      newValue: { affiliateOwnerId: actor.id },
       source: "affiliate_ui",
     });
 
     return NextResponse.json({
       ok: true,
       data: {
-        affiliateOwner: actor.email,
+        affiliateOwner: actorCtx!.email,
         lastUpdatedAt: updated.lastUpdatedAt,
       },
     });

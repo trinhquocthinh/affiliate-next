@@ -2,8 +2,8 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-type ActorContextValue = {
-  role: "BUYER" | "AFFILIATE" | "ADMIN";
+export type ActorContextValue = {
+  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
   isAdmin: boolean;
   isAffiliate: boolean;
   isBuyer: boolean;
@@ -27,7 +27,7 @@ export function ActorProvider({
   email,
 }: {
   children: ReactNode;
-  role: "BUYER" | "AFFILIATE" | "ADMIN";
+  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
   displayName: string | null;
   email: string;
 }) {
@@ -36,7 +36,7 @@ export function ActorProvider({
       value={{
         role,
         isAdmin: role === "ADMIN",
-        isAffiliate: role === "AFFILIATE" || role === "ADMIN",
+        isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
         isBuyer: role === "BUYER" || role === "ADMIN",
         displayName,
         email,

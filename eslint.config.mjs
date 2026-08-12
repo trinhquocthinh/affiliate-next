@@ -19,6 +19,48 @@ const eslintConfig = defineConfig([
     // Generated Prisma client
     "src/generated/**",
   ]),
+  {
+    rules: {
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            {
+              target: "./src/domain",
+              from: "./src/app",
+              message: "Domain code must not import from UI (app).",
+            },
+            {
+              target: "./src/domain",
+              from: "./src/components",
+              message: "Domain code must not import from UI (components).",
+            },
+            {
+              target: "./src/domain",
+              from: "./src/lib",
+              message: "Domain code must not import from infra (lib).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/domain/**/*.{js,ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["react", "react-dom", "next", "next/*"],
+              message: "Domain code must not depend on UI frameworks.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

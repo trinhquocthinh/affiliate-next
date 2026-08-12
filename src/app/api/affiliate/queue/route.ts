@@ -3,23 +3,24 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { queueFilterSchema } from "@/lib/validations";
 import { getAppConfig } from "@/lib/config-cache";
+import { assertPermission, Actor, PermissionError } from "@/domain/permissions/resolve";
 
 // GET /api/affiliate/queue — affiliate work queue
 export async function GET(request: Request) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
 
-    if (!actor.isAffiliate) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
-        { status: 403 },
-      );
+    try {
+      assertPermission(actor, "affiliate.queue.view");
+    } catch (e: any) {
+      if (e instanceof PermissionError) {
+        return NextResponse.json(
+          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
+          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+        );
+      }
+      throw e;
     }
 
     const { searchParams } = new URL(request.url);
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { search, statusFilter, buyerId, sortBy, sortOrder, page, limit } = parsed.data;
+    const { search, statusFilter, buyerId, createdFrom, createdTo, sortBy, sortOrder, page, limit } = parsed.data;
 
     // Build where clause
     const conditions: Record<string, unknown>[] = [];
@@ -47,6 +48,18 @@ export async function GET(request: Request) {
     // Buyer filter
     if (buyerId) {
       conditions.push({ createdById: buyerId });
+    }
+
+    // Date filter (VN Time +07:00)
+    if (createdFrom || createdTo) {
+      const dateCondition: { gte?: Date; lte?: Date } = {};
+      if (createdFrom) {
+        dateCondition.gte = new Date(`${createdFrom}T00:00:00+07:00`);
+      }
+      if (createdTo) {
+        dateCondition.lte = new Date(`${createdTo}T23:59:59+07:00`);
+      }
+      conditions.push({ createdAt: dateCondition });
     }
 
     // Search - case-insensitive across multiple fields
@@ -123,7 +136,7 @@ export async function GET(request: Request) {
       isStale: item.status !== "CLOSED" && item.createdAt < staleThreshold,
       ageHours: Math.floor((Date.now() - item.createdAt.getTime()) / 3600000),
       isClaimed: !!item.affiliateOwnerId,
-      isOwnedByMe: item.affiliateOwnerId === actor.userId,
+      isOwnedByMe: item.affiliateOwnerId === actorCtx!.userId,
       hasPotentialDuplicate: !!item.duplicateOfId || (dupCounts[item.productUrlNorm] || 0) > 1,
     }));
 
@@ -141,7 +154,7 @@ export async function GET(request: Request) {
           processedCount,
         },
         buyers,
-        isAdmin: actor.isAdmin,
+        isAdmin: actorCtx!.isAdmin,
       },
     });
   } catch (error) {

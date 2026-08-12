@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { fillLinkSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/affiliate/[id]/fill — fill affiliate link
 export async function POST(
@@ -11,18 +12,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
         { status: 401 },
-      );
-    }
-
-    if (!actor.isAffiliate) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
-        { status: 403 },
       );
     }
 
@@ -37,13 +33,20 @@ export async function POST(
       );
     }
 
-    const { affiliateLink, note, expectedLastUpdatedAt } = parsed.data;
+    const { affiliateLink, note, expectedLastUpdatedAt, subIdStamped } = parsed.data;
 
     const existing = await prisma.request.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json(
         { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
         { status: 404 },
+      );
+    }
+
+    if (!canAccessRequest(actor, existing, "affiliate.fill")) {
+      return NextResponse.json(
+        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
+        { status: 403 },
       );
     }
 
@@ -63,15 +66,16 @@ export async function POST(
         affiliateLink,
         filledAt: new Date(),
         status: "FILLED",
-        affiliateOwnerId: existing.affiliateOwnerId || actor.userId,
+        affiliateOwnerId: existing.affiliateOwnerId || actor.id,
         notes: note !== undefined ? (note || null) : existing.notes,
-        lastUpdatedById: actor.userId,
+        subIdStamped,
+        lastUpdatedById: actor.id,
       },
     });
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "FILL_AFFILIATE_LINK",
       oldValue: {
         status: existing.status,
@@ -81,6 +85,7 @@ export async function POST(
         status: "FILLED",
         affiliateLink,
         note,
+        subIdStamped,
       },
       source: "affiliate_ui",
     });
@@ -90,7 +95,7 @@ export async function POST(
       data: {
         status: updated.status,
         affiliateLink: updated.affiliateLink,
-        affiliateOwner: actor.email,
+        affiliateOwner: actorCtx!.email,
         lastUpdatedAt: updated.lastUpdatedAt,
       },
     });

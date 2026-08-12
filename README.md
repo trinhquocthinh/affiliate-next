@@ -23,7 +23,7 @@ A full-stack web application for managing affiliate link requests between buyers
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Framework | Next.js 16.2.2 (App Router, Turbopack) |
 | Language | TypeScript |
 | Auth | Auth.js v5 (NextAuth) — Credentials + hybrid JWT/DB session |
@@ -86,7 +86,7 @@ cp .env.example .env
 ```
 
 | Variable | Description | Example |
-|---|---|---|
+| --- | --- | --- |
 | `DATABASE_URL` | Neon PostgreSQL connection string | `postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require` |
 | `AUTH_SECRET` | Random secret for Auth.js session encryption (min 32 chars) | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Full public URL of your app | `http://localhost:3000` |
@@ -164,7 +164,7 @@ src/
 ## API Endpoints
 
 | Method | Path | Role | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `POST` | `/api/requests` | BUYER | Submit a new request |
 | `GET` | `/api/requests` | ANY | List requests (filtered by role) |
 | `GET` | `/api/requests/[id]` | ANY | Get single request |
@@ -187,12 +187,12 @@ src/
 
 This project deploys to **two environments via GitHub Actions**:
 
-| Branch | Workflow | Platform | Environment | Neon DB branch |
-|---|---|---|---|---|
-| `main` | [.github/workflows/deploy-vercel.yml](./.github/workflows/deploy-vercel.yml) | **Vercel** (region `sin1` — Singapore) | Production | `prod` |
-| `uat` | [.github/workflows/deploy-netlify.yml](./.github/workflows/deploy-netlify.yml) | **Netlify** | UAT / staging | `uat` |
+| Branch | Platform | Environment | Neon DB branch |
+| --- | --- | --- | --- |
+| `main` | **Vercel** (region `sin1` — Singapore) | Production | `main` |
+| `uat` | **Vercel** Preview | UAT / staging | `uat` |
 
-> Both deploys run from GitHub Actions using the platform CLIs (`vercel` / `netlify-cli`). **Disable native Git integration on both Vercel and Netlify** to avoid double deploys.
+> Production deploy runs from GitHub Actions. **Disable native Git integration on Vercel** for `main` to avoid double deploys. Preview deployments are handled natively by Vercel for the `uat` branch.
 
 ### GitHub Actions secrets
 
@@ -201,27 +201,34 @@ Add these under **GitHub → Settings → Environments → `secret`**:
 **Shared (used by both workflows):**
 
 | Secret | Value |
-|---|---|
+| --- | --- |
 | `AUTH_SECRET` | Auth.js secret |
 | `ADMIN_EMAIL` | Admin email |
 | `ADMIN_PASSWORD` | Admin password |
 
-> `DATABASE_URL` and `AUTH_URL` are environment-specific: store the **prod** values in the secrets used by the Vercel workflow, and the **uat** values in the secrets used by the Netlify workflow. The simplest setup is to keep them as plain repo secrets per the workflow file (or split into two GitHub Environments — one called `production`, one `uat`).
+> `DATABASE_URL` and `AUTH_URL` are environment-specific — store the prod values in secrets used by the Vercel workflow. Vercel Preview deployments use environment variables configured in the Vercel Dashboard for the Preview environment.
 
-**Vercel-only:**
+**Vercel GitHub Actions Configuration (Shared for Production and UAT):**
+
+These secrets must be available to both `production` and `uat` GitHub Environments, or set as Repository Secrets.
 
 | Secret | Value | How to get |
-|---|---|---|
+| --- | --- | --- |
 | `VERCEL_TOKEN` | Personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
 | `VERCEL_ORG_ID` | Organization / team ID | Run `vercel link` locally, then read `.vercel/project.json` |
 | `VERCEL_PROJECT_ID` | Project ID | Same as above |
 
-**Netlify-only:**
+**Security env vars (per environment):**
 
-| Secret | Value |
-|---|---|
-| `NETLIFY_AUTH_TOKEN` | Personal access token from [app.netlify.com/user/applications](https://app.netlify.com/user/applications) |
-| `NETLIFY_SITE_ID` | Site ID from Netlify site settings |
+| Variable | Vercel (prod) | Vercel (Preview UAT) |
+| --- | --- | --- |
+| `TURNSTILE_SECRET_KEY` | Prod widget secret key | UAT widget secret key |
+| `FIREBASE_PROJECT_ID` | Firebase project ID | Same project |
+| `FIREBASE_CLIENT_EMAIL` | Service account email | Same service account |
+| `FIREBASE_PRIVATE_KEY` | Service account private key | Same private key |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Prod widget site key | UAT widget site key |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase Web config values | Same project, same values |
+| `NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key | Same key |
 
 ### Vercel project setup
 
@@ -239,28 +246,12 @@ ADMIN_EMAIL        = <admin email>
 ADMIN_PASSWORD     = <admin password>
 ```
 
-> Use the **pooled** Neon connection string (host contains `-pooler`).
-
-### Netlify project setup
-
-1. Create the site on Netlify (link it to the repo for env management, but disable auto-build — Actions handles it).
-2. **Site configuration → Build & deploy → Continuous deployment**: set **Stop builds** or set the production branch to a non-existent branch so Netlify doesn't auto-build on push.
-3. **Site configuration → Environment variables**:
-
-```
-DATABASE_URL       = <Neon uat branch pooled connection string>
-AUTH_SECRET        = <Auth.js secret>
-AUTH_URL           = https://<your-netlify-domain>.netlify.app
-ADMIN_EMAIL        = <admin email>
-ADMIN_PASSWORD     = <admin password>
-```
-
 ### Neon database branches
 
 Both environments share one Neon project with two branches:
 
-- `main` Neon branch → used by Vercel (production)
-- `uat` Neon branch → used by Netlify (staging)
+- `main` branch → Vercel (production)
+- `uat` branch → Vercel (Preview) — create from Neon Dashboard: **Branches → New branch from `main`**
 
 Create the `uat` branch from the Neon dashboard (Branches → New branch from `main`) and copy its **pooled** connection string into the Netlify workflow's `DATABASE_URL` secret.
 

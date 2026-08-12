@@ -31,10 +31,10 @@ export type StatTone = "neutral" | "info" | "success" | "warning" | "danger";
 
 const TONE_ICON: Record<StatTone, string> = {
   neutral: "text-muted-foreground",
-  info: "text-sky-600 dark:text-sky-400",
-  success: "text-emerald-600 dark:text-emerald-400",
-  warning: "text-amber-600 dark:text-amber-400",
-  danger: "text-rose-600 dark:text-rose-400",
+  info: "text-primary",
+  success: "text-primary",
+  warning: "text-warning",
+  danger: "text-destructive",
 };
 
 export function StatCard({
@@ -97,7 +97,7 @@ export function StatCard({
       className={cn(
         "flex flex-col justify-between min-h-36 p-5",
         isActive &&
-          "border-(--accent-cyber) shadow-[0_0_0_1px_var(--accent-cyber-soft)]",
+          "border-primary shadow-[0_0_0_1px_var(--color-primary)]",
       )}
     >
       <div className="flex items-center justify-between gap-2">

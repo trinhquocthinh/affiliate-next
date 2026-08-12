@@ -1,0 +1,75 @@
+export type Role = "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
+
+export const PERMISSIONS = [
+  "request.create",
+  "request.view",
+  "request.edit",
+  "request.close",
+  "request.buyer_note",
+  "request.order_id.edit_any_status",
+  "affiliate.queue.view",
+  "affiliate.claim.unclaimed",
+  "affiliate.claim.override",
+  "affiliate.unclaim",
+  "affiliate.note",
+  "affiliate.fill",
+  "affiliate.bulk_close",
+  "user.manage",
+  "config.manage",
+  "system.bulk_close",
+] as const;
+
+export type Permission = typeof PERMISSIONS[number];
+export type Scope = "own" | "any";
+
+export const MATRIX: Record<Role, Partial<Record<Permission, true | Scope>>> = {
+  BUYER: {
+    "request.create": true,
+    "request.view": "own",
+    "request.edit": "own",
+    "request.close": "own",
+    "request.buyer_note": "own",
+  },
+  AFFILIATE: {
+    "request.create": true,
+    "request.view": "any",
+    "request.close": "own",
+    "affiliate.queue.view": true,
+    "affiliate.claim.unclaimed": true,
+    "affiliate.unclaim": "own",
+    "affiliate.note": "own",
+    "affiliate.fill": "own",
+    "affiliate.bulk_close": "own",
+  },
+  AFFILIATE_MASTER: {
+    "request.create": true,
+    "request.view": "any",
+    "request.close": "own",
+    "request.order_id.edit_any_status": true,
+    "affiliate.queue.view": true,
+    "affiliate.claim.unclaimed": true,
+    "affiliate.claim.override": true,
+    "affiliate.unclaim": "own",
+    "affiliate.note": "own",
+    "affiliate.fill": "own",
+    "affiliate.bulk_close": "own",
+  },
+  ADMIN: {
+    "request.create": true,
+    "request.view": "any",
+    "request.edit": "any",
+    "request.close": "any",
+    "request.buyer_note": "any",
+    "request.order_id.edit_any_status": true,
+    "affiliate.queue.view": true,
+    "affiliate.claim.unclaimed": true,
+    "affiliate.claim.override": true,
+    "affiliate.unclaim": "any",
+    "affiliate.note": "any",
+    "affiliate.fill": "any",
+    "affiliate.bulk_close": "any",
+    "user.manage": true,
+    "config.manage": true,
+    "system.bulk_close": true,
+  },
+};

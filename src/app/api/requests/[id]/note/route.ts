@@ -4,6 +4,7 @@ import { getApiActorContext } from "@/lib/auth-utils";
 import { saveNoteSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
+import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/note
 export async function POST(
@@ -11,18 +12,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await getApiActorContext();
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
     if (!actor) {
       return NextResponse.json(
         { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
         { status: 401 },
-      );
-    }
-
-    if (!actor.isAffiliate) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
-        { status: 403 },
       );
     }
 
@@ -54,8 +50,8 @@ export async function POST(
       );
     }
 
-    // Non-admin cannot edit notes on requests claimed by others
-    if (existing.affiliateOwnerId && existing.affiliateOwnerId !== actor.userId && !actor.isAdmin) {
+    // Use matrix to verify permission
+    if (!canAccessRequest(actor, existing, "affiliate.note")) {
       return NextResponse.json(
         { ok: false, error: { code: "CONFLICT_CLAIMED", message: "Cannot edit notes on another affiliate's request" } },
         { status: 409 },
@@ -72,14 +68,14 @@ export async function POST(
       where: { id },
       data: {
         notes: note || null,
-        affiliateOwnerId: shouldAutoClaim ? actor.userId : undefined,
-        lastUpdatedById: actor.userId,
+        affiliateOwnerId: shouldAutoClaim ? actor.id : undefined,
+        lastUpdatedById: actor.id,
       },
     });
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "SAVE_NOTE",
       oldValue: { notes: existing.notes },
       newValue: { notes: note, autoClaimed: shouldAutoClaim },
@@ -90,7 +86,7 @@ export async function POST(
       ok: true,
       data: {
         notes: updated.notes,
-        affiliateOwner: shouldAutoClaim ? actor.email : undefined,
+        affiliateOwner: shouldAutoClaim ? actorCtx!.email : undefined,
         lastUpdatedAt: updated.lastUpdatedAt,
       },
     });

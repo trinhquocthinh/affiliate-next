@@ -3,19 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext, ApiError } from "@/lib/auth-utils";
 import { createRequestSchema, batchCreateSchema } from "@/lib/validations";
 import { getAppConfig } from "@/lib/config-cache";
-import { normalizeProductUrl } from "@/lib/url-utils";
+import { normalizeProductUrl, extractProductItemId } from "@/lib/url-utils";
 import { generateRequestId } from "@/lib/request-id";
 import { logAuditEvent } from "@/lib/audit";
+
+import { assertPermission, getPermissionScope, Actor, PermissionError } from "@/domain/permissions/resolve";
 
 // GET /api/requests — list requests (buyer: own, affiliate/admin: all)
 export async function GET(request: Request) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
+    try {
+      assertPermission(actor, "request.view");
+    } catch (e: any) {
+      if (e instanceof PermissionError) {
+        return NextResponse.json(
+          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
+          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+        );
+      }
+      throw e;
     }
 
     const { searchParams } = new URL(request.url);
@@ -25,9 +34,9 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {};
 
-    // Buyers see only their own requests
-    if (actor.role === "BUYER") {
-      where.createdById = actor.userId;
+    const viewScope = getPermissionScope(actor, "request.view");
+    if (viewScope === "own") {
+      where.createdById = actor!.id;
     }
 
     if (statusFilter && statusFilter !== "ALL") {
@@ -73,8 +82,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("List requests error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to list requests" } },
+      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to list requests: " + errorMessage } },
       { status: 500 },
     );
   }
@@ -83,21 +93,28 @@ export async function GET(request: Request) {
 // POST /api/requests — create single or batch requests
 export async function POST(request: Request) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
+    const actorCtx = await getApiActorContext();
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+
+    try {
+      assertPermission(actor, "request.create");
+    } catch (e: any) {
+      if (e instanceof PermissionError) {
+        return NextResponse.json(
+          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
+          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+        );
+      }
+      throw e;
     }
 
     const body = await request.json();
 
     // Detect batch vs single by presence of "items" array
     if (body.items && Array.isArray(body.items)) {
-      return handleBatchCreate(body, actor);
+      return handleBatchCreate(body, actorCtx!);
     }
-    return handleSingleCreate(body, actor);
+    return handleSingleCreate(body, actorCtx!);
   } catch (error) {
     if (error instanceof ApiError) {
       return NextResponse.json(
@@ -154,6 +171,7 @@ async function handleSingleCreate(body: unknown, actor: ActorCtx) {
       platform,
       productUrlRaw: productUrl,
       productUrlNorm,
+      productItemId: extractProductItemId(productUrl, platform),
       productName: productName || null,
       duplicateOfId: duplicateDetected ? duplicates[0].id : null,
       lastUpdatedById: actor.userId,
@@ -250,6 +268,7 @@ async function handleBatchCreate(body: unknown, actor: ActorCtx) {
         platform,
         productUrlRaw: item.productUrl,
         productUrlNorm,
+        productItemId: extractProductItemId(item.productUrl, platform),
         productName: item.productName || null,
         duplicateOfId: dbDuplicates[0]?.id || null,
         lastUpdatedById: actor.userId,

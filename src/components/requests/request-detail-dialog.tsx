@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import useSWR from "swr";
-import { toast } from "sonner";
-import { useActor } from "@/components/layout/actor-provider";
-import { apiFetch } from "@/lib/swr-fetcher";
 import { formatRelativeTime, formatDateTime } from "@/lib/utils";
+import { useRequestDetail } from "@/hooks/use-request-detail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,26 +33,6 @@ import {
   ShieldIcon,
 } from "lucide-react";
 
-type RequestDetail = {
-  id: string;
-  createdAt: string;
-  platform: string;
-  productUrlRaw: string;
-  productName: string | null;
-  affiliateLink: string | null;
-  filledAt: string | null;
-  status: string;
-  closeReason: string | null;
-  orderId: string | null;
-  notes: string | null;
-  buyerNote: string | null;
-  isStale: boolean;
-  ageHours: number;
-  lastUpdatedAt: string;
-  createdBy: { displayName: string | null; email: string };
-  affiliateOwner: { displayName: string | null; email: string } | null;
-};
-
 export function RequestDetailDialog({
   requestId,
   open,
@@ -68,221 +44,18 @@ export function RequestDetailDialog({
   onOpenChange: (open: boolean) => void;
   onMutated?: () => void;
 }) {
-  const actor = useActor();
-  const swrKey = open && requestId ? `/api/requests/${requestId}` : null;
   const {
-    data: swrData,
-    isLoading: swrLoading,
-    mutate,
-  } = useSWR<{ ok: boolean; data?: RequestDetail; error?: { message?: string } }>(swrKey);
-
-  const data: RequestDetail | null =
-    swrData?.ok && swrData.data ? swrData.data : null;
-  const loading = swrLoading;
-
-  // Form state
-  const [buyerNote, setBuyerNote] = useState("");
-  const [editProductUrl, setEditProductUrl] = useState("");
-  const [editPlatform, setEditPlatform] = useState("");
-  const [editProductName, setEditProductName] = useState("");
-  const [affiliateLink, setAffiliateLink] = useState("");
-  const [affNote, setAffNote] = useState("");
-  const [closeReason, setCloseReason] = useState("BOUGHT");
-  const [closeNote, setCloseNote] = useState("");
-  const [orderId, setOrderId] = useState("");
-  const [adminOrderId, setAdminOrderId] = useState("");
-  const [adminBuyerNote, setAdminBuyerNote] = useState("");
-  const [busy, setBusy] = useState<string>("");
-
-  // Sync form state from fetched data
-  useEffect(() => {
-    if (!data) return;
-    setBuyerNote(data.buyerNote || "");
-    setEditProductUrl(data.productUrlRaw);
-    setEditPlatform(data.platform);
-    setEditProductName(data.productName || "");
-    setAffiliateLink(data.affiliateLink || "");
-    setAffNote(data.notes || "");
-    setCloseReason("BOUGHT");
-    setCloseNote("");
-    setOrderId("");
-    setAdminOrderId(data.orderId || "");
-    setAdminBuyerNote(data.buyerNote || "");
-  }, [data]);
-
-  // Handle fetch errors
-  useEffect(() => {
-    if (swrData && !swrData.ok) {
-      toast.error(swrData.error?.message || "Failed to load request");
-      onOpenChange(false);
-    }
-  }, [swrData, onOpenChange]);
-
-  function notifyMutation() {
-    onMutated?.();
-  }
-
-  function copyId(id: string) {
-    navigator.clipboard.writeText(id);
-    toast.success("Copied!");
-  }
-
-  // ─── Mutations ───────────────────────────────────────────────────────────
-
-  async function handleSaveEdit() {
-    if (!data) return;
-    setBusy("edit");
-    try {
-      const body: Record<string, unknown> = {
-        expectedLastUpdatedAt: data.lastUpdatedAt,
-      };
-      if (editProductUrl !== data.productUrlRaw) body.productUrl = editProductUrl;
-      if (editPlatform !== data.platform) body.platform = editPlatform;
-      if (editProductName !== (data.productName || ""))
-        body.productName = editProductName || null;
-      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        `/api/requests/${data.id}/edit`,
-        { method: "PATCH", body: JSON.stringify(body) },
-      );
-      if (json.ok) {
-        toast.success("Request updated");
-        await mutate();
-        notifyMutation();
-      } else {
-        toast.error(json.error?.message || "Failed to update");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function handleSaveBuyerNote() {
-    if (!data) return;
-    setBusy("buyerNote");
-    try {
-      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        `/api/requests/${data.id}/buyer-note`,
-        {
-          method: "POST",
-          body: JSON.stringify({ buyerNote, expectedLastUpdatedAt: data.lastUpdatedAt }),
-        },
-      );
-      if (json.ok) {
-        toast.success("Note saved");
-        await mutate();
-        notifyMutation();
-      } else {
-        toast.error(json.error?.message || "Failed to save note");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save note");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function handleFill() {
-    if (!data) return;
-    setBusy("fill");
-    try {
-      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        `/api/affiliate/${data.id}/fill`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            affiliateLink: affiliateLink.trim(),
-            note: affNote || undefined,
-            expectedLastUpdatedAt: data.lastUpdatedAt,
-          }),
-        },
-      );
-      if (json.ok) {
-        toast.success("Saved");
-        await mutate();
-        notifyMutation();
-      } else {
-        toast.error(json.error?.message || "Failed to save");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function handleClose() {
-    if (!data) return;
-    setBusy("close");
-    try {
-      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        `/api/requests/${data.id}/close`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            closeReason,
-            closeNote: closeNote || undefined,
-            orderId: closeReason === "BOUGHT" ? orderId : undefined,
-            expectedLastUpdatedAt: data.lastUpdatedAt,
-          }),
-        },
-      );
-      if (json.ok) {
-        toast.success("Request closed");
-        onOpenChange(false);
-        notifyMutation();
-      } else {
-        toast.error(json.error?.message || "Failed to close");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to close");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function handleAdminCorrect() {
-    if (!data) return;
-    setBusy("adminCorrect");
-    try {
-      const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        `/api/requests/${data.id}/admin-correct`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            orderId: adminOrderId || null,
-            buyerNote: adminBuyerNote || null,
-          }),
-        },
-      );
-      if (json.ok) {
-        toast.success("Correction saved");
-        await mutate();
-        notifyMutation();
-      } else {
-        toast.error(json.error?.message || "Failed to save");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  // ─── Role gates ──────────────────────────────────────────────────────────
-
-  const isOwner = !!data && data.createdBy.email === actor.email;
-  const canBuyerEdit = !!data && data.status !== "CLOSED" && (isOwner || actor.isAdmin);
-  const canAffiliateAct =
-    !!data && data.status !== "CLOSED" && actor.isAffiliate;
-  const canAdminCorrect =
-    !!data &&
-    actor.isAdmin &&
-    data.status === "CLOSED" &&
-    data.closeReason === "BOUGHT";
-
-  // ─── Render ──────────────────────────────────────────────────────────────
+    data,
+    loading,
+    busy,
+    isOwner,
+    isAdmin,
+    canBuyerEdit,
+    canAffiliateAct,
+    canAdminCorrect,
+    form,
+    actions,
+  } = useRequestDetail({ requestId, open, onOpenChange, onMutated });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -303,7 +76,7 @@ export function RequestDetailDialog({
                   variant="ghost"
                   size="sm"
                   className="h-7 w-7 p-0 border border-border"
-                  onClick={() => copyId(data.id)}
+                  onClick={() => actions.copyId(data.id)}
                   aria-label="Copy ID"
                 >
                   <CopyIcon className="h-3.5 w-3.5" />
@@ -439,19 +212,19 @@ export function RequestDetailDialog({
                     </p>
                     <Input
                       placeholder="https://..."
-                      value={affiliateLink}
-                      onChange={(e) => setAffiliateLink(e.target.value)}
+                      value={form.affiliateLink}
+                      onChange={(e) => form.setAffiliateLink(e.target.value)}
                     />
                     <Label className="text-sm">Notes</Label>
                     <Textarea
                       placeholder="Add notes..."
-                      value={affNote}
-                      onChange={(e) => setAffNote(e.target.value)}
+                      value={form.affNote}
+                      onChange={(e) => form.setAffNote(e.target.value)}
                       rows={2}
                     />
                     <Button
-                      onClick={handleFill}
-                      disabled={busy === "fill" || !affiliateLink.trim()}
+                      onClick={actions.fill}
+                      disabled={busy === "fill" || !form.affiliateLink.trim()}
                       className="w-full"
                     >
                       {busy === "fill" ? (
@@ -476,12 +249,12 @@ export function RequestDetailDialog({
                     <div className="space-y-1.5">
                       <Label className="text-sm">Platform</Label>
                       <Select
-                        value={editPlatform}
-                        onValueChange={(v) => v && setEditPlatform(v)}
+                        value={form.editPlatform}
+                        onValueChange={(v) => v && form.setEditPlatform(v)}
                       >
                         <SelectTrigger>
                           <SelectValue>
-                            {({ SHOPEE: "Shopee", TIKTOK: "TikTok", OTHER: "Other" } as Record<string, string>)[editPlatform] ?? editPlatform}
+                            {({ SHOPEE: "Shopee", TIKTOK: "TikTok", OTHER: "Other" } as Record<string, string>)[form.editPlatform] ?? form.editPlatform}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -494,8 +267,8 @@ export function RequestDetailDialog({
                     <div className="space-y-1.5">
                       <Label className="text-sm">Product URL</Label>
                       <Input
-                        value={editProductUrl}
-                        onChange={(e) => setEditProductUrl(e.target.value)}
+                        value={form.editProductUrl}
+                        onChange={(e) => form.setEditProductUrl(e.target.value)}
                         placeholder="https://..."
                       />
                     </div>
@@ -505,18 +278,18 @@ export function RequestDetailDialog({
                         <span className="text-muted-foreground font-normal">(optional)</span>
                       </Label>
                       <Input
-                        value={editProductName}
-                        onChange={(e) => setEditProductName(e.target.value)}
+                        value={form.editProductName}
+                        onChange={(e) => form.setEditProductName(e.target.value)}
                       />
                     </div>
                     <Button
-                      onClick={handleSaveEdit}
+                      onClick={actions.saveEdit}
                       disabled={
                         busy === "edit" ||
-                        !editProductUrl.trim() ||
-                        (editProductUrl === data.productUrlRaw &&
-                          editPlatform === data.platform &&
-                          editProductName === (data.productName || ""))
+                        !form.editProductUrl.trim() ||
+                        (form.editProductUrl === data.productUrlRaw &&
+                          form.editPlatform === data.platform &&
+                          form.editProductName === (data.productName || ""))
                       }
                       className="w-full"
                     >
@@ -533,7 +306,7 @@ export function RequestDetailDialog({
                 )}
 
                 {/* Buyer note */}
-                {(isOwner || actor.isAdmin) && (
+                {(isOwner || isAdmin) && (
                   <div className="p-6 lg:p-8 border-b border-border space-y-3">
                     <Label className="text-sm font-semibold">Your Note</Label>
                     <Textarea
@@ -542,15 +315,15 @@ export function RequestDetailDialog({
                           ? "Request is closed"
                           : "Add a note for the affiliate..."
                       }
-                      value={buyerNote}
-                      onChange={(e) => setBuyerNote(e.target.value)}
+                      value={form.buyerNote}
+                      onChange={(e) => form.setBuyerNote(e.target.value)}
                       rows={3}
                       disabled={data.status === "CLOSED"}
                     />
                     {data.status !== "CLOSED" && (
                       <Button
-                        onClick={handleSaveBuyerNote}
-                        disabled={busy === "buyerNote" || buyerNote === (data.buyerNote || "")}
+                        onClick={actions.saveBuyerNote}
+                        disabled={busy === "buyerNote" || form.buyerNote === (data.buyerNote || "")}
                         className="w-full"
                       >
                         {busy === "buyerNote" ? (
@@ -574,15 +347,15 @@ export function RequestDetailDialog({
                       Close Request
                     </p>
                     <Select
-                      value={closeReason}
+                      value={form.closeReason}
                       onValueChange={(v) => {
-                        setCloseReason(v ?? "BOUGHT");
-                        setOrderId("");
+                        form.setCloseReason(v ?? "BOUGHT");
+                        form.setOrderId("");
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue>
-                          {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", OTHER: "Other" } as Record<string, string>)[closeReason] ?? "Reason"}
+                          {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", OTHER: "Other" } as Record<string, string>)[form.closeReason] ?? "Reason"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -592,24 +365,24 @@ export function RequestDetailDialog({
                         <SelectItem value="OTHER">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    {closeReason === "BOUGHT" && (
+                    {form.closeReason === "BOUGHT" && (
                       <Input
                         placeholder="Order ID (required)"
-                        value={orderId}
-                        onChange={(e) => setOrderId(e.target.value)}
+                        value={form.orderId}
+                        onChange={(e) => form.setOrderId(e.target.value)}
                       />
                     )}
                     <Textarea
                       placeholder="Close note (optional)"
-                      value={closeNote}
-                      onChange={(e) => setCloseNote(e.target.value)}
+                      value={form.closeNote}
+                      onChange={(e) => form.setCloseNote(e.target.value)}
                       rows={2}
                     />
                     <Button
                       variant="outline"
                       className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
-                      onClick={handleClose}
-                      disabled={busy === "close" || (closeReason === "BOUGHT" && !orderId.trim())}
+                      onClick={actions.close}
+                      disabled={busy === "close" || (form.closeReason === "BOUGHT" && !form.orderId.trim())}
                     >
                       {busy === "close" ? (
                         <>
@@ -634,27 +407,27 @@ export function RequestDetailDialog({
                       <Label className="text-sm">Order ID</Label>
                       <Input
                         placeholder="Correct order ID"
-                        value={adminOrderId}
-                        onChange={(e) => setAdminOrderId(e.target.value)}
+                        value={form.adminOrderId}
+                        onChange={(e) => form.setAdminOrderId(e.target.value)}
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-sm">Buyer Note</Label>
                       <Textarea
                         placeholder="Correct buyer note"
-                        value={adminBuyerNote}
-                        onChange={(e) => setAdminBuyerNote(e.target.value)}
+                        value={form.adminBuyerNote}
+                        onChange={(e) => form.setAdminBuyerNote(e.target.value)}
                         rows={3}
                       />
                     </div>
                     <Button
                       variant="outline"
                       className="w-full border-violet-400/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:border-violet-400/60"
-                      onClick={handleAdminCorrect}
+                      onClick={actions.adminCorrect}
                       disabled={
                         busy === "adminCorrect" ||
-                        (adminOrderId === (data.orderId || "") &&
-                          adminBuyerNote === (data.buyerNote || ""))
+                        (form.adminOrderId === (data.orderId || "") &&
+                          form.adminBuyerNote === (data.buyerNote || ""))
                       }
                     >
                       {busy === "adminCorrect" ? (
