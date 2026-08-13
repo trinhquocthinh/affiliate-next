@@ -20,8 +20,8 @@ export async function GET(request: Request) {
     } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
-          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
-          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
+          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
         );
       }
       throw e;
@@ -101,8 +101,8 @@ export async function POST(request: Request) {
     } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
-          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
-          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
+          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
         );
       }
       throw e;
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ApiError) {
       return NextResponse.json(
-        { ok: false, error: { code: error.code, message: error.message } },
+        { ok: false, error: { code: (error as any).code, message: (error as any).message } },
         { status: error.httpStatus },
       );
     }

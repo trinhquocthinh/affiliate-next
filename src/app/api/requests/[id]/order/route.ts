@@ -19,8 +19,8 @@ export async function PATCH(
     } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
-          { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
-          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
+          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
         );
       }
       throw e;
@@ -79,7 +79,8 @@ export async function PATCH(
     await logAuditEvent({
       requestId: id,
       actorId: actor!.id,
-      action: action as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      action: action as any,
       oldValue,
       newValue,
       source: auditSourceFor(actorCtx!.role, "affiliate_ui"),
