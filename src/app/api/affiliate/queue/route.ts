@@ -154,7 +154,6 @@ export async function GET(request: Request) {
           processedCount,
         },
         buyers,
-        isAdmin: actorCtx!.isAdmin,
       },
     });
   } catch (error) {

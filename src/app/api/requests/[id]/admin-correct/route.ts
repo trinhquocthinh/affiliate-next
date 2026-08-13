@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { adminCorrectSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
+import { getPermissionScope, hasPermission, Actor } from "@/domain/permissions/resolve";
 
 // PATCH /api/requests/[id]/admin-correct — admin-only: correct orderId / buyerNote regardless of status
 export async function PATCH(
@@ -18,7 +19,16 @@ export async function PATCH(
       );
     }
 
-    if (!actor.isAdmin) {
+    // Điểm cuối này sửa `orderId` và `buyerNote` trên yêu cầu bất kỳ, nên nó
+    // đòi đúng hai quyền mà nó thực sự dùng — thay vì hỏi "có phải Admin không".
+    // Chỉ Admin nắm cả hai: Master thiếu `request.buyer_note`, Buyer chỉ có
+    // phạm vi `own`. Hành vi giữ nguyên như cờ isAdmin cũ.
+    const domainActor: Actor = { id: actor.userId, role: actor.role };
+    const canCorrect =
+      getPermissionScope(domainActor, "request.buyer_note") === "any" &&
+      hasPermission(domainActor, "request.order_id.edit_any_status");
+
+    if (!canCorrect) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "Admin access required" } },
         { status: 403 },

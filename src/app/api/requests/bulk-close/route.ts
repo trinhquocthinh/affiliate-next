@@ -80,6 +80,9 @@ async function runBulkClose(
 
   await logAuditEvent({
     actorId,
+    // Chạy bằng cron thì không có người thao tác — khai báo rõ thay vì để
+    // `actorId` rỗng đi qua âm thầm (SPEC-009).
+    systemActor: auth.kind === "cron",
     action: "BULK_CLOSE",
     newValue: { closedCount: result.count, olderThanDays, cutoff },
     source,

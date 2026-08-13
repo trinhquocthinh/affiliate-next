@@ -58,4 +58,35 @@ describe('POST /api/reconciliation/import', () => {
     // Verify it doesn't call update on request
     expect(db.$transaction).toHaveBeenCalled();
   });
+
+  // SPEC-006 kịch bản 13/14 — `reconciliation.run` chỉ dành cho Master/Admin.
+  it.each([
+    ['AFFILIATE', 403],
+    ['BUYER', 403],
+    ['AFFILIATE_MASTER', 200],
+  ])('vai %s -> %i', async (role, expectedStatus) => {
+    (auth as any).mockResolvedValue({ user: { id: 'u-1' } });
+    (db.user.findUnique as any).mockResolvedValue({ id: 'u-1', role });
+    (db.request.findMany as any).mockResolvedValue([]);
+    (db.$transaction as any).mockImplementation(async (cb: any) =>
+      cb({
+        reconciliationRun: { create: vi.fn().mockResolvedValue({ id: 'RUN-1' }) },
+        reconciliationRow: { createMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      }),
+    );
+
+    const csvData = `ID đơn hàng,Item id,Tên Item,Thời Gian Đặt Hàng,Trạng thái đặt hàng,Trạng thái sản phẩm liên kết,Giá(₫),Giá trị đơn hàng (₫),Hoa hồng ròng tiếp thị liên kết(₫),Sub_id1\nORD1,ITEM1,Item 1,2026-08-10 12:00:00,Hoàn thành,Hoàn thành,100000,100000,10000,REQ-1`;
+    const formData = new FormData();
+    formData.append('file', new File([csvData], 'test.csv', { type: 'text/csv' }));
+    formData.append('platform', 'SHOPEE');
+
+    const res = await POST(
+      new NextRequest('http://localhost/api/reconciliation/import', {
+        method: 'POST',
+        body: formData,
+      }),
+    );
+
+    expect(res.status).toBe(expectedStatus);
+  });
 });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { saveNoteSchema } from "@/lib/validations";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, auditRemark, isOwnershipOverride } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
 import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
@@ -80,6 +80,11 @@ export async function POST(
       oldValue: { notes: existing.notes },
       newValue: { notes: note, autoClaimed: shouldAutoClaim },
       source: "affiliate_ui",
+      // BR-051: sửa ghi chú trên việc người khác đang giữ. Tự nhận việc chưa
+      // ai giữ thì không tính — lúc đó chưa có ai để mà vượt qua.
+      remark: auditRemark(
+        !shouldAutoClaim && isOwnershipOverride(actor.id, existing) && "ownership_override",
+      ),
     });
 
     return NextResponse.json({

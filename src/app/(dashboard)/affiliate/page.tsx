@@ -163,7 +163,7 @@ export default function AffiliateQueuePage() {
         </div>
       </div>
 
-      <AffiliateDetailDialog detail={detail} isAdmin={queue.isAdmin} />
+      <AffiliateDetailDialog detail={detail} />
     </>
   );
 }

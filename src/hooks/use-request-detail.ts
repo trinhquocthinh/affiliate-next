@@ -241,7 +241,7 @@ export function useRequestDetail({
     }
   }
 
-  const { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect } = computeRequestPermissions(
+  const { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect, canBuyerNote } = computeRequestPermissions(
     data,
     actor,
     hasPermission,
@@ -253,7 +253,7 @@ export function useRequestDetail({
     loading,
     busy,
     isOwner,
-    isAdmin: actor.isAdmin,
+    canBuyerNote,
     canBuyerEdit,
     canAffiliateAct,
     canAdminCorrect,

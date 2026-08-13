@@ -1,14 +1,13 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { type Permission, type Role } from "@/domain/permissions/matrix";
+import { hasPermission } from "@/domain/permissions/resolve";
 
 export type ActorContext = {
   userId: string;
   email: string;
-  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
+  role: Role;
   displayName: string | null;
-  isAdmin: boolean;
-  isAffiliate: boolean;
-  isBuyer: boolean;
 };
 
 /**
@@ -29,9 +28,6 @@ export async function getActorContext(): Promise<ActorContext> {
     email: session.user.email!,
     role,
     displayName: session.user.name ?? null,
-    isAdmin: role === "ADMIN",
-    isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
-    isBuyer: role === "BUYER" || role === "ADMIN",
   };
 }
 
@@ -52,21 +48,20 @@ export async function getApiActorContext(): Promise<ActorContext | null> {
     email: session.user.email!,
     role,
     displayName: session.user.name ?? null,
-    isAdmin: role === "ADMIN",
-    isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
-    isBuyer: role === "BUYER" || role === "ADMIN",
   };
 }
 
-export function assertAffiliate(actor: ActorContext) {
-  if (!actor.isAffiliate) {
-    throw new ApiError("UNAUTHORIZED", "Affiliate access required", 403);
-  }
-}
-
-export function assertAdmin(actor: ActorContext) {
-  if (!actor.isAdmin) {
-    throw new ApiError("UNAUTHORIZED", "Admin access required", 403);
+/**
+ * Cổng thẩm quyền cho điểm cuối, phân giải qua ma trận SPEC-006 và ném
+ * `ApiError` 403 để khớp cách bắt lỗi sẵn có của các route.
+ *
+ * Thay cho `assertAdmin`/`assertAffiliate` cũ: hai hàm đó quyết định theo cờ
+ * vai nên nằm ngoài tầm luật ESLint chặn so sánh vai — điểm cuối vẫn cấp quyền
+ * mà không đi qua ma trận, đúng thứ tech-spec §4 muốn loại bỏ.
+ */
+export function assertApiPermission(actor: ActorContext, permission: Permission) {
+  if (!hasPermission({ id: actor.userId, role: actor.role }, permission)) {
+    throw new ApiError("UNAUTHORIZED", "Access denied", 403);
   }
 }
 

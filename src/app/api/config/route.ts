@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext, assertAdmin } from "@/lib/auth-utils";
+import { getApiActorContext, assertApiPermission } from "@/lib/auth-utils";
 import { updateConfigSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import { revalidateAppConfig } from "@/lib/config-cache";
@@ -16,7 +16,7 @@ export async function GET() {
       );
     }
 
-    assertAdmin(actor);
+    assertApiPermission(actor, "config.manage");
 
     const configs = await prisma.appConfig.findMany();
     const configMap = Object.fromEntries(configs.map((c) => [c.key, c.value]));
@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    assertAdmin(actor);
+    assertApiPermission(actor, "config.manage");
 
     const body = await request.json();
     const parsed = updateConfigSchema.safeParse(body);

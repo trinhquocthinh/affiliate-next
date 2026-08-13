@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { statusLabel, computeRequestPermissions } from "./request-status";
+import { MATRIX, type Permission, type Role } from "@/domain/permissions/matrix";
 
 describe("statusLabel", () => {
   it("maps known statuses to their display label", () => {
@@ -19,16 +20,12 @@ describe("computeRequestPermissions", () => {
   const affiliate = { email: "aff@test.com", role: "AFFILIATE" };
   const admin = { email: "admin@test.com", role: "ADMIN" };
 
-  const mockHasPermission = (role: string, perm: string) => {
-    if (role === "ADMIN") return true;
-    if (role === "AFFILIATE" && (perm === "affiliate.fill" || perm === "affiliate.note")) return true;
-    return false;
-  };
-  const mockGetPermissionScope = (role: string, perm: string) => {
-    if (role === "ADMIN") return "any";
-    if (role === "BUYER" && perm === "request.edit") return "own";
-    return undefined;
-  };
+  // Đọc thẳng ma trận SPEC-006 thay vì dựng lại bằng tay: một bảng giả chép
+  // thiếu sẽ làm test xanh trong khi hành vi thật đã lệch.
+  const mockHasPermission = (role: string, perm: string) =>
+    !!MATRIX[role as Role][perm as Permission];
+  const mockGetPermissionScope = (role: string, perm: string) =>
+    MATRIX[role as Role][perm as Permission];
 
   const computeFor = (data: any, actorObj: any) => {
     return computeRequestPermissions(
@@ -45,7 +42,21 @@ describe("computeRequestPermissions", () => {
       canBuyerEdit: false,
       canAffiliateAct: false,
       canAdminCorrect: false,
+      canBuyerNote: false,
     });
+  });
+
+  it("gates the buyer note by scope, not by role", () => {
+    const mine = { status: "NEW", closeReason: null, createdBy: { email: buyer.email } };
+    const theirs = { status: "NEW", closeReason: null, createdBy: { email: otherBuyer.email } };
+
+    // `own` — chỉ trên yêu cầu của chính mình
+    expect(computeFor(mine, buyer).canBuyerNote).toBe(true);
+    expect(computeFor(theirs, buyer).canBuyerNote).toBe(false);
+    // `any` — bao hàm `own`
+    expect(computeFor(theirs, admin).canBuyerNote).toBe(true);
+    // Không có thẩm quyền: Affiliate không ghi được ghi chú của người mua
+    expect(computeFor(theirs, affiliate).canBuyerNote).toBe(false);
   });
 
   it("lets the owner edit an open request but not act as affiliate", () => {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { fillLinkSchema } from "@/lib/validations";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, auditRemark, isOwnershipOverride } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
 import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
@@ -88,6 +88,12 @@ export async function POST(
         subIdStamped,
       },
       source: "affiliate_ui",
+      // BR-051: điền vào việc người khác giữ, và thay đè link đã có, đều là
+      // các trường hợp phải nhận ra được khi rà dấu vết về sau.
+      remark: auditRemark(
+        isOwnershipOverride(actor.id, existing) && "ownership_override",
+        !!existing.affiliateLink && "link_replaced",
+      ),
     });
 
     return NextResponse.json({

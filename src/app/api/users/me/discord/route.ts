@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
+import { hasPermission } from "@/domain/permissions/resolve";
 
 // Discord Snowflake IDs are 18-20 digits (17-digit IDs predate the epoch and are invalid).
 const DISCORD_ID_REGEX = /^\d{18,20}$/;
@@ -36,7 +37,9 @@ export async function PUT(request: Request) {
     );
   }
 
-  if (!actor.isAffiliate) {
+  // Liên kết Discord chỉ phục vụ luồng điền link qua bot, nên gate đúng bằng
+  // quyền đó thay vì cờ vai (tech-spec §4).
+  if (!hasPermission({ id: actor.userId, role: actor.role }, "affiliate.fill")) {
     return NextResponse.json(
       { ok: false, error: { code: "FORBIDDEN", message: "Affiliate access required" } },
       { status: 403 },

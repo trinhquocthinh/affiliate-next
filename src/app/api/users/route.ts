@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { getApiActorContext, assertAdmin } from "@/lib/auth-utils";
+import { getApiActorContext, assertApiPermission } from "@/lib/auth-utils";
 
 import { logAuditEvent } from "@/lib/audit";
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       );
     }
 
-    assertAdmin(actor);
+    assertApiPermission(actor, "user.manage");
 
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get("role");
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       );
     }
 
-    assertAdmin(actor);
+    assertApiPermission(actor, "user.manage");
 
     const body = await request.json();
     const { email, displayName, role, password } = body;

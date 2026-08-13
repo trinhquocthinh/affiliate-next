@@ -33,6 +33,7 @@ import {
   InboxIcon,
   UsersIcon,
   SettingsIcon,
+  FileSpreadsheetIcon,
   LogOutIcon,
   SunIcon,
   MoonIcon,
@@ -41,12 +42,16 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "@/components/layout/theme-provider";
+import { usePermissions } from "@/hooks/use-permissions";
+import type { Permission } from "@/domain/permissions/matrix";
 import { getInitials } from "@/lib/utils";
 
 type NavItem = {
   title: string;
   href: string;
   icon: React.ElementType;
+  /** Mục chỉ hiện khi người dùng có thẩm quyền này (SPEC-006). */
+  requires?: Permission;
 };
 
 const buyerItems: NavItem[] = [
@@ -58,9 +63,18 @@ const affiliateItems: NavItem[] = [
   { title: "Queue", href: "/affiliate", icon: InboxIcon },
 ];
 
+// Reconciliation nằm ở nhóm Admin vì cùng đường dẫn /admin/*, nhưng nó **không**
+// đòi `user.manage` như Users/Config — AffiliateMaster cũng chạy đối soát được.
+// Vì vậy mỗi mục tự khai thẩm quyền của nó thay vì cả nhóm dùng chung một cờ.
 const adminItems: NavItem[] = [
-  { title: "Users", href: "/admin/users", icon: UsersIcon },
-  { title: "Config", href: "/admin/config", icon: SettingsIcon },
+  {
+    title: "Reconciliation",
+    href: "/admin/reconciliation",
+    icon: FileSpreadsheetIcon,
+    requires: "reconciliation.run",
+  },
+  { title: "Users", href: "/admin/users", icon: UsersIcon, requires: "user.manage" },
+  { title: "Config", href: "/admin/config", icon: SettingsIcon, requires: "config.manage" },
 ];
 
 type AppSidebarProps = {
@@ -76,8 +90,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { theme, setTheme } = useTheme();
   const { setOpenMobile } = useSidebar();
 
-  const isAffiliate = user.role === "AFFILIATE" || user.role === "ADMIN";
-  const isAdmin = user.role === "ADMIN";
+  // Suy từ ma trận, không so sánh vai — trước đây dòng này quên AFFILIATE_MASTER
+  // nên gán vai Master cho ai đó là họ mất luôn mục Queue.
+  const { hasPermission } = usePermissions();
+  const isAffiliate = hasPermission("affiliate.queue.view");
+  const visibleAdminItems = adminItems.filter((item) => !item.requires || hasPermission(item.requires));
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -152,11 +169,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroup>
         )}
 
-        {isAdmin && (
+        {visibleAdminItems.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Admin</SidebarGroupLabel>
             <SidebarMenu>
-              {adminItems.map((item) => (
+              {visibleAdminItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
                     <item.icon />

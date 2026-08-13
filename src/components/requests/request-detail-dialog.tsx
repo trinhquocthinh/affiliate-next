@@ -48,8 +48,7 @@ export function RequestDetailDialog({
     data,
     loading,
     busy,
-    isOwner,
-    isAdmin,
+    canBuyerNote,
     canBuyerEdit,
     canAffiliateAct,
     canAdminCorrect,
@@ -306,7 +305,7 @@ export function RequestDetailDialog({
                 )}
 
                 {/* Buyer note */}
-                {(isOwner || isAdmin) && (
+                {canBuyerNote && (
                   <div className="p-6 lg:p-8 border-b border-border space-y-3">
                     <Label className="text-sm font-semibold">Your Note</Label>
                     <Textarea

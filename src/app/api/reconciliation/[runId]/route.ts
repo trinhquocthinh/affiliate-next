@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma as db } from '@/lib/prisma';
+import { hasPermission } from '@/domain/permissions/resolve';
 
 export async function GET(
   req: NextRequest,
@@ -23,8 +24,7 @@ export async function GET(
       );
     }
 
-    // TODO(Epic 5): Khi hệ thống Permission hoàn thiện, gỡ bỏ hardcode 'AFFILIATE'.
-    if (user.role !== 'ADMIN' && user.role !== 'AFFILIATE') {
+    if (!hasPermission({ id: user.id, role: user.role }, 'reconciliation.run')) {
       return NextResponse.json(
         { ok: false, error: { code: 'ERR_FORBIDDEN', message: 'Forbidden' } },
         { status: 403 }

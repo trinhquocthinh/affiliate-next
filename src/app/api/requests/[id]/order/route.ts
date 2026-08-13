@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { editOrderSchema } from "@/lib/validations";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, auditSourceFor } from "@/lib/audit";
 import { assertPermission, Actor, PermissionError } from "@/domain/permissions/resolve";
 
 // PATCH /api/requests/[id]/order — admin/master update orderId and orderAmount at any status
@@ -82,7 +82,7 @@ export async function PATCH(
       action: action as any,
       oldValue,
       newValue,
-      source: actorCtx!.isAdmin ? "admin" : "affiliate_ui",
+      source: auditSourceFor(actorCtx!.role, "affiliate_ui"),
     });
 
     return NextResponse.json({ ok: true, data: { orderId: updated.orderId, orderAmount: updated.orderAmount } });

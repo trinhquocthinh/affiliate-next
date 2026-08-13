@@ -20,7 +20,6 @@ export function useAffiliateQueue() {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [buyers, setBuyers] = useState<BuyerOption[]>([]);
 
   // Filters
@@ -91,7 +90,7 @@ export function useAffiliateQueue() {
   const loading = isLoading;
   const fetching = isValidating;
 
-  // Sync buyers + isAdmin from SWR response — a "sticky" mirror that only
+  // Sync buyers from SWR response — a "sticky" mirror that only
   // updates on truthy values and otherwise keeps the last known ones, so it's
   // adjusted during render (comparing against the last-seen swrData) rather
   // than in an effect.
@@ -100,7 +99,6 @@ export function useAffiliateQueue() {
     setPrevSwrData(swrData);
     if (swrData?.ok && swrData.data) {
       if (swrData.data.buyers) setBuyers(swrData.data.buyers);
-      if (typeof swrData.data.isAdmin === "boolean") setIsAdmin(swrData.data.isAdmin);
     }
   }
 
@@ -130,7 +128,6 @@ export function useAffiliateQueue() {
     loading,
     fetching,
     buyers,
-    isAdmin,
     fetchQueue,
   };
 }

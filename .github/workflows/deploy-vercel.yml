@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Cổng chắn: test đỏ thì không deploy. Đặt trước bước cài Vercel CLI để
+      # hỏng sớm và rẻ. Chưa gộp `lint` vào đây vì repo còn 47 lỗi
+      # `no-explicit-any` có sẵn — dọn xong mới bật được cổng lint.
+      - name: Run tests
+        run: yarn test
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 

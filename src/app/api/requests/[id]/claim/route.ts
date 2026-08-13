@@ -56,8 +56,10 @@ export async function POST(
     if (unclaim) {
       if (!canAccessRequest(actor, existing, "affiliate.unclaim")) {
         return NextResponse.json(
-          { ok: false, error: { code: "CONFLICT_CLAIMED", message: "Cannot unclaim another affiliate's request" } },
-          { status: 409 },
+          // SPEC-006: thiếu thẩm quyền là 403, không phải 409 — 409 dành cho
+          // xung đột trạng thái, không dành cho từ chối cấp quyền.
+          { ok: false, error: { code: "FORBIDDEN", message: "Cannot unclaim another affiliate's request" } },
+          { status: 403 },
         );
       }
 
