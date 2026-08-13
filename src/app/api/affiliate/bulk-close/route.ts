@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       assertPermission(actor, "affiliate.bulk_close");
     } catch (e: unknown) {
       return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: e.message } },
+        { ok: false, error: { code: "FORBIDDEN", message: (e as any).message } },
         { status: 403 },
       );
     }

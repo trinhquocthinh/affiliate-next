@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
     try {
       rows = parseCommissionReport(csvContent);
     } catch (err: unknown) {
-      if (err.message?.startsWith('ERR_REPORT_FORMAT')) {
+      if ((err as any).message?.startsWith('ERR_REPORT_FORMAT')) {
         return NextResponse.json(
-          { ok: false, error: { code: 'ERR_REPORT_FORMAT', message: err.message.replace('ERR_REPORT_FORMAT: ', '') } },
+          { ok: false, error: { code: 'ERR_REPORT_FORMAT', message: (err as any).message.replace('ERR_REPORT_FORMAT: ', '') } },
           { status: 400 }
         );
       }
