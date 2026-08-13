@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useActor } from "@/components/layout/actor-provider";
+import { usePermissions } from "@/hooks/use-permissions";
 import { apiFetch } from "@/lib/swr-fetcher";
 import { formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,10 @@ export function AffiliateQueueSection({
 }) {
   const router = useRouter();
   const actor = useActor();
+  // Tiếp quản việc người khác đang giữ là `affiliate.claim.override` — Master
+  // cũng có quyền này, nên không được khoá nút theo cờ isAdmin.
+  const { hasPermission } = usePermissions();
+  const canOverride = hasPermission("affiliate.claim.override");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -219,7 +224,7 @@ export function AffiliateQueueSection({
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                disabled={(isClaimedByOther && !actor.isAdmin) || claimingId === item.id}
+                                disabled={(isClaimedByOther && !canOverride) || claimingId === item.id}
                                 onClick={() => handleClaim(item, false)}
                               >
                                 {claimingId === item.id ? (

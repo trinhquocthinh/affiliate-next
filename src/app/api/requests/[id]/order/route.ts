@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { editOrderSchema } from "@/lib/validations";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, auditSourceFor } from "@/lib/audit";
 import { assertPermission, Actor, PermissionError } from "@/domain/permissions/resolve";
 
 // PATCH /api/requests/[id]/order — admin/master update orderId and orderAmount at any status
@@ -12,11 +12,11 @@ export async function PATCH(
 ) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     try {
       assertPermission(actor, "request.order_id.edit_any_status");
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
           { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
@@ -47,14 +47,14 @@ export async function PATCH(
       );
     }
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       lastUpdatedAt: new Date(),
       lastUpdatedById: actor!.id,
     };
 
     let action = "EDIT_ORDER_ID";
-    const oldValue: Record<string, any> = {};
-    const newValue: Record<string, any> = {};
+    const oldValue: Record<string, unknown> = {};
+    const newValue: Record<string, unknown> = {};
 
     if (orderId !== undefined) {
       updateData.orderId = orderId;
@@ -79,10 +79,10 @@ export async function PATCH(
     await logAuditEvent({
       requestId: id,
       actorId: actor!.id,
-      action: action as any,
+      action: action as unknown,
       oldValue,
       newValue,
-      source: actorCtx!.isAdmin ? "admin" : "affiliate_ui",
+      source: auditSourceFor(actorCtx!.role, "affiliate_ui"),
     });
 
     return NextResponse.json({ ok: true, data: { orderId: updated.orderId, orderAmount: updated.orderAmount } });

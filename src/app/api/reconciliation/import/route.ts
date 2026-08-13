@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma as db } from '@/lib/prisma';
 import { parseCommissionReport } from '@/domain/reconciliation/parse-report';
 import { matchReportRows } from '@/domain/reconciliation/match';
+import { hasPermission } from '@/domain/permissions/resolve';
 type PlatformEnum = 'SHOPEE' | 'TIKTOK' | 'OTHER';
 
 export async function POST(req: NextRequest) {
@@ -23,9 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO(Epic 5): Khi hệ thống Permission hoàn thiện, gỡ bỏ hardcode 'AFFILIATE'. 
-    // Hiện tại tạm cho phép AFFILIATE dùng để test. Theo matrix thì chỉ AffiliateMaster/Admin được dùng.
-    if (user.role !== 'ADMIN' && user.role !== 'AFFILIATE') {
+    if (!hasPermission({ id: user.id, role: user.role }, 'reconciliation.run')) {
       return NextResponse.json(
         { ok: false, error: { code: 'ERR_FORBIDDEN', message: 'Forbidden' } },
         { status: 403 }
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
     let rows;
     try {
       rows = parseCommissionReport(csvContent);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.message?.startsWith('ERR_REPORT_FORMAT')) {
         return NextResponse.json(
           { ok: false, error: { code: 'ERR_REPORT_FORMAT', message: err.message.replace('ERR_REPORT_FORMAT: ', '') } },
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const { matchedRows, unmatchedRequests } = matchReportRows(rows, activeRequests);
+    const { matchedRows } = matchReportRows(rows, activeRequests);
 
     // Save to DB
     const run = await db.$transaction(async (tx) => {
@@ -125,7 +124,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: { runId: run.id } });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error importing report:', error);
     return NextResponse.json(
       { ok: false, error: { code: 'ERR_INTERNAL', message: 'Internal Server Error' } },

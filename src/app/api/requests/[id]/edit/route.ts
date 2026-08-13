@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { editRequestSchema } from "@/lib/validations";
 import { normalizeProductUrl } from "@/lib/url-utils";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, auditSourceFor } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
 import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
 
@@ -42,7 +42,7 @@ export async function PATCH(
       );
     }
 
-    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
     if (!canAccessRequest(domainActor, existing, "request.edit")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },
@@ -87,7 +87,7 @@ export async function PATCH(
         platform: updated.platform,
         productName: updated.productName,
       },
-      source: actor.isAdmin ? "admin" : "buyer_ui",
+      source: auditSourceFor(actor.role, "buyer_ui"),
     });
 
     return NextResponse.json({

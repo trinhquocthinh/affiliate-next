@@ -9,11 +9,11 @@ import { assertPermission, Actor, PermissionError } from "@/domain/permissions/r
 export async function GET(request: Request) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     try {
       assertPermission(actor, "affiliate.queue.view");
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
           { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
@@ -154,7 +154,6 @@ export async function GET(request: Request) {
           processedCount,
         },
         buyers,
-        isAdmin: actorCtx!.isAdmin,
       },
     });
   } catch (error) {

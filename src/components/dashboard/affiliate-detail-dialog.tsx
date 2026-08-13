@@ -25,15 +25,17 @@ import { AlertTriangleIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { QUEUE_STATUS_BADGE_STYLES, QUEUE_PLATFORM_STYLES } from "@/lib/affiliate-queue";
 import { statusLabel } from "@/lib/request-status";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export function AffiliateDetailDialog({
   detail,
-  isAdmin,
 }: {
   detail: ReturnType<typeof useAffiliateDetail>;
-  isAdmin: boolean;
 }) {
   const { selected } = detail;
+  // Sửa mã đơn ở trạng thái đã đóng là `request.order_id.edit_any_status`
+  // (SPEC-008) — AffiliateMaster cũng có quyền này, không riêng Admin.
+  const canEditOrderId = usePermissions().hasPermission("request.order_id.edit_any_status");
 
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && detail.closeDetail()}>
@@ -112,7 +114,7 @@ export function AffiliateDetailDialog({
                   {selected.status === "CLOSED" && selected.closeReason === "BOUGHT" && selected.orderId && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1.5">Order ID</p>
-                      {isAdmin ? (
+                      {canEditOrderId ? (
                         <div className="flex gap-2">
                           <Input
                             value={detail.editOrderId}

@@ -53,4 +53,26 @@ describe('GET /api/reconciliation/[runId]', () => {
     expect(json.data.groupB[0].orderStatus).toBe('Đã hủy');
     expect(json.data.groupC).toHaveLength(1);
   });
+
+  // SPEC-006 kịch bản 13/14 — `reconciliation.run` chỉ dành cho Master/Admin.
+  it.each([
+    ['AFFILIATE', 403],
+    ['BUYER', 403],
+    ['AFFILIATE_MASTER', 200],
+  ])('vai %s -> %i', async (role, expectedStatus) => {
+    (auth as any).mockResolvedValue({ user: { id: 'u-1' } });
+    (db.user.findUnique as any).mockResolvedValue({ id: 'u-1', role });
+    (db.reconciliationRun.findUnique as any).mockResolvedValue({
+      id: 'RUN-1',
+      platform: 'SHOPEE',
+      rows: [],
+    });
+    (db.request.findMany as any).mockResolvedValue([]);
+
+    const res = await GET(new NextRequest('http://localhost/api/reconciliation/RUN-1'), {
+      params: Promise.resolve({ runId: 'RUN-1' }),
+    });
+
+    expect(res.status).toBe(expectedStatus);
+  });
 });

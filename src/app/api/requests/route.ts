@@ -13,11 +13,11 @@ import { assertPermission, getPermissionScope, Actor, PermissionError } from "@/
 export async function GET(request: Request) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     try {
       assertPermission(actor, "request.view");
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
           { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },
@@ -94,11 +94,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     try {
       assertPermission(actor, "request.create");
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
           { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },

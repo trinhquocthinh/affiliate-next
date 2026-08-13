@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchReportRows, RequestData, MatchedResult } from './match';
+import { matchReportRows, RequestData } from './match';
 import { CommissionRow } from './parse-report';
 
 describe('matchReportRows', () => {

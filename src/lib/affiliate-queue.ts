@@ -40,7 +40,6 @@ export type QueueResponse = {
     totalPages: number;
     summary: QueueSummary;
     buyers?: BuyerOption[];
-    isAdmin?: boolean;
   };
   error?: { message?: string };
 };

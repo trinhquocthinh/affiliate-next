@@ -28,6 +28,10 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Cổng chắn: test đỏ thì không deploy (xem ghi chú ở deploy-vercel.yml).
+      - name: Run tests
+        run: yarn test
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 

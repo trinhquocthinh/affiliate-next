@@ -37,11 +37,11 @@ async function authorize(request: Request): Promise<AuthResult> {
     return { kind: "unauthorized", status: 401, message: "Not authenticated" };
   }
 
-  const actor: Actor = { id: actorCtx.userId, role: actorCtx.role as any };
+  const actor: Actor = { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] };
   try {
     assertPermission(actor, "system.bulk_close");
     return { kind: "admin", userId: actor.id };
-  } catch (e: any) {
+  } catch {
     return { kind: "unauthorized", status: 403, message: "System bulk close access required" };
   }
 }
@@ -80,6 +80,9 @@ async function runBulkClose(
 
   await logAuditEvent({
     actorId,
+    // Chạy bằng cron thì không có người thao tác — khai báo rõ thay vì để
+    // `actorId` rỗng đi qua âm thầm (SPEC-009).
+    systemActor: auth.kind === "cron",
     action: "BULK_CLOSE",
     newValue: { closedCount: result.count, olderThanDays, cutoff },
     source,

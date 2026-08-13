@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { closeRequestSchema } from "@/lib/validations";
-import { logAuditEvent } from "@/lib/audit";
+import { logAuditEvent, closeAuditSourceFor, auditRemark, isOwnershipOverride } from "@/lib/audit";
 import { checkOptimisticLock } from "@/lib/api-utils";
-import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
+import { canAccessRequest, hasPermission, Actor } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/close
 export async function POST(
@@ -48,7 +48,7 @@ export async function POST(
       );
     }
 
-    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
     if (!canAccessRequest(domainActor, existing, "request.close")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
@@ -69,7 +69,12 @@ export async function POST(
         orderId: closeReason === "BOUGHT" ? (orderId || null) : null,
         closedAt: now,
         closedById: actor.userId,
-        affiliateOwnerId: existing.affiliateOwnerId || (actor.isAffiliate ? actor.userId : undefined),
+        // Đóng một yêu cầu chưa ai giữ thì người đóng nhận luôn việc — nhưng
+        // chỉ khi họ vốn có thể nhận việc. Người mua đóng yêu cầu của mình
+        // không vì thế mà thành người giữ.
+        affiliateOwnerId:
+          existing.affiliateOwnerId ||
+          (hasPermission(domainActor, "affiliate.claim.unclaimed") ? actor.userId : undefined),
         lastUpdatedById: actor.userId,
       },
     });
@@ -80,7 +85,13 @@ export async function POST(
       action: "CLOSE_REQUEST",
       oldValue: { status: existing.status, closeReason: existing.closeReason },
       newValue: { status: "CLOSED", closeReason, closeNote, orderId },
-      source: actor.role === "BUYER" ? "buyer_ui" : "affiliate_ui",
+      source: closeAuditSourceFor(actor.role),
+      // BR-051: đóng yêu cầu của người khác. `orderId` đi kèm lúc đóng cũng
+      // thuộc diện BR-052 nên đánh dấu luôn, để rà một lần ra cả hai.
+      remark: auditRemark(
+        isOwnershipOverride(actor.userId, existing) && "ownership_override",
+        !!orderId && "order_id_set",
+      ),
     });
 
     return NextResponse.json({

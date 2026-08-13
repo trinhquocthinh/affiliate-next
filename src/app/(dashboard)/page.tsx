@@ -1,4 +1,6 @@
 import { getActorContext } from "@/lib/auth-utils";
+import { hasPermission } from "@/domain/permissions/resolve";
+import type { Permission } from "@/domain/permissions/matrix";
 import { prisma } from "@/lib/prisma";
 import { getAppConfig } from "@/lib/config-cache";
 import { AppHeader } from "@/components/layout/app-header";
@@ -267,6 +269,12 @@ export default async function HomePage({
     getAppConfig(),
   ]);
 
+  // Khối nào hiện trên trang chủ là quyết định theo thẩm quyền, không theo vai
+  // (SPEC-006). Ẩn khối không thay cho kiểm tra phía máy chủ — mỗi khối bên
+  // trong vẫn tự gọi điểm cuối có `assertPermission`.
+  const can = (permission: Permission) =>
+    hasPermission({ id: actor.userId, role: actor.role }, permission);
+
   const staleThreshold = computeStaleThreshold(config.STALE_REQUEST_HOURS);
 
   const stat = sp.stat ?? null;
@@ -293,7 +301,7 @@ export default async function HomePage({
               Here&apos;s what&apos;s happening today.
             </p>
           </div>
-          {actor.isBuyer && (
+          {can("request.buyer_note") && (
             <Link href="/buyer">
               <Button className="flex items-center gap-2 px-7 py-3.5 h-auto bg-linear-to-br from-primary to-[#00a877] text-white font-semibold text-[15px] rounded-[14px] shadow-glow transition-all duration-200 hover:shadow-glow-hover hover:-translate-y-0.5">
                 <PlusCircleIcon className="h-5 w-5" />
@@ -303,11 +311,11 @@ export default async function HomePage({
           )}
         </div>
 
-        {actor.isAdmin && <AdminBlock />}
-        {actor.isAffiliate && (
+        {can("user.manage") && <AdminBlock />}
+        {can("affiliate.queue.view") && (
           <AffiliateBlock userId={actor.userId} stat={stat} staleThreshold={staleThreshold} />
         )}
-        {actor.isBuyer && (
+        {can("request.buyer_note") && (
           <BuyerBlock
             userId={actor.userId}
             stat={stat}

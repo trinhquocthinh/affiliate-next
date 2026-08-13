@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext, assertAdmin } from "@/lib/auth-utils";
+import { getApiActorContext, assertApiPermission } from "@/lib/auth-utils";
 import { userActionSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
 import {
@@ -60,7 +60,7 @@ export async function PATCH(
         { status: 401 },
       );
     }
-    assertAdmin(actor);
+    assertApiPermission(actor, "user.manage");
 
     const { id } = await params;
     const body = await request.json().catch(() => null);

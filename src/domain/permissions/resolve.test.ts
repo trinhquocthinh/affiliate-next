@@ -7,7 +7,6 @@ import {
   Actor,
   RequestResource,
 } from "./resolve";
-import { Permission, Role } from "./matrix";
 
 describe("Permissions Matrix (TC-049 to TC-062)", () => {
   const buyer: Actor = { id: "buyer-1", role: "BUYER" };
@@ -48,6 +47,25 @@ describe("Permissions Matrix (TC-049 to TC-062)", () => {
   it("TC-052: Master override yêu cầu do người khác giữ -> cho phép", () => {
     expect(hasPermission(master, "affiliate.claim.override")).toBe(true);
     expect(canAccessRequest(master, assignedToOtherReq, "affiliate.claim.override")).toBe(true);
+  });
+
+  it("TC-052b: Master thao tác nghiệp vụ trên yêu cầu người khác giữ -> cho phép", () => {
+    // MS-5: Master làm được mọi thao tác nghiệp vụ mà không cần chiếm việc trước.
+    // Năm ô này từng bị đặt nhầm là "own", buộc Master phải claim.override.
+    expect(canAccessRequest(master, assignedToOtherReq, "affiliate.fill")).toBe(true);
+    expect(canAccessRequest(master, assignedToOtherReq, "affiliate.note")).toBe(true);
+    expect(canAccessRequest(master, assignedToOtherReq, "affiliate.unclaim")).toBe(true);
+    expect(canAccessRequest(master, assignedToOtherReq, "affiliate.bulk_close")).toBe(true);
+    expect(canAccessRequest(master, assignedToOtherReq, "request.close")).toBe(true);
+  });
+
+  it("TC-052c: Affiliate thường vẫn bị chặn đúng năm ô đó", () => {
+    // Đối chứng: nới cho Master không được nới nhầm cho Affiliate.
+    expect(canAccessRequest(affiliate, assignedToOtherReq, "affiliate.fill")).toBe(false);
+    expect(canAccessRequest(affiliate, assignedToOtherReq, "affiliate.note")).toBe(false);
+    expect(canAccessRequest(affiliate, assignedToOtherReq, "affiliate.unclaim")).toBe(false);
+    expect(canAccessRequest(affiliate, assignedToOtherReq, "affiliate.bulk_close")).toBe(false);
+    expect(canAccessRequest(affiliate, assignedToOtherReq, "request.close")).toBe(false);
   });
 
   it("TC-053: Master vào user.manage -> 403", () => {

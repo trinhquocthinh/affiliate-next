@@ -193,6 +193,11 @@ canAccessRequest(actor, request, permission) -> boolean
 > **Mô hình thẩm quyền — đề xuất rút gọn:**
 > Tài liệu yêu cầu ban đầu liệt kê 24 định danh, trong đó phần lớn là cặp `.own` / `.any` của cùng một hành động. Đề xuất giữ **16 định danh** kèm một khái niệm **phạm vi** (`own` | `any`), thay vì nhân đôi định danh. Hành vi không đổi; số thứ phải nhớ giảm một phần ba.
 
+> [!NOTE]
+> **Bổ sung sau khi F-15 (đối soát) vào phạm vi giữa phase 6 — nay là 18 định danh.**
+> Bảng 16 định danh được chốt **trước** khi F-15 vào phạm vi, nên ba điểm cuối đối soát không có định danh nào để dùng và đã phải tự so sánh vai. Đây là khe hở của tài liệu, không phải của mã. Hai định danh `reconciliation.*` dưới đây lấp khe hở đó.
+> Phạm vi cấp cho Master/Admin theo đúng ý định đã ghi trong mã (`TODO(Epic 5)` ở `reconciliation/import/route.ts`): nhập tệp đối soát là thao tác quản trị dữ liệu, không phải việc thường ngày của Affiliate. **Affiliate thường mất quyền đối soát so với hành vi tạm thời trước đó** — đây là thu hẹp có chủ ý.
+
 | Định danh | Có phạm vi | Buyer | Affiliate | AffiliateMaster | Admin |
 | --- | :--: | :--: | :--: | :--: | :--: |
 | `request.create` | – | ✓ | ✓ | ✓ | ✓ |
@@ -208,6 +213,8 @@ canAccessRequest(actor, request, permission) -> boolean
 | `affiliate.note` | ✓ | – | own | any | any |
 | `affiliate.fill` | ✓ | – | own | any | any |
 | `affiliate.bulk_close` | ✓ | – | own | any | any |
+| `reconciliation.run` | – | – | – | ✓ | ✓ |
+| `reconciliation.export` | – | – | – | ✓ | ✓ |
 | `user.manage` | – | – | – | – | ✓ |
 | `config.manage` | – | – | – | – | ✓ |
 | `system.bulk_close` | – | – | – | – | ✓ |
@@ -235,6 +242,9 @@ canAccessRequest(actor, request, permission) -> boolean
 | 10 | Chưa đăng nhập | gọi bất kỳ điểm cuối được bảo vệ nào | 401, **không** phải 403 |
 | 11 | Người dùng gọi thẳng điểm cuối, bỏ qua giao diện | thiếu thẩm quyền | 403 — ẩn nút không phải cấp phép |
 | 12 | Mã nguồn tham chiếu một định danh không tồn tại | biên dịch | lỗi biên dịch |
+| 13 | Affiliate thường | gọi `reconciliation.run` hoặc `reconciliation.export` | 403 |
+| 14 | AffiliateMaster | gọi `reconciliation.run` | cho phép |
+| 15 | AffiliateMaster, yêu cầu do B giữ | gọi `affiliate.fill` | cho phép — **không** cần tiếp quản trước |
 
 ### SPEC-007 — Tiếp quản và nhả việc của người khác
 
@@ -288,6 +298,7 @@ canAccessRequest(actor, request, permission) -> boolean
 - Bắt buộc ghi khi: tiếp quản hoặc nhả việc của người khác; sửa ghi chú của người khác; thay link đã có; đóng yêu cầu của người khác; tạo hoặc đổi `orderId` / `orderAmount` bởi bất kỳ ai.
 - Bản ghi thiếu bất kỳ trường bắt buộc nào thì bị từ chối ghi.
 - Chỉ thêm mới; không có đường sửa hay xoá.
+- **Ngoại lệ của `actorId`:** thao tác do hệ thống tự chạy (cron đóng hàng loạt theo BR-053) thật sự không có người thao tác. Những bản ghi này được phép để trống `actorId`, nhưng **phải khai báo tường minh** là việc của hệ thống — để "quên truyền `actorId`" không lặng lẽ trôi qua như một việc hợp lệ. Mọi thao tác do người dùng khởi xướng vẫn bắt buộc có `actorId`.
 
 **Kịch bản:**
 

@@ -19,6 +19,7 @@ export type RequestPermissions = {
   canBuyerEdit: boolean;
   canAffiliateAct: boolean;
   canAdminCorrect: boolean;
+  canBuyerNote: boolean;
 };
 
 /**
@@ -32,7 +33,7 @@ export function computeRequestPermissions(
   getPermissionScope: (perm: Permission) => true | Scope | undefined,
 ): RequestPermissions {
   if (!data) {
-    return { isOwner: false, canBuyerEdit: false, canAffiliateAct: false, canAdminCorrect: false };
+    return { isOwner: false, canBuyerEdit: false, canAffiliateAct: false, canAdminCorrect: false, canBuyerNote: false };
   }
   const isOwner = data.createdBy.email === actor.email;
   const editScope = getPermissionScope("request.edit");
@@ -40,5 +41,7 @@ export function computeRequestPermissions(
   const canAffiliateAct = data.status !== "CLOSED" && hasPermission("affiliate.fill");
   const canAdminCorrect =
     hasPermission("request.order_id.edit_any_status") && data.status === "CLOSED" && data.closeReason === "BOUGHT";
-  return { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect };
+  const noteScope = getPermissionScope("request.buyer_note");
+  const canBuyerNote = noteScope === "any" || (noteScope === "own" && isOwner);
+  return { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect, canBuyerNote };
 }

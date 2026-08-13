@@ -1,21 +1,21 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { MATRIX, type Permission, type Role, type Scope } from "@/domain/permissions/matrix";
+
+type PermissionMap = Partial<Record<Permission, true | Scope>>;
 
 export type ActorContextValue = {
-  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
-  isAdmin: boolean;
-  isAffiliate: boolean;
-  isBuyer: boolean;
+  role: Role;
+  /** Bản đồ quyền đã phân giải, lấy thẳng từ ma trận SPEC-006. */
+  permissions: PermissionMap;
   displayName: string | null;
   email: string;
 };
 
 const ActorContext = createContext<ActorContextValue>({
   role: "BUYER",
-  isAdmin: false,
-  isAffiliate: false,
-  isBuyer: true,
+  permissions: MATRIX.BUYER,
   displayName: null,
   email: "",
 });
@@ -27,24 +27,21 @@ export function ActorProvider({
   email,
 }: {
   children: ReactNode;
-  role: "BUYER" | "AFFILIATE" | "AFFILIATE_MASTER" | "ADMIN";
+  role: Role;
   displayName: string | null;
   email: string;
 }) {
-  return (
-    <ActorContext.Provider
-      value={{
-        role,
-        isAdmin: role === "ADMIN",
-        isAffiliate: role === "AFFILIATE" || role === "AFFILIATE_MASTER" || role === "ADMIN",
-        isBuyer: role === "BUYER" || role === "ADMIN",
-        displayName,
-        email,
-      }}
-    >
-      {children}
-    </ActorContext.Provider>
-  );
+  const value = useMemo<ActorContextValue>(() => {
+    const permissions = MATRIX[role];
+    return {
+      role,
+      permissions,
+      displayName,
+      email,
+    };
+  }, [role, displayName, email]);
+
+  return <ActorContext.Provider value={value}>{children}</ActorContext.Provider>;
 }
 
 export function useActor() {

@@ -9,7 +9,7 @@ import { assertPermission, getPermissionScope, Actor } from "@/domain/permission
 export async function POST(request: Request) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     if (!actor) {
       return NextResponse.json(
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     try {
       assertPermission(actor, "affiliate.bulk_close");
-    } catch (e: any) {
+    } catch (e: unknown) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: e.message } },
         { status: 403 },

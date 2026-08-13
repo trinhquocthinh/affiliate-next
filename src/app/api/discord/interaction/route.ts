@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAuditEvent } from "@/lib/audit";
+import { hasPermission } from "@/domain/permissions/resolve";
 import {
   verifyInteraction,
   deferredEphemeralReply,
@@ -117,7 +118,7 @@ async function processFillModalSubmit(
       return;
     }
 
-    if (user.role !== "AFFILIATE" && user.role !== "ADMIN") {
+    if (!hasPermission({ id: user.id, role: user.role }, "affiliate.fill")) {
       await interactionFollowup(interactionToken, "❌ Chỉ tài khoản Affiliate mới có thể fill link.");
       return;
     }

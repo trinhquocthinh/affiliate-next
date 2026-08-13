@@ -11,7 +11,7 @@ downstream: []
 # Onboarding Guide — Shop Quành
 
 | 📄 **Metadata** | 📑 **Details** |
-|:---|:---|
+| :--- | :--- |
 | **Doc ID** | `onboarding-guide` |
 | **Version** | `1.0.0` |
 | **Status** | 🟢 **Approved** |
@@ -19,7 +19,6 @@ downstream: []
 | **Owner** | Quành (Admin) |
 | **Upstream** | [problem-definition], [prd], [tech-spec-architecture], [master-plan] |
 | **Downstream** | — |
-
 
 Độc giả: một cộng tác viên mới, một AI agent, hoặc chính bạn sau sáu tháng đã quên sạch. Mục tiêu: từ chưa biết gì đến gửi được thay đổi đầu tiên trong dưới một giờ.
 
@@ -32,7 +31,7 @@ Một nhóm dưới 10 người bạn ở Việt Nam dùng chung một hàng đ�
 Đọc theo đúng thứ tự này nếu là lần đầu — mỗi tài liệu giả định bạn đã đọc tài liệu trước nó.
 
 | # | File | Trả lời câu hỏi gì | Đọc khi nào |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 01 | `01-problem-definition.md` | Vấn đề gì, cho ai, tại sao đáng làm | Luôn đọc trước tiên |
 | 02 | `02-business-rules.md` | Luật nghiệp vụ nào không bao giờ được vi phạm | Trước khi chạm bất kỳ logic nào |
 | 03 | `03-prd.md` | Tính năng nào, ưu tiên ra sao, xong ở release nào | Trước khi nhận một task |
@@ -79,7 +78,7 @@ src/
 └── app/                      Next.js App Router — route + trang
     ├── (buyer)/               Trang chủ, tạo yêu cầu, My Requests
     ├── (affiliate)/           Queue, điền link
-    ├── (admin)/               Users, Config, Reconciliation
+    ├── (dashboard)/admin/     Users, Config, Reconciliation
     └── api/                   Route handler
 ```
 
@@ -98,7 +97,7 @@ Phần còn lại của mã nguồn **không** theo cấu trúc Clean Architectu
 ## 5. Quy ước
 
 | Việc | Quy ước |
-|---|---|
+| --- | --- |
 | Tên nhánh | `<epic-id>-<mô-tả-ngắn>`, ví dụ `e4-s3-ghep-sub-id` |
 | Commit | Mỗi subtask trong master-plan tương ứng ít nhất một commit gộp được. Nội dung commit nêu ID subtask, ví dụ `E4-S3-T1: hàm ghép theo Sub_id1` |
 | Pull Request | Mở PR → Vercel tự dựng Preview Deployment trỏ nhánh `uat` của Neon → thử tay trên URL đó → đối chiếu Definition of Done ở `06-plan-and-scope.md` §4 → merge |
@@ -111,16 +110,20 @@ Phần còn lại của mã nguồn **không** theo cấu trúc Clean Architectu
 **Bước 1 — đọc nguồn.** Mở `04-sdd.md`, tìm `SPEC-003`. Đọc hành vi và 8 kịch bản (TC-023 đến TC-030 trong `08-test-cases-specification.md`).
 
 **Bước 2 — viết test trước.**
+
 ```bash
 # tạo file test cạnh chỗ hàm sẽ nằm
 touch src/domain/order-id/suggest.test.ts
 ```
+
 Viết 8 test theo đúng Given/When/Then của SPEC-003. Chạy `yarn test` — đỏ, vì hàm chưa tồn tại. Đó là bước bắt buộc, không phải phụ.
 
 **Bước 3 — viết hàm thuần.**
+
 ```bash
 touch src/domain/order-id/suggest.ts
 ```
+
 Viết hàm `suggestOrderId(actorId, platform, recentCloses)` — thuần, nhận dữ liệu đã có sẵn, không tự đọc DB. Chạy `yarn test` tới khi cả 8 test xanh.
 
 **Bước 4 — nối vào route.** Trong `src/app/api/requests/order-id-suggestion/route.ts`, gọi `assertPermission` trước, đọc dữ liệu 24 giờ gần nhất từ `lib/`, truyền vào hàm thuần ở bước 3.
@@ -134,7 +137,7 @@ Viết hàm `suggestOrderId(actorId, platform, recentCloses)` — thuần, nhậ
 ## 7. Nơi tìm câu trả lời
 
 | Câu hỏi | Tài liệu |
-|---|---|
+| --- | --- |
 | "Vì sao tính năng này tồn tại?" | `01-problem-definition.md`, tra theo BR-ID hoặc S-ID |
 | "Ai được làm gì?" | `02-business-rules.md` nhóm Quyền, hoặc `04-sdd.md` SPEC-006 |
 | "Hành vi chính xác khi... ?" | `04-sdd.md`, tìm SPEC tương ứng |

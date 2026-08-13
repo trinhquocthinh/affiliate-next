@@ -144,7 +144,7 @@ E1-S1 (F-23 tối thiểu, 2h)
 | ID | Tiêu đề | Nguồn | Giờ | Phụ thuộc | Định nghĩa xong | File chạm |
 | --- | --- | --- | ---: | --- | --- | --- |
 | E4-S3-T1 | Hàm thuần ghép theo `Sub_id1` | BR-064 ưu tiên 1, SPEC-013 #1,#2, TC-093, TC-094 | 2 | E4-S2-T1 | TC-093, TC-094 pass | `src/domain/reconciliation/match.ts` |
-| E4-S3-T2 | Màn hình hiện ba nhóm A/B/C (bản tối giản, chưa cần đẹp) | US-051, SPEC-013 | 2 | E4-S3-T1, E4-S2-T2 | Nạp tệp thật, thấy 3 khối đúng số dòng | `src/app/(admin)/reconciliation/page.tsx` |
+| E4-S3-T2 | Màn hình hiện ba nhóm A/B/C (bản tối giản, chưa cần đẹp) | US-051, SPEC-013 | 2 | E4-S3-T1, E4-S2-T2 | Nạp tệp thật, thấy 3 khối đúng số dòng | `src/app/(dashboard)/admin/reconciliation/page.tsx` |
 
 > [!WARNING]
 > **Kiểm tra điểm dừng SP-3 tại đây (plan-and-scope §6):** nếu tới hết tuần 11 mà chưa xong T2, hạ xuống bản thủ công 3 giờ thay vì tiếp tục.
@@ -161,7 +161,7 @@ E1-S1 (F-23 tối thiểu, 2h)
 | ID | Tiêu đề | Nguồn | Giờ | Phụ thuộc | Định nghĩa xong | File chạm |
 | --- | --- | --- | ---: | --- | --- | --- |
 | E4-S5-T1 | Xuất tệp đã ghép, giữ nguyên cột trạng thái đơn | BR-066, TC-098 | 2 | E4-S3-T2, E4-S4-T1 | Mở bằng Excel, có đủ cột, trạng thái `Đã hủy` vẫn còn | `src/app/api/reconciliation/[runId]/export/route.ts` |
-| E4-S5-T2 | Hoàn thiện giao diện 3 khối theo design-criteria §3.6 | design-criteria §3.6 | 1 | E4-S5-T1 | Khớp mô tả 3 khối, màu đúng token | `src/app/(admin)/reconciliation/page.tsx` |
+| E4-S5-T2 | Hoàn thiện giao diện 3 khối theo design-criteria §3.6 | design-criteria §3.6 | 1 | E4-S5-T1 | Khớp mô tả 3 khối, màu đúng token | `src/app/(dashboard)/admin/reconciliation/page.tsx` |
 
 **Tổng thô: 18h → đệm: 23h.**
 
@@ -206,7 +206,7 @@ E1-S1 (F-23 tối thiểu, 2h)
 | --- | --- | --- | ---: | --- | --- | --- |
 | E5-S5-T1 | Migration: thêm `AFFILIATE_MASTER` vào enum `Role` | BR-032, TR-5 | 1 | E5-S3-T3 | Migration chỉ-thêm, chạy sạch trên `uat` trước, không phá dữ liệu cũ | `prisma/schema.prisma` |
 | E5-S5-T2 | Thêm dòng `AFFILIATE_MASTER` vào ma trận | SPEC-006, TC-052, TC-061 | 1 | E5-S5-T1 | TC-052, TC-061 pass | `src/domain/permissions/matrix.ts` |
-| E5-S5-T3 | Admin gán vai qua màn Users | US-020 | 1.5 | E5-S5-T2 | Gán vai cho 1 tài khoản thật, đăng nhập lại thấy quyền mới | `src/app/(admin)/users/page.tsx` |
+| E5-S5-T3 | Admin gán vai qua màn Users | US-020 | 1.5 | E5-S5-T2 | Gán vai cho 1 tài khoản thật, đăng nhập lại thấy quyền mới | `src/app/(dashboard)/admin/users/page.tsx` |
 
 ### Story E5-S6 — Tiếp quản, nhả việc, sửa mã đơn mọi trạng thái
 
@@ -214,7 +214,7 @@ E1-S1 (F-23 tối thiểu, 2h)
 | --- | --- | --- | ---: | --- | --- | --- |
 | E5-S6-T1 | API tiếp quản/nhả việc, ghi dấu vết | SPEC-007, TC-063..066 | 2 | E5-S5-T2 | TC-063 đến TC-066 pass, gồm e2e TC-063 | `src/app/api/requests/[id]/claim/route.ts` |
 | E5-S6-T2 | API sửa `orderId`/`orderAmount` ở mọi trạng thái, qua lại SPEC-001/004 | SPEC-008, TC-067..071 | 2.5 | E5-S6-T1 | TC-067 đến TC-071 pass | `src/app/api/requests/[id]/order/route.ts` |
-| E5-S6-T3 | Ghi dấu vết cho mọi thao tác vượt quyền sở hữu | SPEC-009, TC-072..076 | 2.5 | E5-S6-T2 | TC-072 đến TC-076 pass | `src/lib/audit-log.ts` |
+| E5-S6-T3 | Ghi dấu vết cho mọi thao tác vượt quyền sở hữu | SPEC-009, TC-072..076 | 2.5 | E5-S6-T2 | TC-072 đến TC-076 pass | `src/lib/audit.ts` (kế hoạch gốc ghi `audit-log.ts` — module thật tên `audit.ts`, không tạo module thứ hai) |
 
 **Tổng thô: 16h → đệm: 21h.**
 
@@ -234,7 +234,7 @@ E1-S1 (F-23 tối thiểu, 2h)
 | E6-S5-T1 | Cron ẩn danh hoá sau 30 ngày | SPEC-010, TC-077..082 | 4 | E3-S2-T1 | TC-077 đến TC-082 pass, gồm e2e TC-079 | `src/app/api/cron/anonymize/route.ts` |
 | E6-S6-T1 | Trang chủ theo vai — thiết kế lại theo design-criteria §3.1, §3.7 | US-041, TC-084..087 | 5 | E2-S4-T2 | TC-084 đến TC-087 pass, không lặp bảng Queue | `src/app/(home)/page.tsx` |
 
-**Tổng thô: 19h cho quỹ 13h.** Thứ tự trên **là** thứ tự ưu tiên — làm hết giờ thì dừng đúng chỗ đang làm dở nếu subtask đó đã có thể chia nhỏ, hoặc dừng ở ranh giới subtask gần nhất. **E6-S6-T1 gần như chắc chắn bị cắt** — đây là quyết định đã biết trước, không phải tai nạn (plan-and-scope §3 G5).
+**Tổng thô: 19h cho quỹ 13h.** Thứ tự trên **là** thứ tự ưu tiên, **trừ một ngoại lệ: E6-S5-T1 (cron ẩn danh hoá) làm trước tiên**, không còn nằm trong danh sách cắt — lý do ghi ở §12.3. Làm hết giờ thì dừng đúng chỗ đang làm dở nếu subtask đó đã có thể chia nhỏ, hoặc dừng ở ranh giới subtask gần nhất. **E6-S6-T1 gần như chắc chắn bị cắt** — đây là quyết định đã biết trước, không phải tai nạn (plan-and-scope §3 G5).
 
 ## 9. Bảng rủi ro thi công
 
@@ -300,8 +300,13 @@ Khác hẳn hai nhóm trên: **không phải** quyết định "không làm", m�
 | Subtask | Vị trí | Thứ tự rơi rụng nếu thiếu giờ |
 | --- | --- | --- |
 | E6-S6-T1 — trang chủ theo vai | Epic 6 | **1 — rơi trước tiên**, đã ghi nhận ở §8 |
-| E6-S5-T1 — cron ẩn danh hoá | Epic 6 | 2 |
-| E6-S4 — gợi ý mã đơn, trường số tiền | Epic 6 | 3 |
+| E6-S4 — gợi ý mã đơn, trường số tiền | Epic 6 | 2 |
+| ~~E6-S5-T1 — cron ẩn danh hoá~~ | — | **đã rút khỏi mục này** — xem ghi chú dưới |
+
+> [!IMPORTANT]
+> **E6-S5-T1 (cron ẩn danh hoá 30 ngày) không còn là việc "làm nếu còn giờ".**
+> Bản kế hoạch gốc xếp nó hạng 2 trong danh sách cắt. Quyết định đó nay được đảo lại: BR-041 là **nghĩa vụ với dữ liệu cá nhân**, không cùng hạng với chất lượng nhập liệu — thiếu giờ thì cắt tính năng, không cắt nghĩa vụ. Vì vậy E6-S5-T1 chuyển thành việc bắt buộc của Epic 6 và **được làm trước** E6-S1..S4.
+> Đây là ghi nhận một lần đảo quyết định có chủ ý, không phải sửa lỗi ghi chép — thứ tự ưu tiên ở §8 đọc theo mục này.
 
 Nếu một trong ba rơi khỏi 5 tháng này, chuyển thẳng sang §12.1 ở lần lập kế hoạch kế tiếp — không cần thảo luận lại từ đầu, vì giá trị của chúng đã được xác nhận, chỉ là thiếu giờ.
 

@@ -52,9 +52,10 @@ function ReconciliationContent() {
 
       setProgress(100);
       toast.success('Đã nạp báo cáo đối soát');
-      router.push(`/reconciliation?runId=${json.data.runId}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Lỗi nạp file');
+      router.push(`/admin/reconciliation?runId=${json.data.runId}`);
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Lỗi nạp file');
     } finally {
       setTimeout(() => {
         setIsUploading(false);
@@ -149,7 +150,7 @@ function ReconciliationContent() {
                         <TableCell colSpan={5} className="text-center py-4">Không có dữ liệu</TableCell>
                       </TableRow>
                     ) : (
-                      data.data.groupA.map((row: any) => (
+                      data.data.groupA.map((row: Record<string, unknown> & { id: string, matchedRequest?: { id: string }, matchedRequestId?: string, orderId: string, itemName: string, orderStatus: string, matchMethod: string }) => (
                         <TableRow key={row.id}>
                           <TableCell className="font-medium text-primary">
                             {row.matchedRequest?.id || row.matchedRequestId}
@@ -195,7 +196,7 @@ function ReconciliationContent() {
                         <TableCell colSpan={5} className="text-center py-4">Không có dữ liệu</TableCell>
                       </TableRow>
                     ) : (
-                      data.data.groupB.map((row: any) => (
+                      data.data.groupB.map((row: Record<string, unknown> & { id: string, orderId: string, itemId: string, itemName: string, subId1: string, orderStatus: string }) => (
                         <TableRow key={row.id}>
                           <TableCell>{row.orderId}</TableCell>
                           <TableCell>{row.itemId}</TableCell>
@@ -235,7 +236,7 @@ function ReconciliationContent() {
                         <TableCell colSpan={5} className="text-center py-4">Không có dữ liệu</TableCell>
                       </TableRow>
                     ) : (
-                      data.data.groupC.map((req: any) => (
+                      data.data.groupC.map((req: Record<string, unknown> & { id: string, orderId: string, productItemId: string, orderAmount: number, affiliateOwner?: { displayName: string } }) => (
                         <TableRow key={req.id}>
                           <TableCell className="font-medium text-red-700">{req.id}</TableCell>
                           <TableCell>{req.orderId || <span className="text-muted-foreground italic">Trống</span>}</TableCell>
