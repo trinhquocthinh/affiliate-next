@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     if (!actor) {
       return NextResponse.json(
@@ -87,11 +87,11 @@ export async function PATCH(
 ) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     try {
       assertPermission(actor, "request.order_id.edit_any_status");
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
           { ok: false, error: { code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: e.message } },

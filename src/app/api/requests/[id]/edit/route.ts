@@ -42,7 +42,7 @@ export async function PATCH(
       );
     }
 
-    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
     if (!canAccessRequest(domainActor, existing, "request.edit")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },

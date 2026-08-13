@@ -98,7 +98,7 @@ export async function GET(
         groupC
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching reconciliation run:', error);
     return NextResponse.json(
       { ok: false, error: { code: 'ERR_INTERNAL', message: 'Internal Server Error' } },

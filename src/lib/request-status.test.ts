@@ -27,12 +27,13 @@ describe("computeRequestPermissions", () => {
   const mockGetPermissionScope = (role: string, perm: string) =>
     MATRIX[role as Role][perm as Permission];
 
-  const computeFor = (data: any, actorObj: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const computeFor = (data: any, actorObj: { email: string; role: string }) => {
     return computeRequestPermissions(
       data,
       actorObj,
       (perm) => mockHasPermission(actorObj.role, perm),
-      (perm) => mockGetPermissionScope(actorObj.role, perm) as any
+      (perm) => mockGetPermissionScope(actorObj.role, perm) as import("@/domain/permissions/matrix").Scope
     );
   };
 

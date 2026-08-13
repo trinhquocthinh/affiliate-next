@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     let rows;
     try {
       rows = parseCommissionReport(csvContent);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.message?.startsWith('ERR_REPORT_FORMAT')) {
         return NextResponse.json(
           { ok: false, error: { code: 'ERR_REPORT_FORMAT', message: err.message.replace('ERR_REPORT_FORMAT: ', '') } },
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const { matchedRows, unmatchedRequests } = matchReportRows(rows, activeRequests);
+    const { matchedRows } = matchReportRows(rows, activeRequests);
 
     // Save to DB
     const run = await db.$transaction(async (tx) => {
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, data: { runId: run.id } });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error importing report:', error);
     return NextResponse.json(
       { ok: false, error: { code: 'ERR_INTERNAL', message: 'Internal Server Error' } },

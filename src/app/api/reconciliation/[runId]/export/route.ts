@@ -59,7 +59,7 @@ export async function GET(
 
     const csvRows = [headers.join(',')];
 
-    const escapeCSV = (field: any): string => {
+    const escapeCSV = (field: unknown): string => {
       if (field === null || field === undefined) return '';
       let str = String(field);
       if (/^[=+\-@]/.test(str)) {
@@ -94,7 +94,7 @@ export async function GET(
         'Content-Disposition': `attachment; filename="reconciliation_${runId}.csv"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error exporting reconciliation run:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }

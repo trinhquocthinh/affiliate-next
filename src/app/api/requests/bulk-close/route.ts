@@ -37,11 +37,11 @@ async function authorize(request: Request): Promise<AuthResult> {
     return { kind: "unauthorized", status: 401, message: "Not authenticated" };
   }
 
-  const actor: Actor = { id: actorCtx.userId, role: actorCtx.role as any };
+  const actor: Actor = { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] };
   try {
     assertPermission(actor, "system.bulk_close");
     return { kind: "admin", userId: actor.id };
-  } catch (e: any) {
+  } catch {
     return { kind: "unauthorized", status: 403, message: "System bulk close access required" };
   }
 }

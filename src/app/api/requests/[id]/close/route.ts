@@ -48,7 +48,7 @@ export async function POST(
       );
     }
 
-    const domainActor: Actor = { id: actor.userId, role: actor.role as any };
+    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
     if (!canAccessRequest(domainActor, existing, "request.close")) {
       return NextResponse.json(
         { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },

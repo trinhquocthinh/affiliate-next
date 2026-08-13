@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as any } : null;
+    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
 
     if (!actor) {
       return NextResponse.json(

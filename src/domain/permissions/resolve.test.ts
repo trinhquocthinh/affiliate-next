@@ -7,7 +7,6 @@ import {
   Actor,
   RequestResource,
 } from "./resolve";
-import { Permission, Role } from "./matrix";
 
 describe("Permissions Matrix (TC-049 to TC-062)", () => {
   const buyer: Actor = { id: "buyer-1", role: "BUYER" };
