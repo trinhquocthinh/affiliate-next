@@ -33,22 +33,26 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
     case "id":
       return <span className="font-mono">{item.id}</span>;
     case "orderId":
-      return (
-        <span className="text-slate-400 dark:text-slate-600">{item.orderId || "—"}</span>
-      );
+      return <span className="text-slate-400 dark:text-slate-600">{item.orderId || "—"}</span>;
     case "createdAt": {
       const date = new Date(item.createdAt);
-      const formattedDate = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const formattedDate = date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
       const formattedTime = formatDateTime(item.createdAt);
       return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger render={<span className="cursor-default border-b border-dashed border-slate-300 dark:border-slate-600" />}>
+            <TooltipTrigger
+              render={
+                <span className="cursor-default border-b border-dashed border-slate-300 dark:border-slate-600" />
+              }
+            >
               {formattedDate}
             </TooltipTrigger>
-            <TooltipContent>
-              {formattedTime}
-            </TooltipContent>
+            <TooltipContent>{formattedTime}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
@@ -56,7 +60,7 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
     case "platform":
       return (
         <span
-          className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
+          className={`rounded border px-2 py-0.5 text-[10px] font-bold ${
             QUEUE_PLATFORM_STYLES[item.platform] || QUEUE_PLATFORM_STYLES.OTHER
           }`}
         >
@@ -67,7 +71,7 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
       return (
         <div className="flex items-center gap-1.5">
           <span
-            className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider rounded-full border ${
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase ${
               QUEUE_STATUS_BADGE_STYLES[item.status] || QUEUE_STATUS_BADGE_STYLES.NEW
             }`}
           >
@@ -75,7 +79,7 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
           </span>
           {item.isStale && <AlertTriangleIcon size={14} className="text-amber-500" />}
           {item.hasPotentialDuplicate && (
-            <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-amber-200 dark:border-amber-500/20 shadow-sm">
+            <span className="rounded border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 uppercase shadow-sm dark:border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400">
               Dup
             </span>
           )}
@@ -83,17 +87,12 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
       );
     case "productName":
       return (
-        <span
-          className="block max-w-55 truncate"
-          title={item.productName || item.productUrlRaw}
-        >
+        <span className="block max-w-55 truncate" title={item.productName || item.productUrlRaw}>
           {item.productName || item.productUrlRaw}
         </span>
       );
     case "requester":
-      return (
-        <span className="text-slate-500 dark:text-slate-400">{item.createdBy.email}</span>
-      );
+      return <span className="text-slate-500 dark:text-slate-400">{item.createdBy.email}</span>;
     case "affiliateOwner":
       return item.affiliateOwner ? (
         <div className="flex items-center gap-1.5">
@@ -110,7 +109,7 @@ export function renderAffiliateCell(item: AffiliateQueueRow, columnId: Affiliate
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline"
+          className="flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400"
         >
           <span>Open</span>
           <ExternalLinkIcon size={12} />
@@ -142,7 +141,10 @@ export function affiliateColumnValue(item: AffiliateQueueRow, columnId: Affiliat
     case "status":
       return statusLabel(item.status);
     case "productName":
-      return item.productName || (item.productUrlRaw ? decodeURIComponent(item.productUrlRaw.split("?")[0]) : "");
+      return (
+        item.productName ||
+        (item.productUrlRaw ? decodeURIComponent(item.productUrlRaw.split("?")[0]) : "")
+      );
     case "requester":
       return item.createdBy.email;
     case "affiliateOwner":

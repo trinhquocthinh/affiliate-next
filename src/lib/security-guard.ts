@@ -28,8 +28,7 @@ import { getClientIp } from "@/lib/rate-limit";
  *   }
  */
 
-const TURNSTILE_VERIFY_URL =
-  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 export interface VerifyOptions {
   /**
@@ -57,10 +56,7 @@ function fail(
 ): { ok: false; response: NextResponse } {
   return {
     ok: false,
-    response: NextResponse.json(
-      { ok: false, error: { code, message } },
-      { status },
-    ),
+    response: NextResponse.json({ ok: false, error: { code, message } }, { status }),
   };
 }
 
@@ -96,10 +92,7 @@ interface TurnstileResponse {
   action?: string;
 }
 
-async function verifyTurnstile(
-  token: string,
-  remoteIp: string,
-): Promise<boolean> {
+async function verifyTurnstile(token: string, remoteIp: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
     console.error("[security-guard] TURNSTILE_SECRET_KEY is not configured");
@@ -120,18 +113,12 @@ async function verifyTurnstile(
       cache: "no-store",
     });
     if (!res.ok) {
-      console.warn(
-        "[security-guard] Turnstile siteverify HTTP error",
-        res.status,
-      );
+      console.warn("[security-guard] Turnstile siteverify HTTP error", res.status);
       return false;
     }
     const data = (await res.json()) as TurnstileResponse;
     if (!data.success) {
-      console.warn(
-        "[security-guard] Turnstile rejected token",
-        data["error-codes"],
-      );
+      console.warn("[security-guard] Turnstile rejected token", data["error-codes"]);
     }
     return data.success === true;
   } catch (err) {
@@ -147,10 +134,7 @@ export async function verifyRequestSecurity<T = unknown>(
   const requireTurnstile = opts.requireTurnstile ?? true;
 
   // Optional dev-only bypass — never honored in production.
-  if (
-    process.env.NODE_ENV !== "production" &&
-    process.env.SECURITY_GUARD_DISABLED === "1"
-  ) {
+  if (process.env.NODE_ENV !== "production" && process.env.SECURITY_GUARD_DISABLED === "1") {
     try {
       const rawBody = await request.text();
       const body = (rawBody ? JSON.parse(rawBody) : {}) as T;

@@ -15,7 +15,7 @@ import { CyberCard } from "./cyber-card";
 import { TrendIndicator } from "./trend-indicator";
 import { cn } from "@/lib/utils";
 
-export const STAT_ICONS = {
+const STAT_ICONS = {
   inbox: InboxIcon,
   check: CheckCircleIcon,
   clock: ClockIcon,
@@ -95,20 +95,19 @@ export function StatCard({
       }
       aria-pressed={canClick ? isActive : undefined}
       className={cn(
-        "flex flex-col justify-between min-h-36 p-5",
-        isActive &&
-          "border-primary shadow-[0_0_0_1px_var(--color-primary)]",
+        "flex min-h-36 flex-col justify-between p-5",
+        isActive && "border-primary shadow-[0_0_0_1px_var(--color-primary)]",
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {title}
         </span>
         <Icon className={cn("h-4 w-4", TONE_ICON[tone])} />
       </div>
       <div className="mt-3">
-        <div className="text-3xl font-bold tabular-nums leading-none">{value}</div>
-        <div className="mt-2 flex items-center gap-3 flex-wrap min-h-4">
+        <div className="text-3xl leading-none font-bold tabular-nums">{value}</div>
+        <div className="mt-2 flex min-h-4 flex-wrap items-center gap-3">
           {typeof deltaDay === "number" && (
             <TrendIndicator delta={deltaDay} label="from yesterday" />
           )}
@@ -116,9 +115,7 @@ export function StatCard({
             <TrendIndicator delta={deltaWeek} label="from last week" />
           )}
         </div>
-        {description && (
-          <div className="text-[12px] text-muted-foreground mt-2">{description}</div>
-        )}
+        {description && <div className="mt-2 text-[12px] text-muted-foreground">{description}</div>}
       </div>
     </CyberCard>
   );

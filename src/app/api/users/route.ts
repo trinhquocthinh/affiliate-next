@@ -44,6 +44,7 @@ export async function GET(request: Request) {
         displayName: true,
         role: true,
         status: true,
+        discordId: true,
         lastLoginAt: true,
         createdAt: true,
       },
@@ -83,7 +84,10 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: "Email and password are required" } },
+        {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "Email and password are required" },
+        },
         { status: 400 },
       );
     }

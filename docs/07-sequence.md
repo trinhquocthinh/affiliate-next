@@ -8,16 +8,15 @@ upstream: [sdd, tech-spec-architecture]
 
 # Sequence
 
-| 📄 **Metadata** | 📑 **Details** |
-|:---|:---|
-| **Doc ID** | `diagrams-sequence` |
-| **Version** | `1.0.0` |
-| **Status** | 🟡 **Draft** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [sdd], [tech-spec-architecture] |
-| **Downstream** | — |
-
+| 📄 **Metadata**  | 📑 **Details**                  |
+| :--------------- | :------------------------------ |
+| **Doc ID**       | `diagrams-sequence`             |
+| **Version**      | `1.0.0`                         |
+| **Status**       | 🟡 **Draft**                    |
+| **Last Updated** | `2026-08-11`                    |
+| **Owner**        | Quành (Admin)                   |
+| **Upstream**     | [sdd], [tech-spec-architecture] |
+| **Downstream**   | —                               |
 
 Chỉ vẽ các tương tác **vượt qua ranh giới tầng** hoặc **gọi ra ngoài hệ thống**. Tên actor khớp tên container ở `c4.md`.
 

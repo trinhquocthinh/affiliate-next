@@ -2,14 +2,10 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRequestRateLimit } from "@/lib/api-utils";
 import { verifyRequestSecurity } from "@/lib/security-guard";
 import { logAuditEvent } from "@/lib/audit";
-import {
-  getDiscordConfig,
-  sendChannelMessage,
-  buildPendingUserEmbed,
-} from "@/lib/discord";
+import { getDiscordConfig, sendChannelMessage, buildPendingUserEmbed } from "@/lib/discord";
 
 // firebase-admin requires the Node.js runtime.
 export const runtime = "nodejs";
@@ -17,14 +13,8 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     // Rate limit: 10 registrations per hour per IP
-    const ip = getClientIp(request);
-    const limit = rateLimit(ip, { limit: 10, windowSecs: 60 * 60 });
-    if (!limit.allowed) {
-      return NextResponse.json(
-        { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please try again later." } },
-        { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000)) } },
-      );
-    }
+    const rateLimitRes = checkRequestRateLimit(request, { limit: 10, windowSecs: 60 * 60 });
+    if (rateLimitRes) return rateLimitRes;
 
     // Triple-layer security: SHA-256 body checksum + Firebase App Check + Turnstile.
     const guard = await verifyRequestSecurity(request);
@@ -48,7 +38,10 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: "An account with this email already exists" } },
+        {
+          ok: false,
+          error: { code: "VALIDATION_ERROR", message: "An account with this email already exists" },
+        },
         { status: 409 },
       );
     }

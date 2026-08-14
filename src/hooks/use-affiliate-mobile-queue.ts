@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/swr-fetcher";
-import { buildQueueParams, type AffiliateQueueFilters, type QueueItem, type QueueResponse } from "@/lib/affiliate-queue";
+import {
+  buildQueueParams,
+  type AffiliateQueueFilters,
+  type QueueItem,
+  type QueueResponse,
+} from "@/lib/affiliate-queue";
 
 /**
  * Mobile infinite-scroll accumulator. Deliberately kept separate from the

@@ -31,7 +31,13 @@ describe("buildQueueParams", () => {
 
   it("includes trimmed search, buyerId, and date range when set", () => {
     const params = buildQueueParams(
-      { ...baseFilters, search: "  hello  ", buyerFilter: "buyer-1", createdFrom: "2026-01-01", createdTo: "2026-01-31" },
+      {
+        ...baseFilters,
+        search: "  hello  ",
+        buyerFilter: "buyer-1",
+        createdFrom: "2026-01-01",
+        createdTo: "2026-01-31",
+      },
       1,
     );
     expect(params.get("search")).toBe("hello");

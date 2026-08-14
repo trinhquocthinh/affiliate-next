@@ -8,16 +8,15 @@ upstream: [tech-spec-architecture, business-rules]
 
 # ERD
 
-| 📄 **Metadata** | 📑 **Details** |
-|:---|:---|
-| **Doc ID** | `diagrams-erd` |
-| **Version** | `1.0.0` |
-| **Status** | 🟡 **Draft** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [tech-spec-architecture], [business-rules] |
-| **Downstream** | — |
-
+| 📄 **Metadata**  | 📑 **Details**                             |
+| :--------------- | :----------------------------------------- |
+| **Doc ID**       | `diagrams-erd`                             |
+| **Version**      | `1.0.0`                                    |
+| **Status**       | 🟡 **Draft**                               |
+| **Last Updated** | `2026-08-11`                               |
+| **Owner**        | Quành (Admin)                              |
+| **Upstream**     | [tech-spec-architecture], [business-rules] |
+| **Downstream**   | —                                          |
 
 Tên bảng và trường khớp với từ điển miền ở `02-business-rules.md` §1 và mô hình dữ liệu ở `05-tech-spec-architecture.md` §3. Trường **in đậm trong chú thích** là phần thêm mới ở đợt này.
 

@@ -1,31 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext, ApiError } from "@/lib/auth-utils";
+import { ApiError, type ActorContext } from "@/lib/auth-utils";
 import { createRequestSchema, batchCreateSchema } from "@/lib/validations";
 import { getAppConfig } from "@/lib/config-cache";
 import { normalizeProductUrl, extractProductItemId } from "@/lib/url-utils";
 import { generateRequestId } from "@/lib/request-id";
 import { logAuditEvent } from "@/lib/audit";
-
-import { assertPermission, getPermissionScope, Actor, PermissionError } from "@/domain/permissions/resolve";
+import { requireApiAuth } from "@/lib/api-utils";
+import { getPermissionScope, type Actor } from "@/domain/permissions/resolve";
 
 // GET /api/requests — list requests (buyer: own, affiliate/admin: all)
 export async function GET(request: Request) {
   try {
-    const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
-
-    try {
-      assertPermission(actor, "request.view");
-    } catch (e: unknown) {
-      if (e instanceof PermissionError) {
-        return NextResponse.json(
-          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
-          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
-        );
-      }
-      throw e;
-    }
+    const auth = await requireApiAuth("request.view");
+    if (auth.error) return auth.error;
+    const actor: Actor = { id: auth.actor.userId, role: auth.actor.role };
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
@@ -65,9 +54,7 @@ export async function GET(request: Request) {
     const enrichedItems = items.map((item) => ({
       ...item,
       isStale: item.status !== "CLOSED" && item.createdAt < staleThreshold,
-      ageHours: Math.floor(
-        (Date.now() - item.createdAt.getTime()) / (1000 * 60 * 60),
-      ),
+      ageHours: Math.floor((Date.now() - item.createdAt.getTime()) / (1000 * 60 * 60)),
     }));
 
     return NextResponse.json({
@@ -84,7 +71,10 @@ export async function GET(request: Request) {
     console.error("List requests error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to list requests: " + errorMessage } },
+      {
+        ok: false,
+        error: { code: "REQUEST_FAILED", message: "Failed to list requests: " + errorMessage },
+      },
       { status: 500 },
     );
   }
@@ -93,20 +83,9 @@ export async function GET(request: Request) {
 // POST /api/requests — create single or batch requests
 export async function POST(request: Request) {
   try {
-    const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
-
-    try {
-      assertPermission(actor, "request.create");
-    } catch (e: unknown) {
-      if (e instanceof PermissionError) {
-        return NextResponse.json(
-          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
-          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
-        );
-      }
-      throw e;
-    }
+    const auth = await requireApiAuth("request.create");
+    if (auth.error) return auth.error;
+    const actorCtx = auth.actor;
 
     const body = await request.json();
 
@@ -118,7 +97,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ApiError) {
       return NextResponse.json(
-        { ok: false, error: { code: (error as any).code, message: (error as any).message } },
+        { ok: false, error: { code: error.code, message: error.message } },
         { status: error.httpStatus },
       );
     }
@@ -130,7 +109,7 @@ export async function POST(request: Request) {
   }
 }
 
-type ActorCtx = NonNullable<Awaited<ReturnType<typeof getApiActorContext>>>;
+type ActorCtx = ActorContext;
 
 async function handleSingleCreate(body: unknown, actor: ActorCtx) {
   const parsed = createRequestSchema.safeParse(body);
@@ -141,7 +120,7 @@ async function handleSingleCreate(body: unknown, actor: ActorCtx) {
     );
   }
 
-  const { productUrl, platform, productName, requesterName } = parsed.data;
+  const { productUrl, platform, productName, requesterName, sourceChannel } = parsed.data;
   const productUrlNorm = normalizeProductUrl(productUrl);
 
   // Duplicate detection (config cached)
@@ -173,6 +152,7 @@ async function handleSingleCreate(body: unknown, actor: ActorCtx) {
       productUrlNorm,
       productItemId: extractProductItemId(productUrl, platform),
       productName: productName || null,
+      sourceChannel,
       duplicateOfId: duplicateDetected ? duplicates[0].id : null,
       lastUpdatedById: actor.userId,
     },
@@ -217,7 +197,7 @@ async function handleBatchCreate(body: unknown, actor: ActorCtx) {
     );
   }
 
-  const { items, platform, requesterName } = parsed.data;
+  const { items, platform, requesterName, sourceChannel } = parsed.data;
 
   // Get config for duplicate detection (cached)
   const config = await getAppConfig();
@@ -270,6 +250,7 @@ async function handleBatchCreate(body: unknown, actor: ActorCtx) {
         productUrlNorm,
         productItemId: extractProductItemId(item.productUrl, platform),
         productName: item.productName || null,
+        sourceChannel,
         duplicateOfId: dbDuplicates[0]?.id || null,
         lastUpdatedById: actor.userId,
       },

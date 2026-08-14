@@ -1,50 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { bulkCloseSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
-import { assertPermission, getPermissionScope, Actor } from "@/domain/permissions/resolve";
+import { getPermissionScope, type Actor } from "@/domain/permissions/resolve";
+import { requireApiAuth, parseBody } from "@/lib/api-utils";
 
 // POST /api/affiliate/bulk-close — bulk close old requests
 export async function POST(request: Request) {
   try {
-    const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
+    const auth = await requireApiAuth("affiliate.bulk_close");
+    if (auth.error) return auth.error;
+    const actor: Actor = { id: auth.actor.userId, role: auth.actor.role };
 
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const bodyResult = await parseBody(request, bulkCloseSchema);
+    if ("error" in bodyResult) return bodyResult.error;
 
-    try {
-      assertPermission(actor, "affiliate.bulk_close");
-    } catch (e: unknown) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: (e as any).message } },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-    const parsed = bulkCloseSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } },
-        { status: 400 },
-      );
-    }
-
-    const { olderThanDays, closeNote, dryRun } = parsed.data;
+    const { olderThanDays, closeNote, dryRun } = bodyResult.data;
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 3600000);
 
     // Build candidate filter based on scope
     const scope = getPermissionScope(actor, "affiliate.bulk_close");
-    const ownershipFilter = scope === "any"
-      ? {} 
-      : { OR: [{ affiliateOwnerId: null }, { affiliateOwnerId: actor.id }] };
+    const ownershipFilter =
+      scope === "any" ? {} : { OR: [{ affiliateOwnerId: null }, { affiliateOwnerId: actor.id }] };
 
     const candidateWhere = {
       status: { in: ["NEW" as const, "FILLED" as const] },
@@ -79,9 +56,7 @@ export async function POST(request: Request) {
             status: c.status,
             createdAt: c.createdAt,
             affiliateOwnerId: c.affiliateOwnerId,
-            ageHours: Math.floor(
-              (Date.now() - c.createdAt.getTime()) / 3600000,
-            ),
+            ageHours: Math.floor((Date.now() - c.createdAt.getTime()) / 3600000),
           })),
         },
       });
@@ -90,8 +65,7 @@ export async function POST(request: Request) {
     // Execute bulk close
     const now = new Date();
     const defaultCloseNote =
-      closeNote ||
-      `Bulk-closed after ${olderThanDays} days without completion.`;
+      closeNote || `Bulk-closed after ${olderThanDays} days without completion.`;
 
     const result = await prisma.request.updateMany({
       where: candidateWhere,

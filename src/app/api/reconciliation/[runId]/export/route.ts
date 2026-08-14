@@ -1,25 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { prisma as db } from '@/lib/prisma';
-import { hasPermission } from '@/domain/permissions/resolve';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma as db } from "@/lib/prisma";
+import { hasPermission } from "@/domain/permissions/resolve";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ runId: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ runId: string }> }) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const user = await db.user.findUnique({ where: { id: session.user.id } });
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (!hasPermission({ id: user.id, role: user.role }, 'reconciliation.export')) {
-      return new NextResponse('Forbidden', { status: 403 });
+    if (!hasPermission({ id: user.id, role: user.role }, "reconciliation.export")) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     const { runId } = await params;
@@ -29,38 +26,38 @@ export async function GET(
         rows: {
           include: {
             matchedRequest: {
-              select: { id: true }
-            }
+              select: { id: true },
+            },
           },
-          orderBy: { orderedAt: 'desc' }
+          orderBy: { orderedAt: "desc" },
         },
-      }
+      },
     });
 
     if (!run) {
-      return new NextResponse('Not found', { status: 404 });
+      return new NextResponse("Not found", { status: 404 });
     }
 
     // Build CSV
     const headers = [
-      'ID đơn hàng',
-      'Item id',
-      'Tên Item',
-      'Thời Gian Đặt Hàng',
-      'Trạng thái đặt hàng',
-      'Trạng thái sản phẩm liên kết',
-      'Giá(₫)',
-      'Giá trị đơn hàng (₫)',
-      'Hoa hồng ròng tiếp thị liên kết(₫)',
-      'Sub_id1',
-      'Mã Yêu Cầu Ghép Được',
-      'Phương Pháp Ghép'
+      "ID đơn hàng",
+      "Item id",
+      "Tên Item",
+      "Thời Gian Đặt Hàng",
+      "Trạng thái đặt hàng",
+      "Trạng thái sản phẩm liên kết",
+      "Giá(₫)",
+      "Giá trị đơn hàng (₫)",
+      "Hoa hồng ròng tiếp thị liên kết(₫)",
+      "Sub_id1",
+      "Mã Yêu Cầu Ghép Được",
+      "Phương Pháp Ghép",
     ];
 
-    const csvRows = [headers.join(',')];
+    const csvRows = [headers.join(",")];
 
     const escapeCSV = (field: unknown): string => {
-      if (field === null || field === undefined) return '';
+      if (field === null || field === undefined) return "";
       let str = String(field);
       if (/^[=+\-@]/.test(str)) {
         str = "'" + str;
@@ -81,21 +78,21 @@ export async function GET(
         row.netCommission.toString(),
         escapeCSV(row.subId1),
         escapeCSV(row.matchedRequest?.id),
-        escapeCSV(row.matchMethod)
+        escapeCSV(row.matchMethod),
       ];
-      csvRows.push(line.join(','));
+      csvRows.push(line.join(","));
     }
 
-    const csvContent = '\uFEFF' + csvRows.join('\n'); // Add BOM for Excel
+    const csvContent = "\uFEFF" + csvRows.join("\n"); // Add BOM for Excel
 
     return new NextResponse(csvContent, {
       headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="reconciliation_${runId}.csv"`,
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="reconciliation_${runId}.csv"`,
       },
     });
   } catch (error: unknown) {
-    console.error('Error exporting reconciliation run:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error("Error exporting reconciliation run:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

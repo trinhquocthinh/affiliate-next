@@ -9,7 +9,7 @@ type ConfigResponse = { ok: boolean; data?: ConfigMap; error?: { message?: strin
 
 export function useAdminConfig() {
   const { data, isLoading, mutate } = useSWR<ConfigResponse>("/api/config");
-  const remoteConfig: ConfigMap = data?.ok ? data.data ?? {} : {};
+  const remoteConfig: ConfigMap = data?.ok ? (data.data ?? {}) : {};
   const [overrides, setOverrides] = useState<ConfigMap>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
@@ -28,13 +28,10 @@ export function useAdminConfig() {
 
     setSaving(key);
     try {
-      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
-        "/api/config",
-        {
-          method: "PUT",
-          body: JSON.stringify({ key, value }),
-        },
-      );
+      const res = await apiFetch<{ ok: boolean; error?: { message?: string } }>("/api/config", {
+        method: "PUT",
+        body: JSON.stringify({ key, value }),
+      });
       if (res.ok) {
         toast.success(`${key} updated`);
         // Clear local override so SWR data becomes the source of truth
@@ -55,7 +52,11 @@ export function useAdminConfig() {
   }
 
   async function runCleanupNow() {
-    if (!confirm("Run bulk close now? This will close all stale active requests older than the configured threshold.")) {
+    if (
+      !confirm(
+        "Run bulk close now? This will close all stale active requests older than the configured threshold.",
+      )
+    ) {
       return;
     }
     setRunningCleanup(true);

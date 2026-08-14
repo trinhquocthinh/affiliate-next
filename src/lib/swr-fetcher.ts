@@ -58,7 +58,10 @@ export async function apiFetch<T = unknown>(
 
     if (!res.ok) {
       const message =
-        (body && typeof body === "object" && "error" in body && typeof (body as { error: unknown }).error === "string"
+        (body &&
+        typeof body === "object" &&
+        "error" in body &&
+        typeof (body as { error: unknown }).error === "string"
           ? (body as { error: string }).error
           : typeof body === "string"
             ? body

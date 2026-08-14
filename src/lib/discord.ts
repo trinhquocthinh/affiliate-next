@@ -23,11 +23,7 @@ export const getDiscordConfig = () => ({
 // Discord REST API helpers
 // ──────────────────────────────────────────────────────────────
 
-export async function discordApi(
-  method: string,
-  path: string,
-  body?: unknown,
-) {
+async function discordApi(method: string, path: string, body?: unknown) {
   const { botToken } = getDiscordConfig();
   const res = await fetch(`https://discord.com/api/v10${path}`, {
     method,
@@ -50,23 +46,12 @@ export function sendChannelMessage(channelId: string, payload: unknown) {
   return discordApi("POST", `/channels/${channelId}/messages`, payload);
 }
 
-export function editChannelMessage(
-  channelId: string,
-  messageId: string,
-  payload: unknown,
-) {
-  return discordApi(
-    "PATCH",
-    `/channels/${channelId}/messages/${messageId}`,
-    payload,
-  );
+export function editChannelMessage(channelId: string, messageId: string, payload: unknown) {
+  return discordApi("PATCH", `/channels/${channelId}/messages/${messageId}`, payload);
 }
 
 // Thread type 11 = public thread
-export function createThread(
-  channelId: string,
-  name: string,
-): Promise<{ id: string }> {
+export function createThread(channelId: string, name: string): Promise<{ id: string }> {
   return discordApi("POST", `/channels/${channelId}/threads`, {
     name,
     type: 11,
@@ -100,9 +85,17 @@ const PLATFORM_EMOJI: Record<string, string> = {
   OTHER: "🔗",
 };
 
+function buildBaseRequestFields(req: RequestInfo) {
+  const platformLabel = PLATFORM_LABELS[req.platform] || req.platform;
+  return [
+    { name: "Platform", value: platformLabel, inline: true },
+    { name: "Người gửi", value: req.requesterName || "—", inline: true },
+    { name: "Sản phẩm", value: req.productName || "—", inline: false },
+    { name: "Link sản phẩm", value: req.productUrlRaw, inline: false },
+  ];
+}
+
 export function buildRequestEmbed(req: RequestInfo) {
-  const platformLabel =
-    PLATFORM_LABELS[req.platform] || req.platform;
   const emoji = PLATFORM_EMOJI[req.platform] || "📦";
   const createdVN = req.createdAt.toLocaleString("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -112,31 +105,8 @@ export function buildRequestEmbed(req: RequestInfo) {
     title: `${emoji} ${req.id}`,
     color: 0x3498db, // blue
     fields: [
-      {
-        name: "Platform",
-        value: platformLabel,
-        inline: true,
-      },
-      {
-        name: "Người gửi",
-        value: req.requesterName || "—",
-        inline: true,
-      },
-      {
-        name: "Sản phẩm",
-        value: req.productName || "—",
-        inline: false,
-      },
-      {
-        name: "Link sản phẩm",
-        value: req.productUrlRaw,
-        inline: false,
-      },
-      {
-        name: "Thời gian tạo",
-        value: createdVN,
-        inline: true,
-      },
+      ...buildBaseRequestFields(req),
+      { name: "Thời gian tạo", value: createdVN, inline: true },
     ],
     footer: { text: "Bấm nút bên dưới để fill link" },
   };
@@ -157,13 +127,7 @@ export function buildFillButton(requestId: string) {
   };
 }
 
-export function buildFilledEmbed(
-  req: RequestInfo,
-  affiliateLink: string,
-  affiliateName: string,
-) {
-  const platformLabel =
-    PLATFORM_LABELS[req.platform] || req.platform;
+export function buildFilledEmbed(req: RequestInfo, affiliateLink: string, affiliateName: string) {
   const emoji = PLATFORM_EMOJI[req.platform] || "📦";
   const createdVN = req.createdAt.toLocaleString("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -173,41 +137,10 @@ export function buildFilledEmbed(
     title: `${emoji} ${req.id} — ✅ FILLED`,
     color: 0x2ecc71, // green
     fields: [
-      {
-        name: "Platform",
-        value: platformLabel,
-        inline: true,
-      },
-      {
-        name: "Người gửi",
-        value: req.requesterName || "—",
-        inline: true,
-      },
-      {
-        name: "Sản phẩm",
-        value: req.productName || "—",
-        inline: false,
-      },
-      {
-        name: "Link sản phẩm",
-        value: req.productUrlRaw,
-        inline: false,
-      },
-      {
-        name: "Affiliate Link",
-        value: affiliateLink,
-        inline: false,
-      },
-      {
-        name: "Filled bởi",
-        value: affiliateName,
-        inline: true,
-      },
-      {
-        name: "Thời gian tạo",
-        value: createdVN,
-        inline: true,
-      },
+      ...buildBaseRequestFields(req),
+      { name: "Affiliate Link", value: affiliateLink, inline: false },
+      { name: "Filled bởi", value: affiliateName, inline: true },
+      { name: "Thời gian tạo", value: createdVN, inline: true },
     ],
   };
 }
@@ -284,13 +217,8 @@ export async function verifyInteraction(
 // Interaction response helpers
 // ──────────────────────────────────────────────────────────────
 
-export function interactionResponse(type: number, data?: unknown) {
+function interactionResponse(type: number, data?: unknown) {
   return Response.json({ type, data });
-}
-
-// type 4 = CHANNEL_MESSAGE_WITH_SOURCE
-export function ephemeralReply(content: string) {
-  return interactionResponse(4, { content, flags: 64 }); // 64 = EPHEMERAL
 }
 
 // type 5 = DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE (shows "thinking…")
@@ -299,19 +227,13 @@ export function deferredEphemeralReply() {
 }
 
 // Follow-up message via interaction webhook (used after a deferred reply)
-export async function interactionFollowup(
-  interactionToken: string,
-  content: string,
-) {
+export async function interactionFollowup(interactionToken: string, content: string) {
   const { applicationId } = getDiscordConfig();
-  await fetch(
-    `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, flags: 64 }),
-    },
-  );
+  await fetch(`https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content, flags: 64 }),
+  });
 }
 
 // type 9 = MODAL
@@ -379,10 +301,7 @@ export type AdminActionTarget = {
   displayName: string | null;
 };
 
-const ADMIN_ACTION_META: Record<
-  AdminActionKind,
-  { title: string; color: number }
-> = {
+const ADMIN_ACTION_META: Record<AdminActionKind, { title: string; color: number }> = {
   APPROVE: { title: "✅ User Approved", color: 0x2ecc71 },
   REJECT: { title: "❌ User Rejected", color: 0xe74c3c },
   DELETE: { title: "🗑️ User Deleted", color: 0x95a5a6 },

@@ -1,6 +1,6 @@
-import { CommissionRow } from './parse-report';
+import { CommissionRow } from "./parse-report";
 
-export type MatchMethod = 'SUB_ID' | 'ORDER_ITEM' | 'NONE';
+type MatchMethod = "SUB_ID" | "ORDER_ITEM" | "NONE";
 
 export interface MatchedResult {
   row: CommissionRow;
@@ -16,7 +16,7 @@ export interface RequestData {
 
 export function matchReportRows(
   rows: CommissionRow[],
-  activeRequests: RequestData[]
+  activeRequests: RequestData[],
 ): { matchedRows: MatchedResult[]; unmatchedRequests: RequestData[] } {
   const results: MatchedResult[] = [];
   const matchedRequestIds = new Set<string>();
@@ -37,13 +37,13 @@ export function matchReportRows(
   // Pass 1: Match by SUB_ID
   for (const row of rows) {
     let matchedId: string | null = null;
-    let method: MatchMethod = 'NONE';
+    let method: MatchMethod = "NONE";
 
     if (row.subId1) {
       const req = requestsById.get(row.subId1);
       if (req && !matchedRequestIds.has(req.id)) {
         matchedId = req.id;
-        method = 'SUB_ID';
+        method = "SUB_ID";
       }
     }
 
@@ -53,14 +53,14 @@ export function matchReportRows(
 
   // Pass 2: Match by orderId + productItemId (only for those unmatched and available)
   for (const result of results) {
-    if (result.matchMethod === 'NONE') {
+    if (result.matchMethod === "NONE") {
       const key = `${result.row.orderId}_${result.row.itemId}`;
       const reqList = requestsByOrderItem.get(key);
       if (reqList) {
-        const req = reqList.find(r => !matchedRequestIds.has(r.id));
+        const req = reqList.find((r) => !matchedRequestIds.has(r.id));
         if (req) {
           result.matchedRequestId = req.id;
-          result.matchMethod = 'ORDER_ITEM';
+          result.matchMethod = "ORDER_ITEM";
           matchedRequestIds.add(req.id);
         }
       }

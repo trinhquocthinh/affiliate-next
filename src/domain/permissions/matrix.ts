@@ -21,7 +21,7 @@ export const PERMISSIONS = [
   "system.bulk_close",
 ] as const;
 
-export type Permission = typeof PERMISSIONS[number];
+export type Permission = (typeof PERMISSIONS)[number];
 export type Scope = "own" | "any";
 
 export const MATRIX: Record<Role, Partial<Record<Permission, true | Scope>>> = {

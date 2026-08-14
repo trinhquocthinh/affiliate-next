@@ -22,19 +22,19 @@ A full-stack web application for managing affiliate link requests between buyers
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Framework | Next.js 16.2.2 (App Router, Turbopack) |
-| Language | TypeScript |
-| Auth | Auth.js v5 (NextAuth) — Credentials + hybrid JWT/DB session |
-| Database | PostgreSQL via [Neon](https://neon.tech) serverless |
-| ORM | Prisma 7 with `@prisma/adapter-neon` |
-| UI | Tailwind CSS v4 + shadcn/ui components |
-| Validation | Zod v4 |
-| Animations | Framer Motion |
-| Data Fetching | SWR |
-| Notifications | Sonner |
-| Deployment | Netlify (with `@netlify/plugin-nextjs`) |
+| Layer         | Technology                                                  |
+| ------------- | ----------------------------------------------------------- |
+| Framework     | Next.js 16.2.2 (App Router, Turbopack)                      |
+| Language      | TypeScript                                                  |
+| Auth          | Auth.js v5 (NextAuth) — Credentials + hybrid JWT/DB session |
+| Database      | PostgreSQL via [Neon](https://neon.tech) serverless         |
+| ORM           | Prisma 7 with `@prisma/adapter-neon`                        |
+| UI            | Tailwind CSS v4 + shadcn/ui components                      |
+| Validation    | Zod v4                                                      |
+| Animations    | Framer Motion                                               |
+| Data Fetching | SWR                                                         |
+| Notifications | Sonner                                                      |
+| Deployment    | Netlify (with `@netlify/plugin-nextjs`)                     |
 
 ---
 
@@ -85,13 +85,13 @@ Copy the example and fill in values:
 cp .env.example .env
 ```
 
-| Variable | Description | Example |
-| --- | --- | --- |
-| `DATABASE_URL` | Neon PostgreSQL connection string | `postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require` |
-| `AUTH_SECRET` | Random secret for Auth.js session encryption (min 32 chars) | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Full public URL of your app | `http://localhost:3000` |
-| `ADMIN_EMAIL` | Email for the seeded admin account | `admin@yoursite.com` |
-| `ADMIN_PASSWORD` | Password for the seeded admin account | `Admin@123` |
+| Variable         | Description                                                 | Example                                                          |
+| ---------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| `DATABASE_URL`   | Neon PostgreSQL connection string                           | `postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require` |
+| `AUTH_SECRET`    | Random secret for Auth.js session encryption (min 32 chars) | `openssl rand -base64 32`                                        |
+| `NEXTAUTH_URL`   | Full public URL of your app                                 | `http://localhost:3000`                                          |
+| `ADMIN_EMAIL`    | Email for the seeded admin account                          | `admin@yoursite.com`                                             |
+| `ADMIN_PASSWORD` | Password for the seeded admin account                       | `Admin@123`                                                      |
 
 ### 3. Push schema & seed the database
 
@@ -163,23 +163,23 @@ src/
 
 ## API Endpoints
 
-| Method | Path | Role | Description |
-| --- | --- | --- | --- |
-| `POST` | `/api/requests` | BUYER | Submit a new request |
-| `GET` | `/api/requests` | ANY | List requests (filtered by role) |
-| `GET` | `/api/requests/[id]` | ANY | Get single request |
-| `POST` | `/api/requests/[id]/close` | BUYER/ADMIN | Close a request |
-| `POST` | `/api/requests/[id]/claim` | AFFILIATE | Claim a request |
-| `POST` | `/api/requests/[id]/note` | AFFILIATE | Save note on request |
-| `POST` | `/api/affiliate/[id]/fill` | AFFILIATE | Fill affiliate link |
-| `GET` | `/api/affiliate/queue` | AFFILIATE | Get affiliate queue |
-| `POST` | `/api/affiliate/bulk-close` | ADMIN | Bulk close stale requests |
-| `GET/PUT` | `/api/config` | ADMIN | Read/update app config |
-| `GET/POST` | `/api/users` | ADMIN | List/create users |
-| `PATCH/DELETE` | `/api/users/[id]` | ADMIN | Update/delete user |
-| `POST` | `/api/register` | PUBLIC | Self-registration |
-| `POST` | `/api/forgot-password` | PUBLIC | Request password reset |
-| `POST` | `/api/reset-password` | PUBLIC | Confirm password reset |
+| Method         | Path                        | Role        | Description                      |
+| -------------- | --------------------------- | ----------- | -------------------------------- |
+| `POST`         | `/api/requests`             | BUYER       | Submit a new request             |
+| `GET`          | `/api/requests`             | ANY         | List requests (filtered by role) |
+| `GET`          | `/api/requests/[id]`        | ANY         | Get single request               |
+| `POST`         | `/api/requests/[id]/close`  | BUYER/ADMIN | Close a request                  |
+| `POST`         | `/api/requests/[id]/claim`  | AFFILIATE   | Claim a request                  |
+| `POST`         | `/api/requests/[id]/note`   | AFFILIATE   | Save note on request             |
+| `POST`         | `/api/affiliate/[id]/fill`  | AFFILIATE   | Fill affiliate link              |
+| `GET`          | `/api/affiliate/queue`      | AFFILIATE   | Get affiliate queue              |
+| `POST`         | `/api/affiliate/bulk-close` | ADMIN       | Bulk close stale requests        |
+| `GET/PUT`      | `/api/config`               | ADMIN       | Read/update app config           |
+| `GET/POST`     | `/api/users`                | ADMIN       | List/create users                |
+| `PATCH/DELETE` | `/api/users/[id]`           | ADMIN       | Update/delete user               |
+| `POST`         | `/api/register`             | PUBLIC      | Self-registration                |
+| `POST`         | `/api/forgot-password`      | PUBLIC      | Request password reset           |
+| `POST`         | `/api/reset-password`       | PUBLIC      | Confirm password reset           |
 
 ---
 
@@ -187,10 +187,10 @@ src/
 
 This project deploys to **two environments via GitHub Actions**:
 
-| Branch | Platform | Environment | Neon DB branch |
-| --- | --- | --- | --- |
-| `main` | **Vercel** (region `sin1` — Singapore) | Production | `main` |
-| `uat` | **Vercel** Preview | UAT / staging | `uat` |
+| Branch | Platform                               | Environment   | Neon DB branch |
+| ------ | -------------------------------------- | ------------- | -------------- |
+| `main` | **Vercel** (region `sin1` — Singapore) | Production    | `main`         |
+| `uat`  | **Vercel** Preview                     | UAT / staging | `uat`          |
 
 > Production deploy runs from GitHub Actions. **Disable native Git integration on Vercel** for `main` to avoid double deploys. Preview deployments are handled natively by Vercel for the `uat` branch.
 
@@ -200,10 +200,10 @@ Add these under **GitHub → Settings → Environments → `secret`**:
 
 **Shared (used by both workflows):**
 
-| Secret | Value |
-| --- | --- |
-| `AUTH_SECRET` | Auth.js secret |
-| `ADMIN_EMAIL` | Admin email |
+| Secret           | Value          |
+| ---------------- | -------------- |
+| `AUTH_SECRET`    | Auth.js secret |
+| `ADMIN_EMAIL`    | Admin email    |
 | `ADMIN_PASSWORD` | Admin password |
 
 > `DATABASE_URL` and `AUTH_URL` are environment-specific — store the prod values in secrets used by the Vercel workflow. Vercel Preview deployments use environment variables configured in the Vercel Dashboard for the Preview environment.
@@ -212,23 +212,23 @@ Add these under **GitHub → Settings → Environments → `secret`**:
 
 These secrets must be available to both `production` and `uat` GitHub Environments, or set as Repository Secrets.
 
-| Secret | Value | How to get |
-| --- | --- | --- |
-| `VERCEL_TOKEN` | Personal access token | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
-| `VERCEL_ORG_ID` | Organization / team ID | Run `vercel link` locally, then read `.vercel/project.json` |
-| `VERCEL_PROJECT_ID` | Project ID | Same as above |
+| Secret              | Value                  | How to get                                                     |
+| ------------------- | ---------------------- | -------------------------------------------------------------- |
+| `VERCEL_TOKEN`      | Personal access token  | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID`     | Organization / team ID | Run `vercel link` locally, then read `.vercel/project.json`    |
+| `VERCEL_PROJECT_ID` | Project ID             | Same as above                                                  |
 
 **Security env vars (per environment):**
 
-| Variable | Vercel (prod) | Vercel (Preview UAT) |
-| --- | --- | --- |
-| `TURNSTILE_SECRET_KEY` | Prod widget secret key | UAT widget secret key |
-| `FIREBASE_PROJECT_ID` | Firebase project ID | Same project |
-| `FIREBASE_CLIENT_EMAIL` | Service account email | Same service account |
-| `FIREBASE_PRIVATE_KEY` | Service account private key | Same private key |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Prod widget site key | UAT widget site key |
-| `NEXT_PUBLIC_FIREBASE_*` | Firebase Web config values | Same project, same values |
-| `NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key | Same key |
+| Variable                                  | Vercel (prod)               | Vercel (Preview UAT)      |
+| ----------------------------------------- | --------------------------- | ------------------------- |
+| `TURNSTILE_SECRET_KEY`                    | Prod widget secret key      | UAT widget secret key     |
+| `FIREBASE_PROJECT_ID`                     | Firebase project ID         | Same project              |
+| `FIREBASE_CLIENT_EMAIL`                   | Service account email       | Same service account      |
+| `FIREBASE_PRIVATE_KEY`                    | Service account private key | Same private key          |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`          | Prod widget site key        | UAT widget site key       |
+| `NEXT_PUBLIC_FIREBASE_*`                  | Firebase Web config values  | Same project, same values |
+| `NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 site key       | Same key                  |
 
 ### Vercel project setup
 

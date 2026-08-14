@@ -33,7 +33,8 @@ describe("computeRequestPermissions", () => {
       data,
       actorObj,
       (perm) => mockHasPermission(actorObj.role, perm),
-      (perm) => mockGetPermissionScope(actorObj.role, perm) as import("@/domain/permissions/matrix").Scope
+      (perm) =>
+        mockGetPermissionScope(actorObj.role, perm) as import("@/domain/permissions/matrix").Scope,
     );
   };
 
@@ -90,10 +91,18 @@ describe("computeRequestPermissions", () => {
   });
 
   it("requires status CLOSED and closeReason BOUGHT for admin correction", () => {
-    const boughtClosed = { status: "CLOSED", closeReason: "BOUGHT", createdBy: { email: buyer.email } };
+    const boughtClosed = {
+      status: "CLOSED",
+      closeReason: "BOUGHT",
+      createdBy: { email: buyer.email },
+    };
     expect(computeFor(boughtClosed, admin).canAdminCorrect).toBe(true);
 
-    const notBoughtClosed = { status: "CLOSED", closeReason: "NOT_BUYING", createdBy: { email: buyer.email } };
+    const notBoughtClosed = {
+      status: "CLOSED",
+      closeReason: "NOT_BUYING",
+      createdBy: { email: buyer.email },
+    };
     expect(computeFor(notBoughtClosed, admin).canAdminCorrect).toBe(false);
 
     const stillOpen = { status: "NEW", closeReason: null, createdBy: { email: buyer.email } };
@@ -101,7 +110,11 @@ describe("computeRequestPermissions", () => {
   });
 
   it("denies admin correction for a non-admin actor", () => {
-    const boughtClosed = { status: "CLOSED", closeReason: "BOUGHT", createdBy: { email: buyer.email } };
+    const boughtClosed = {
+      status: "CLOSED",
+      closeReason: "BOUGHT",
+      createdBy: { email: buyer.email },
+    };
     expect(computeFor(boughtClosed, buyer).canAdminCorrect).toBe(false);
   });
 });

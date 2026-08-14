@@ -46,13 +46,14 @@ export function useAffiliateDetail(onMutated: () => void) {
     if (!selected) return;
     setActionLoading("editOrderId");
     try {
-      const data = await apiFetch<{ ok: boolean; data?: { orderId: string }; error?: { message?: string } }>(
-        `/api/requests/${selected.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ orderId: editOrderId.trim() }),
-        },
-      );
+      const data = await apiFetch<{
+        ok: boolean;
+        data?: { orderId: string };
+        error?: { message?: string };
+      }>(`/api/requests/${selected.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ orderId: editOrderId.trim() }),
+      });
       if (data.ok && data.data) {
         toast.success("Order ID updated");
         const newOrderId = data.data.orderId;

@@ -1,32 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { adminCorrectSchema } from "@/lib/validations";
 import { logAuditEvent } from "@/lib/audit";
-import { getPermissionScope, hasPermission, Actor } from "@/domain/permissions/resolve";
+import { getPermissionScope, hasPermission } from "@/domain/permissions/resolve";
+import { parseAuthenticatedRequest, getAccessibleRequest } from "@/lib/api-utils";
 
 // PATCH /api/requests/[id]/admin-correct — admin-only: correct orderId / buyerNote regardless of status
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const ctx = await parseAuthenticatedRequest(request, params, adminCorrectSchema);
+    if (ctx.error) return ctx.error;
+    const { id, actor, data } = ctx;
 
-    // Điểm cuối này sửa `orderId` và `buyerNote` trên yêu cầu bất kỳ, nên nó
-    // đòi đúng hai quyền mà nó thực sự dùng — thay vì hỏi "có phải Admin không".
-    // Chỉ Admin nắm cả hai: Master thiếu `request.buyer_note`, Buyer chỉ có
-    // phạm vi `own`. Hành vi giữ nguyên như cờ isAdmin cũ.
-    const domainActor: Actor = { id: actor.userId, role: actor.role };
     const canCorrect =
-      getPermissionScope(domainActor, "request.buyer_note") === "any" &&
-      hasPermission(domainActor, "request.order_id.edit_any_status");
+      getPermissionScope(actor, "request.buyer_note") === "any" &&
+      hasPermission(actor, "request.order_id.edit_any_status");
 
     if (!canCorrect) {
       return NextResponse.json(
@@ -35,28 +23,13 @@ export async function PATCH(
       );
     }
 
-    const { id } = await params;
-    const body = await request.json();
-    const parsed = adminCorrectSchema.safeParse(body);
+    const { orderId, buyerNote } = data;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } },
-        { status: 400 },
-      );
-    }
+    const reqResult = await getAccessibleRequest(id, actor, undefined, { allowClosed: true });
+    if (reqResult.error) return reqResult.error;
+    const existing = reqResult.request;
 
-    const { orderId, buyerNote } = parsed.data;
-
-    const existing = await prisma.request.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json(
-        { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
-        { status: 404 },
-      );
-    }
-
-    const updateData: Record<string, unknown> = { lastUpdatedById: actor.userId };
+    const updateData: Record<string, unknown> = { lastUpdatedById: actor.id };
     if (orderId !== undefined) updateData.orderId = orderId || null;
     if (buyerNote !== undefined) updateData.buyerNote = buyerNote || null;
 
@@ -67,7 +40,7 @@ export async function PATCH(
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "SAVE_NOTE",
       oldValue: { orderId: existing.orderId, buyerNote: existing.buyerNote },
       newValue: { orderId: updated.orderId, buyerNote: updated.buyerNote },

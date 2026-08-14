@@ -25,29 +25,36 @@ export function AffiliateDiscordCard({
   onUnlink: () => void;
 }) {
   return (
-    <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm overflow-hidden mb-6">
+    <Card className="mb-6 overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#131B2F]">
       <CardContent className="p-0">
         <button
           type="button"
-          className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+          className="flex w-full items-center justify-between p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30"
           onClick={onToggleExpanded}
         >
           <div className="flex items-center gap-3">
             <Link2Icon size={18} className="text-slate-400 dark:text-slate-500" />
-            <span className="font-bold text-sm text-slate-700 dark:text-slate-300">Discord</span>
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Discord</span>
             {discordId ? (
-              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-500/30">Đã liên kết</span>
+              <span className="rounded-md border border-emerald-200 bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-400">
+                Đã liên kết
+              </span>
             ) : (
-              <span className="text-[10px] bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 px-2.5 py-0.5 rounded-md font-semibold border border-slate-200 dark:border-slate-700">Chưa liên kết</span>
+              <span className="rounded-md border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400">
+                Chưa liên kết
+              </span>
             )}
           </div>
-          <ChevronDownIcon size={16} className={`text-slate-400 transition-transform ${discordExpanded ? "rotate-180" : ""}`} />
+          <ChevronDownIcon
+            size={16}
+            className={`text-slate-400 transition-transform ${discordExpanded ? "rotate-180" : ""}`}
+          />
         </button>
         {discordExpanded && (
-          <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+          <div className="space-y-3 border-t border-slate-100 px-4 pt-3 pb-4 dark:border-slate-800">
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Liên kết Discord để fill link trực tiếp từ group chat.
-              Lấy User ID: Discord Settings → Advanced → bật Developer Mode → chuột phải avatar → Copy User ID.
+              Liên kết Discord để fill link trực tiếp từ group chat. Lấy User ID: Discord Settings →
+              Advanced → bật Developer Mode → chuột phải avatar → Copy User ID.
             </p>
             <div className="flex gap-2">
               <Input
@@ -64,12 +71,7 @@ export function AffiliateDiscordCard({
                 {discordLinking ? <LoaderIcon className="h-4 w-4 animate-spin" /> : "Lưu"}
               </Button>
               {discordId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onUnlink}
-                  disabled={discordLinking}
-                >
+                <Button size="sm" variant="outline" onClick={onUnlink} disabled={discordLinking}>
                   Gỡ
                 </Button>
               )}

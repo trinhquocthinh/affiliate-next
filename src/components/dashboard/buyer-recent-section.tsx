@@ -91,18 +91,14 @@ export function BuyerRecentSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">Recent Requests</h3>
-          {filterLabel && (
-            <p className="text-xs text-muted-foreground mt-0.5">{filterLabel}</p>
-          )}
+          {filterLabel && <p className="mt-0.5 text-xs text-muted-foreground">{filterLabel}</p>}
         </div>
         <Select value={String(range)} onValueChange={handleRangeChange} disabled={isPending}>
           <SelectTrigger className="w-40">
-            <SelectValue>
-              {RANGE_OPTIONS.find((o) => o.value === String(range))?.label}
-            </SelectValue>
+            <SelectValue>{RANGE_OPTIONS.find((o) => o.value === String(range))?.label}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {RANGE_OPTIONS.map((o) => (
@@ -115,16 +111,16 @@ export function BuyerRecentSection({
       </div>
 
       {items.length === 0 ? (
-        <CyberCard className="p-10 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
+        <CyberCard className="flex flex-col items-center p-10 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
             <PlusCircleIcon className="h-7 w-7" />
           </div>
-          <h4 className="text-base font-semibold mb-1">No requests in this window</h4>
-          <p className="text-sm text-muted-foreground max-w-sm mb-5">
+          <h4 className="mb-1 text-base font-semibold">No requests in this window</h4>
+          <p className="mb-5 max-w-sm text-sm text-muted-foreground">
             Kick off your next batch — your affiliate team will see it within minutes.
           </p>
           <Link href="/buyer">
-            <Button className="bg-linear-to-br from-primary to-[#00a877] text-white font-semibold shadow-glow hover:shadow-glow-hover">
+            <Button className="shadow-glow hover:shadow-glow-hover bg-linear-to-br from-primary to-[#00a877] font-semibold text-white">
               <PlusCircleIcon className="h-5 w-5" />
               Create New Request
             </Button>
@@ -136,19 +132,18 @@ export function BuyerRecentSection({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-40">ID</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Link</TableHead>
+                  {["ID", "Product", "Platform", "Status", "Created", "Link"].map((col) => (
+                    <TableHead key={col} className={col === "ID" ? "w-40" : undefined}>
+                      {col}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-primary"
+                    className="cursor-pointer border-l-2 border-l-transparent transition-colors hover:border-l-primary hover:bg-muted/40"
                     onClick={() => openDetail(item.id)}
                   >
                     <TableCell className="font-mono text-xs">{item.id}</TableCell>
@@ -164,7 +159,10 @@ export function BuyerRecentSection({
                         {item.isStale && <StaleBadge />}
                       </span>
                     </TableCell>
-                    <TableCell suppressHydrationWarning className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell
+                      suppressHydrationWarning
+                      className="text-sm whitespace-nowrap text-muted-foreground"
+                    >
                       {formatRelativeTime(item.createdAt)}
                     </TableCell>
                     <TableCell>
@@ -174,12 +172,12 @@ export function BuyerRecentSection({
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-primary hover:underline text-sm inline-flex items-center gap-1"
+                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                         >
                           Open <ExternalLinkIcon className="h-3 w-3" />
                         </a>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -187,10 +185,10 @@ export function BuyerRecentSection({
               </TableBody>
             </Table>
           </div>
-          <div className="border-t border-border bg-muted/30 px-4 py-2.5 flex justify-end">
+          <div className="flex justify-end border-t border-border bg-muted/30 px-4 py-2.5">
             <Link
               href="/buyer/requests"
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               View all <ArrowRightIcon className="h-3.5 w-3.5" />
             </Link>

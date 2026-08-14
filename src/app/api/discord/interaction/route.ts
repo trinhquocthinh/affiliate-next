@@ -69,7 +69,9 @@ export async function POST(request: Request) {
       const requestId = customId.slice(11);
       const token = body.token as string;
 
-      console.log(`[interaction] modal submit requestId=${requestId} token=${token.slice(0, 20)}...`);
+      console.log(
+        `[interaction] modal submit requestId=${requestId} token=${token.slice(0, 20)}...`,
+      );
       after(async () => {
         console.log(`[interaction:after] starting processFillModalSubmit requestId=${requestId}`);
         await processFillModalSubmit(body, requestId, token);
@@ -96,8 +98,9 @@ async function processFillModalSubmit(
   try {
     console.log(`[processFillModalSubmit] start requestId=${requestId}`);
     const discordUserId = (interaction.member as Record<string, unknown>)?.user
-      ? ((interaction.member as Record<string, unknown>).user as Record<string, unknown>).id as string
-      : (interaction.user as Record<string, unknown>)?.id as string;
+      ? (((interaction.member as Record<string, unknown>).user as Record<string, unknown>)
+          .id as string)
+      : ((interaction.user as Record<string, unknown>)?.id as string);
 
     if (!discordUserId) {
       await interactionFollowup(interactionToken, "Không xác định được người dùng Discord.");
@@ -119,14 +122,15 @@ async function processFillModalSubmit(
     }
 
     if (!hasPermission({ id: user.id, role: user.role }, "affiliate.fill")) {
-      await interactionFollowup(interactionToken, "❌ Chỉ tài khoản Affiliate mới có thể fill link.");
+      await interactionFollowup(
+        interactionToken,
+        "❌ Chỉ tài khoản Affiliate mới có thể fill link.",
+      );
       return;
     }
 
     // Extract modal fields
-    const components = (
-      interaction.data as Record<string, unknown>
-    )?.components as Array<{
+    const components = (interaction.data as Record<string, unknown>)?.components as Array<{
       components: Array<{ custom_id: string; value: string }>;
     }>;
 
@@ -152,11 +156,17 @@ async function processFillModalSubmit(
     try {
       const url = new URL(affiliateLink);
       if (!["http:", "https:"].includes(url.protocol)) {
-        await interactionFollowup(interactionToken, "❌ Link phải bắt đầu bằng http:// hoặc https://");
+        await interactionFollowup(
+          interactionToken,
+          "❌ Link phải bắt đầu bằng http:// hoặc https://",
+        );
         return;
       }
     } catch {
-      await interactionFollowup(interactionToken, "❌ Link không hợp lệ. Vui lòng nhập URL đầy đủ.");
+      await interactionFollowup(
+        interactionToken,
+        "❌ Link không hợp lệ. Vui lòng nhập URL đầy đủ.",
+      );
       return;
     }
 
@@ -221,8 +231,7 @@ async function processFillModalSubmit(
               platform: updated.platform,
               productUrlRaw: updated.productUrlRaw,
               productName: updated.productName,
-              requesterName:
-                updated.requesterName ?? updated.createdBy.displayName,
+              requesterName: updated.requesterName ?? updated.createdBy.displayName,
               createdAt: updated.createdAt,
             },
             affiliateLink,

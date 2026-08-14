@@ -10,15 +10,15 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 # SDD — Shop Quành
 
-| 📄 **Metadata** | 📑 **Details** |
-| :--- | :--- |
-| **Doc ID** | `sdd` |
-| **Version** | `1.1.0` |
-| **Status** | 🟡 **Draft** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [prd], [business-rules] |
-| **Downstream** | [tech-spec-architecture], [test-cases-specification] |
+| 📄 **Metadata**  | 📑 **Details**                                       |
+| :--------------- | :--------------------------------------------------- |
+| **Doc ID**       | `sdd`                                                |
+| **Version**      | `1.1.0`                                              |
+| **Status**       | 🟡 **Draft**                                         |
+| **Last Updated** | `2026-08-11`                                         |
+| **Owner**        | Quành (Admin)                                        |
+| **Upstream**     | [prd], [business-rules]                              |
+| **Downstream**   | [tech-spec-architecture], [test-cases-specification] |
 
 > [!IMPORTANT]
 > Cầu nối giữa PRD và mã nguồn. Mỗi kịch bản trong tài liệu này về sau trở thành **đúng một test case** ở phase 8. Ánh xạ là 1–1: không viết kịch bản mà không định test.
@@ -55,17 +55,17 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | platform = SHOPEE | orderId = `260810124VEV6B` | valid = true |
-| 2 | platform = SHOPEE | orderId = `260810124VEV6` (13 ký tự) | valid = false, code = `ERR_ORDER_ID_FORMAT` |
-| 3 | platform = SHOPEE | orderId = `260810124vev6b` (chữ thường) | valid = true, giá trị lưu là `260810124VEV6B` |
-| 4 | platform = SHOPEE | orderId = `260810124VEV6B` | valid = true, giá trị lưu đã cắt khoảng trắng |
-| 5 | platform = TIKTOK | orderId = `584788646734693649` | valid = true |
-| 6 | platform = TIKTOK | orderId = `58478864673469364A` | valid = false, code = `ERR_ORDER_ID_FORMAT` |
-| 7 | platform = TIKTOK | orderId = `5847886467346936` (16 số) | valid = false |
-| 8 | platform = OTHER | orderId = `bất-kỳ-chuỗi-nào` | valid = true |
-| 9 | platform = OTHER | orderId = `   ` | valid = false, code = `ERR_ORDER_ID_REQUIRED` |
+| #   | Given             | When                                    | Then                                          |
+| --- | ----------------- | --------------------------------------- | --------------------------------------------- |
+| 1   | platform = SHOPEE | orderId = `260810124VEV6B`              | valid = true                                  |
+| 2   | platform = SHOPEE | orderId = `260810124VEV6` (13 ký tự)    | valid = false, code = `ERR_ORDER_ID_FORMAT`   |
+| 3   | platform = SHOPEE | orderId = `260810124vev6b` (chữ thường) | valid = true, giá trị lưu là `260810124VEV6B` |
+| 4   | platform = SHOPEE | orderId = `260810124VEV6B`              | valid = true, giá trị lưu đã cắt khoảng trắng |
+| 5   | platform = TIKTOK | orderId = `584788646734693649`          | valid = true                                  |
+| 6   | platform = TIKTOK | orderId = `58478864673469364A`          | valid = false, code = `ERR_ORDER_ID_FORMAT`   |
+| 7   | platform = TIKTOK | orderId = `5847886467346936` (16 số)    | valid = false                                 |
+| 8   | platform = OTHER  | orderId = `bất-kỳ-chuỗi-nào`            | valid = true                                  |
+| 9   | platform = OTHER  | orderId = `   `                         | valid = false, code = `ERR_ORDER_ID_REQUIRED` |
 
 ### SPEC-002 — Đóng yêu cầu
 
@@ -83,16 +83,16 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | request ở FILLED | đóng với BOUGHT + mã hợp lệ | status = CLOSED, orderId được lưu |
-| 2 | request ở FILLED | đóng với BOUGHT, không có mã | `400 ERR_ORDER_ID_REQUIRED`, không đổi trạng thái |
-| 3 | request ở NEW | đóng với NOT_BUYING | status = CLOSED, orderId để trống |
-| 4 | request ở NEW | đóng với NOT_BUYING kèm mã đơn | status = CLOSED, orderId **không** được lưu |
-| 5 | request đã CLOSED | đóng lần nữa | `409 ERR_INVALID_TRANSITION` |
-| 6 | request ở FILLED | đóng với BOUGHT + amount = 0 | `400 ERR_AMOUNT_INVALID` |
-| 7 | request ở FILLED | đóng với BOUGHT + amount = 250000 | lưu thành công, amount = 250000 |
-| 8 | request ở FILLED | đóng với BOUGHT, bỏ trống amount | lưu thành công, amount = null |
+| #   | Given             | When                              | Then                                              |
+| --- | ----------------- | --------------------------------- | ------------------------------------------------- |
+| 1   | request ở FILLED  | đóng với BOUGHT + mã hợp lệ       | status = CLOSED, orderId được lưu                 |
+| 2   | request ở FILLED  | đóng với BOUGHT, không có mã      | `400 ERR_ORDER_ID_REQUIRED`, không đổi trạng thái |
+| 3   | request ở NEW     | đóng với NOT_BUYING               | status = CLOSED, orderId để trống                 |
+| 4   | request ở NEW     | đóng với NOT_BUYING kèm mã đơn    | status = CLOSED, orderId **không** được lưu       |
+| 5   | request đã CLOSED | đóng lần nữa                      | `409 ERR_INVALID_TRANSITION`                      |
+| 6   | request ở FILLED  | đóng với BOUGHT + amount = 0      | `400 ERR_AMOUNT_INVALID`                          |
+| 7   | request ở FILLED  | đóng với BOUGHT + amount = 250000 | lưu thành công, amount = 250000                   |
+| 8   | request ở FILLED  | đóng với BOUGHT, bỏ trống amount  | lưu thành công, amount = null                     |
 
 ### SPEC-003 — Gợi ý dùng lại mã đơn gần nhất
 
@@ -110,14 +110,14 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | tôi vừa đóng REQ-A với mã X trên Shopee 10 phút trước | mở form đóng REQ-B trên Shopee | suggestion = X |
-| 2 | mã X được dùng cách đây 25 giờ | mở form đóng | suggestion = null |
-| 3 | mã X do **người khác** dùng cách đây 10 phút | mở form đóng | suggestion = null |
-| 4 | tôi vừa dùng mã X trên Shopee | mở form đóng một yêu cầu TikTok | suggestion = null |
-| 5 | suggestion = X | tôi gõ mã Y rồi lưu | giá trị lưu là Y |
-| 6 | suggestion = X | tôi chọn dùng gợi ý rồi lưu | giá trị lưu là X, hai yêu cầu cùng mã — hợp lệ theo BR-004 |
+| #   | Given                                                 | When                            | Then                                                       |
+| --- | ----------------------------------------------------- | ------------------------------- | ---------------------------------------------------------- |
+| 1   | tôi vừa đóng REQ-A với mã X trên Shopee 10 phút trước | mở form đóng REQ-B trên Shopee  | suggestion = X                                             |
+| 2   | mã X được dùng cách đây 25 giờ                        | mở form đóng                    | suggestion = null                                          |
+| 3   | mã X do **người khác** dùng cách đây 10 phút          | mở form đóng                    | suggestion = null                                          |
+| 4   | tôi vừa dùng mã X trên Shopee                         | mở form đóng một yêu cầu TikTok | suggestion = null                                          |
+| 5   | suggestion = X                                        | tôi gõ mã Y rồi lưu             | giá trị lưu là Y                                           |
+| 6   | suggestion = X                                        | tôi chọn dùng gợi ý rồi lưu     | giá trị lưu là X, hai yêu cầu cùng mã — hợp lệ theo BR-004 |
 
 ### SPEC-004 — Cảnh báo lệch ngày trong mã Shopee
 
@@ -139,15 +139,15 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260809` | lưu | warning = false |
-| 2 | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260725` | lưu | warning = true, dữ liệu **vẫn được lưu** |
-| 3 | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260813` | lưu | warning = true, vẫn lưu |
-| 4 | yêu cầu tạo 10/08 lúc 23:50, mã bắt đầu `260811` (lệch múi giờ) | lưu | warning = false — nằm trong dung sai 1 ngày |
-| 5 | platform = TIKTOK | lưu bất kỳ mã hợp lệ nào | warning = false, không kiểm tra ngày |
-| 6 | warning = true | người dùng vẫn lưu | ghi cờ `orderIdWarning = true` lên yêu cầu **và** ghi dấu vết |
-| 7 | warning = true trước đó | sửa mã đơn thành giá trị hợp lệ | cờ `orderIdWarning` được tính lại và trở về false |
+| #   | Given                                                           | When                            | Then                                                          |
+| --- | --------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------- |
+| 1   | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260809`              | lưu                             | warning = false                                               |
+| 2   | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260725`              | lưu                             | warning = true, dữ liệu **vẫn được lưu**                      |
+| 3   | yêu cầu tạo 08/08, đóng 10/08, mã bắt đầu `260813`              | lưu                             | warning = true, vẫn lưu                                       |
+| 4   | yêu cầu tạo 10/08 lúc 23:50, mã bắt đầu `260811` (lệch múi giờ) | lưu                             | warning = false — nằm trong dung sai 1 ngày                   |
+| 5   | platform = TIKTOK                                               | lưu bất kỳ mã hợp lệ nào        | warning = false, không kiểm tra ngày                          |
+| 6   | warning = true                                                  | người dùng vẫn lưu              | ghi cờ `orderIdWarning = true` lên yêu cầu **và** ghi dấu vết |
+| 7   | warning = true trước đó                                         | sửa mã đơn thành giá trị hợp lệ | cờ `orderIdWarning` được tính lại và trở về false             |
 
 ### SPEC-005 — Hiển thị và lọc theo ngày tạo
 
@@ -167,15 +167,15 @@ downstream: [tech-spec-architecture, test-cases-specification]
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | có yêu cầu tạo 09/09 lúc 00:15 | lọc from=09/09, to=09/09 | yêu cầu đó **có** trong kết quả |
-| 2 | có yêu cầu tạo 09/09 lúc 23:45 | lọc from=09/09, to=09/09 | yêu cầu đó **có** trong kết quả |
-| 3 | có yêu cầu tạo 08/09 lúc 23:59 | lọc from=09/09, to=09/09 | **không** có trong kết quả |
-| 4 | — | lọc from=10/09, to=09/09 | `400 ERR_DATE_RANGE_INVALID` |
-| 5 | đã lọc from=01/09, to=09/09 | tải lại trang | bộ lọc còn nguyên |
-| 6 | đã lọc theo khoảng ngày | xuất tệp | tệp chỉ chứa các dòng đang lọc |
-| 7 | chỉ đặt from=01/09 | áp dụng | mọi yêu cầu từ 01/09 trở đi |
+| #   | Given                          | When                     | Then                            |
+| --- | ------------------------------ | ------------------------ | ------------------------------- |
+| 1   | có yêu cầu tạo 09/09 lúc 00:15 | lọc from=09/09, to=09/09 | yêu cầu đó **có** trong kết quả |
+| 2   | có yêu cầu tạo 09/09 lúc 23:45 | lọc from=09/09, to=09/09 | yêu cầu đó **có** trong kết quả |
+| 3   | có yêu cầu tạo 08/09 lúc 23:59 | lọc from=09/09, to=09/09 | **không** có trong kết quả      |
+| 4   | —                              | lọc from=10/09, to=09/09 | `400 ERR_DATE_RANGE_INVALID`    |
+| 5   | đã lọc from=01/09, to=09/09    | tải lại trang            | bộ lọc còn nguyên               |
+| 6   | đã lọc theo khoảng ngày        | xuất tệp                 | tệp chỉ chứa các dòng đang lọc  |
+| 7   | chỉ đặt from=01/09             | áp dụng                  | mọi yêu cầu từ 01/09 trở đi     |
 
 ### SPEC-006 — Phân giải thẩm quyền
 
@@ -198,26 +198,26 @@ canAccessRequest(actor, request, permission) -> boolean
 > Bảng 16 định danh được chốt **trước** khi F-15 vào phạm vi, nên ba điểm cuối đối soát không có định danh nào để dùng và đã phải tự so sánh vai. Đây là khe hở của tài liệu, không phải của mã. Hai định danh `reconciliation.*` dưới đây lấp khe hở đó.
 > Phạm vi cấp cho Master/Admin theo đúng ý định đã ghi trong mã (`TODO(Epic 5)` ở `reconciliation/import/route.ts`): nhập tệp đối soát là thao tác quản trị dữ liệu, không phải việc thường ngày của Affiliate. **Affiliate thường mất quyền đối soát so với hành vi tạm thời trước đó** — đây là thu hẹp có chủ ý.
 
-| Định danh | Có phạm vi | Buyer | Affiliate | AffiliateMaster | Admin |
-| --- | :--: | :--: | :--: | :--: | :--: |
-| `request.create` | – | ✓ | ✓ | ✓ | ✓ |
-| `request.view` | ✓ | own | any | any | any |
-| `request.edit` | ✓ | own | – | – | any |
-| `request.close` | ✓ | own | own | any | any |
-| `request.buyer_note` | ✓ | own | – | – | any |
-| `request.order_id.edit_any_status` | – | – | – | ✓ | ✓ |
-| `affiliate.queue.view` | – | – | ✓ | ✓ | ✓ |
-| `affiliate.claim.unclaimed` | – | – | ✓ | ✓ | ✓ |
-| `affiliate.claim.override` | – | – | – | ✓ | ✓ |
-| `affiliate.unclaim` | ✓ | – | own | any | any |
-| `affiliate.note` | ✓ | – | own | any | any |
-| `affiliate.fill` | ✓ | – | own | any | any |
-| `affiliate.bulk_close` | ✓ | – | own | any | any |
-| `reconciliation.run` | – | – | – | ✓ | ✓ |
-| `reconciliation.export` | – | – | – | ✓ | ✓ |
-| `user.manage` | – | – | – | – | ✓ |
-| `config.manage` | – | – | – | – | ✓ |
-| `system.bulk_close` | – | – | – | – | ✓ |
+| Định danh                          | Có phạm vi | Buyer | Affiliate | AffiliateMaster | Admin |
+| ---------------------------------- | :--------: | :---: | :-------: | :-------------: | :---: |
+| `request.create`                   |     –      |   ✓   |     ✓     |        ✓        |   ✓   |
+| `request.view`                     |     ✓      |  own  |    any    |       any       |  any  |
+| `request.edit`                     |     ✓      |  own  |     –     |        –        |  any  |
+| `request.close`                    |     ✓      |  own  |    own    |       any       |  any  |
+| `request.buyer_note`               |     ✓      |  own  |     –     |        –        |  any  |
+| `request.order_id.edit_any_status` |     –      |   –   |     –     |        ✓        |   ✓   |
+| `affiliate.queue.view`             |     –      |   –   |     ✓     |        ✓        |   ✓   |
+| `affiliate.claim.unclaimed`        |     –      |   –   |     ✓     |        ✓        |   ✓   |
+| `affiliate.claim.override`         |     –      |   –   |     –     |        ✓        |   ✓   |
+| `affiliate.unclaim`                |     ✓      |   –   |    own    |       any       |  any  |
+| `affiliate.note`                   |     ✓      |   –   |    own    |       any       |  any  |
+| `affiliate.fill`                   |     ✓      |   –   |    own    |       any       |  any  |
+| `affiliate.bulk_close`             |     ✓      |   –   |    own    |       any       |  any  |
+| `reconciliation.run`               |     –      |   –   |     –     |        ✓        |   ✓   |
+| `reconciliation.export`            |     –      |   –   |     –     |        ✓        |   ✓   |
+| `user.manage`                      |     –      |   –   |     –     |        –        |   ✓   |
+| `config.manage`                    |     –      |   –   |     –     |        –        |   ✓   |
+| `system.bulk_close`                |     –      |   –   |     –     |        –        |   ✓   |
 
 **Hành vi:**
 
@@ -228,23 +228,23 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | Affiliate A, yêu cầu do B giữ | gọi `affiliate.fill` | 403 |
-| 2 | Affiliate A, yêu cầu chưa ai giữ | gọi `affiliate.claim.unclaimed` | cho phép |
-| 3 | Affiliate A, yêu cầu do B giữ | gọi `affiliate.claim.override` | 403 |
-| 4 | AffiliateMaster, yêu cầu do B giữ | gọi `affiliate.claim.override` | cho phép |
-| 5 | AffiliateMaster | gọi `user.manage` | 403 |
-| 6 | AffiliateMaster | gọi `config.manage` | 403 |
-| 7 | AffiliateMaster | gọi `system.bulk_close` | 403 |
-| 8 | Buyer, yêu cầu của người khác | gọi `request.view` | 403 |
-| 9 | Buyer, yêu cầu của chính mình | gọi `request.close` | cho phép |
-| 10 | Chưa đăng nhập | gọi bất kỳ điểm cuối được bảo vệ nào | 401, **không** phải 403 |
-| 11 | Người dùng gọi thẳng điểm cuối, bỏ qua giao diện | thiếu thẩm quyền | 403 — ẩn nút không phải cấp phép |
-| 12 | Mã nguồn tham chiếu một định danh không tồn tại | biên dịch | lỗi biên dịch |
-| 13 | Affiliate thường | gọi `reconciliation.run` hoặc `reconciliation.export` | 403 |
-| 14 | AffiliateMaster | gọi `reconciliation.run` | cho phép |
-| 15 | AffiliateMaster, yêu cầu do B giữ | gọi `affiliate.fill` | cho phép — **không** cần tiếp quản trước |
+| #   | Given                                            | When                                                  | Then                                     |
+| --- | ------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------- |
+| 1   | Affiliate A, yêu cầu do B giữ                    | gọi `affiliate.fill`                                  | 403                                      |
+| 2   | Affiliate A, yêu cầu chưa ai giữ                 | gọi `affiliate.claim.unclaimed`                       | cho phép                                 |
+| 3   | Affiliate A, yêu cầu do B giữ                    | gọi `affiliate.claim.override`                        | 403                                      |
+| 4   | AffiliateMaster, yêu cầu do B giữ                | gọi `affiliate.claim.override`                        | cho phép                                 |
+| 5   | AffiliateMaster                                  | gọi `user.manage`                                     | 403                                      |
+| 6   | AffiliateMaster                                  | gọi `config.manage`                                   | 403                                      |
+| 7   | AffiliateMaster                                  | gọi `system.bulk_close`                               | 403                                      |
+| 8   | Buyer, yêu cầu của người khác                    | gọi `request.view`                                    | 403                                      |
+| 9   | Buyer, yêu cầu của chính mình                    | gọi `request.close`                                   | cho phép                                 |
+| 10  | Chưa đăng nhập                                   | gọi bất kỳ điểm cuối được bảo vệ nào                  | 401, **không** phải 403                  |
+| 11  | Người dùng gọi thẳng điểm cuối, bỏ qua giao diện | thiếu thẩm quyền                                      | 403 — ẩn nút không phải cấp phép         |
+| 12  | Mã nguồn tham chiếu một định danh không tồn tại  | biên dịch                                             | lỗi biên dịch                            |
+| 13  | Affiliate thường                                 | gọi `reconciliation.run` hoặc `reconciliation.export` | 403                                      |
+| 14  | AffiliateMaster                                  | gọi `reconciliation.run`                              | cho phép                                 |
+| 15  | AffiliateMaster, yêu cầu do B giữ                | gọi `affiliate.fill`                                  | cho phép — **không** cần tiếp quản trước |
 
 ### SPEC-007 — Tiếp quản và nhả việc của người khác
 
@@ -259,12 +259,12 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | yêu cầu FILLED do A giữ | Master tiếp quản | người giữ = Master, trạng thái vẫn FILLED |
-| 2 | yêu cầu NEW do A giữ | Master nhả việc | người giữ = rỗng, trạng thái vẫn NEW |
-| 3 | A bị vô hiệu hoá, đang giữ 3 yêu cầu | ngay sau khi vô hiệu hoá | cả 3 vẫn do A giữ |
-| 4 | tiếp quản xong | đọc dấu vết | có bản ghi kèm người giữ cũ và người giữ mới |
+| #   | Given                                | When                     | Then                                         |
+| --- | ------------------------------------ | ------------------------ | -------------------------------------------- |
+| 1   | yêu cầu FILLED do A giữ              | Master tiếp quản         | người giữ = Master, trạng thái vẫn FILLED    |
+| 2   | yêu cầu NEW do A giữ                 | Master nhả việc          | người giữ = rỗng, trạng thái vẫn NEW         |
+| 3   | A bị vô hiệu hoá, đang giữ 3 yêu cầu | ngay sau khi vô hiệu hoá | cả 3 vẫn do A giữ                            |
+| 4   | tiếp quản xong                       | đọc dấu vết              | có bản ghi kèm người giữ cũ và người giữ mới |
 
 ### SPEC-008 — Sửa mã đơn ở mọi trạng thái
 
@@ -279,13 +279,13 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | yêu cầu CLOSED, Master | đổi mã đơn sang giá trị hợp lệ | lưu thành công, trạng thái vẫn CLOSED |
-| 2 | yêu cầu CLOSED, Master | đổi sang mã sai khuôn dạng | `400 ERR_ORDER_ID_FORMAT` |
-| 3 | yêu cầu CLOSED, Affiliate thường | đổi mã đơn | 403 |
-| 4 | đổi mã thành công | đọc dấu vết | có bản ghi với giá trị cũ và mới |
-| 5 | yêu cầu CLOSED với NOT_BUYING, Master | thêm mã đơn | `409 ERR_ORDER_ID_NOT_APPLICABLE` |
+| #   | Given                                 | When                           | Then                                  |
+| --- | ------------------------------------- | ------------------------------ | ------------------------------------- |
+| 1   | yêu cầu CLOSED, Master                | đổi mã đơn sang giá trị hợp lệ | lưu thành công, trạng thái vẫn CLOSED |
+| 2   | yêu cầu CLOSED, Master                | đổi sang mã sai khuôn dạng     | `400 ERR_ORDER_ID_FORMAT`             |
+| 3   | yêu cầu CLOSED, Affiliate thường      | đổi mã đơn                     | 403                                   |
+| 4   | đổi mã thành công                     | đọc dấu vết                    | có bản ghi với giá trị cũ và mới      |
+| 5   | yêu cầu CLOSED với NOT_BUYING, Master | thêm mã đơn                    | `409 ERR_ORDER_ID_NOT_APPLICABLE`     |
 
 ### SPEC-009 — Ghi dấu vết
 
@@ -302,12 +302,12 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | Master thay link do A điền | lưu | có bản ghi với link cũ và mới |
-| 2 | Affiliate A điền link cho yêu cầu **chính mình** giữ | lưu | không bắt buộc ghi dấu vết vượt quyền |
-| 3 | Buyer sửa mã đơn của chính mình | lưu | **vẫn** ghi dấu vết (BR-052 áp dụng cho mọi người) |
-| 4 | bản ghi thiếu `actorId` | ghi | bị từ chối |
+| #   | Given                                                | When | Then                                               |
+| --- | ---------------------------------------------------- | ---- | -------------------------------------------------- |
+| 1   | Master thay link do A điền                           | lưu  | có bản ghi với link cũ và mới                      |
+| 2   | Affiliate A điền link cho yêu cầu **chính mình** giữ | lưu  | không bắt buộc ghi dấu vết vượt quyền              |
+| 3   | Buyer sửa mã đơn của chính mình                      | lưu  | **vẫn** ghi dấu vết (BR-052 áp dụng cho mọi người) |
+| 4   | bản ghi thiếu `actorId`                              | ghi  | bị từ chối                                         |
 
 ### SPEC-010 — Vòng đời tài khoản
 
@@ -323,13 +323,13 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | tài khoản bị vô hiệu hoá | đăng nhập | bị từ chối |
-| 2 | tài khoản bị vô hiệu hoá, từng xử lý 12 yêu cầu | xem 12 yêu cầu đó | dữ liệu còn nguyên |
-| 3 | đã qua 30 ngày | ẩn danh hoá | thông tin cá nhân trống, dấu vết còn nguyên |
-| 4 | sau khi ẩn danh | xem một yêu cầu người đó từng xử lý | vẫn thấy có người xử lý, dưới định danh ẩn danh |
-| 5 | chỉ còn 1 quản trị viên hoạt động | vô hiệu hoá chính tài khoản đó | `409 ERR_LAST_ADMIN` |
+| #   | Given                                           | When                                | Then                                            |
+| --- | ----------------------------------------------- | ----------------------------------- | ----------------------------------------------- |
+| 1   | tài khoản bị vô hiệu hoá                        | đăng nhập                           | bị từ chối                                      |
+| 2   | tài khoản bị vô hiệu hoá, từng xử lý 12 yêu cầu | xem 12 yêu cầu đó                   | dữ liệu còn nguyên                              |
+| 3   | đã qua 30 ngày                                  | ẩn danh hoá                         | thông tin cá nhân trống, dấu vết còn nguyên     |
+| 4   | sau khi ẩn danh                                 | xem một yêu cầu người đó từng xử lý | vẫn thấy có người xử lý, dưới định danh ẩn danh |
+| 5   | chỉ còn 1 quản trị viên hoạt động               | vô hiệu hoá chính tài khoản đó      | `409 ERR_LAST_ADMIN`                            |
 
 ### SPEC-011 — Ngân sách thị giác
 
@@ -349,14 +349,14 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | mở bất kỳ màn hình nào, không tương tác | quan sát 10 giây | không có phần tử nào chuyển động |
-| 2 | danh sách 50 dòng, máy yếu nhất trong nhóm | cuộn hết danh sách | không rớt khung hình rõ rệt |
-| 3 | người dùng bật giảm chuyển động ở hệ điều hành | mở ứng dụng | mọi chuyển tiếp bị tắt |
-| 4 | người mua không có yêu cầu nào đang chờ | mở trang chủ | không thấy ô thống kê giá trị 0 chiếm chỗ |
-| 5 | quản trị viên mở trang chủ | quan sát | không thấy lặp lại nguyên bảng danh sách đã có ở màn hình khác |
-| 6 | đếm màu nhấn trên màn hình danh sách | — | ≤ 3 màu ngoài các mức xám |
+| #   | Given                                          | When               | Then                                                           |
+| --- | ---------------------------------------------- | ------------------ | -------------------------------------------------------------- |
+| 1   | mở bất kỳ màn hình nào, không tương tác        | quan sát 10 giây   | không có phần tử nào chuyển động                               |
+| 2   | danh sách 50 dòng, máy yếu nhất trong nhóm     | cuộn hết danh sách | không rớt khung hình rõ rệt                                    |
+| 3   | người dùng bật giảm chuyển động ở hệ điều hành | mở ứng dụng        | mọi chuyển tiếp bị tắt                                         |
+| 4   | người mua không có yêu cầu nào đang chờ        | mở trang chủ       | không thấy ô thống kê giá trị 0 chiếm chỗ                      |
+| 5   | quản trị viên mở trang chủ                     | quan sát           | không thấy lặp lại nguyên bảng danh sách đã có ở màn hình khác |
+| 6   | đếm màu nhấn trên màn hình danh sách           | —                  | ≤ 3 màu ngoài các mức xám                                      |
 
 ### SPEC-012 — Gắn mã yêu cầu vào link affiliate
 
@@ -371,12 +371,12 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | mở màn hình điền link | quan sát | thấy mã yêu cầu và nút sao chép |
-| 2 | lưu link, có tích xác nhận đã gắn mã | lưu | `subIdStamped = true` |
-| 3 | lưu link, không tích | lưu | lưu thành công, `subIdStamped = false`, yêu cầu mang dấu hiệu cần đối soát tay |
-| 4 | lọc danh sách theo "chưa gắn mã" | áp dụng | chỉ còn các yêu cầu `subIdStamped = false` |
+| #   | Given                                | When     | Then                                                                           |
+| --- | ------------------------------------ | -------- | ------------------------------------------------------------------------------ |
+| 1   | mở màn hình điền link                | quan sát | thấy mã yêu cầu và nút sao chép                                                |
+| 2   | lưu link, có tích xác nhận đã gắn mã | lưu      | `subIdStamped = true`                                                          |
+| 3   | lưu link, không tích                 | lưu      | lưu thành công, `subIdStamped = false`, yêu cầu mang dấu hiệu cần đối soát tay |
+| 4   | lọc danh sách theo "chưa gắn mã"     | áp dụng  | chỉ còn các yêu cầu `subIdStamped = false`                                     |
 
 ### SPEC-013 — Nạp báo cáo sàn và ghép
 
@@ -396,33 +396,33 @@ canAccessRequest(actor, request, permission) -> boolean
 
 **Kịch bản:**
 
-| # | Given | When | Then |
-| --- | --- | --- | --- |
-| 1 | dòng báo cáo có `Sub_id1` = `REQ-20260810-0010`, yêu cầu đó tồn tại | ghép | ghép theo mã yêu cầu, không xét khoá khác |
-| 2 | dòng có `Sub_id1` trỏ tới mã yêu cầu không tồn tại | ghép | xếp vào nhóm không có yêu cầu tương ứng |
-| 3 | dòng không có `Sub_id1`, mã đơn và mã sản phẩm khớp một yêu cầu | ghép | ghép theo cặp khoá phụ |
-| 4 | một mã đơn có 3 dòng sản phẩm, chỉ 1 dòng khớp | ghép | 1 dòng vào nhóm đã ghép, 2 dòng vào nhóm không có yêu cầu tương ứng |
-| 5 | có yêu cầu đã đóng với lý do đã mua nhưng không dòng báo cáo nào khớp | ghép | xếp vào nhóm yêu cầu không có dòng báo cáo |
-| 6 | tệp có dòng trạng thái `Đã hủy` | ghép và xuất | dòng vẫn xuất hiện, cột trạng thái giữ nguyên |
-| 7 | tệp có cột lạ ngoài 47 cột đã biết | nạp | nạp thành công, cột lạ bị bỏ qua |
-| 8 | nạp cùng một tệp hai lần | nạp lần hai | dữ liệu yêu cầu không đổi so với trước khi nạp |
-| 9 | tệp sai định dạng, thiếu cột `ID đơn hàng` | nạp | `400 ERR_REPORT_FORMAT`, không xử lý dòng nào |
+| #   | Given                                                                 | When         | Then                                                                |
+| --- | --------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------- |
+| 1   | dòng báo cáo có `Sub_id1` = `REQ-20260810-0010`, yêu cầu đó tồn tại   | ghép         | ghép theo mã yêu cầu, không xét khoá khác                           |
+| 2   | dòng có `Sub_id1` trỏ tới mã yêu cầu không tồn tại                    | ghép         | xếp vào nhóm không có yêu cầu tương ứng                             |
+| 3   | dòng không có `Sub_id1`, mã đơn và mã sản phẩm khớp một yêu cầu       | ghép         | ghép theo cặp khoá phụ                                              |
+| 4   | một mã đơn có 3 dòng sản phẩm, chỉ 1 dòng khớp                        | ghép         | 1 dòng vào nhóm đã ghép, 2 dòng vào nhóm không có yêu cầu tương ứng |
+| 5   | có yêu cầu đã đóng với lý do đã mua nhưng không dòng báo cáo nào khớp | ghép         | xếp vào nhóm yêu cầu không có dòng báo cáo                          |
+| 6   | tệp có dòng trạng thái `Đã hủy`                                       | ghép và xuất | dòng vẫn xuất hiện, cột trạng thái giữ nguyên                       |
+| 7   | tệp có cột lạ ngoài 47 cột đã biết                                    | nạp          | nạp thành công, cột lạ bị bỏ qua                                    |
+| 8   | nạp cùng một tệp hai lần                                              | nạp lần hai  | dữ liệu yêu cầu không đổi so với trước khi nạp                      |
+| 9   | tệp sai định dạng, thiếu cột `ID đơn hàng`                            | nạp          | `400 ERR_REPORT_FORMAT`, không xử lý dòng nào                       |
 
 ## 3. Bảng mã lỗi
 
-| Mã | HTTP | Thông điệp cho người dùng |
-| --- | --- | --- |
-| `ERR_ORDER_ID_REQUIRED` | 400 | Cần nhập mã đơn khi lý do đóng là đã mua |
-| `ERR_ORDER_ID_FORMAT` | 400 | Mã đơn không đúng khuôn dạng của sàn này. Shopee: 14 ký tự bắt đầu bằng 6 chữ số ngày. TikTok: 18 chữ số |
-| `ERR_ORDER_ID_NOT_APPLICABLE` | 409 | Yêu cầu này không đóng với lý do đã mua nên không nhận mã đơn |
-| `ERR_AMOUNT_INVALID` | 400 | Số tiền phải lớn hơn 0 |
-| `ERR_DATE_RANGE_INVALID` | 400 | Ngày bắt đầu phải trước hoặc bằng ngày kết thúc |
-| `ERR_INVALID_TRANSITION` | 409 | Không thể chuyển yêu cầu sang trạng thái này |
-| `ERR_LAST_ADMIN` | 409 | Không thể vô hiệu hoá quản trị viên cuối cùng |
-| `ERR_FORBIDDEN` | 403 | Bạn không có quyền thực hiện thao tác này |
-| `ERR_UNAUTHENTICATED` | 401 | Vui lòng đăng nhập lại |
-| `ERR_REPORT_FORMAT` | 400 | Tệp báo cáo không đúng định dạng. Cần tệp CSV tải trực tiếp từ trang quản lý hoa hồng của sàn |
-| `WARN_ORDER_DATE_OUT_OF_RANGE` | — | Ngày trong mã đơn nằm ngoài khoảng thời gian của yêu cầu. Kiểm tra lại giúp bạn — vẫn lưu được nếu bạn chắc chắn |
+| Mã                             | HTTP | Thông điệp cho người dùng                                                                                        |
+| ------------------------------ | ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `ERR_ORDER_ID_REQUIRED`        | 400  | Cần nhập mã đơn khi lý do đóng là đã mua                                                                         |
+| `ERR_ORDER_ID_FORMAT`          | 400  | Mã đơn không đúng khuôn dạng của sàn này. Shopee: 14 ký tự bắt đầu bằng 6 chữ số ngày. TikTok: 18 chữ số         |
+| `ERR_ORDER_ID_NOT_APPLICABLE`  | 409  | Yêu cầu này không đóng với lý do đã mua nên không nhận mã đơn                                                    |
+| `ERR_AMOUNT_INVALID`           | 400  | Số tiền phải lớn hơn 0                                                                                           |
+| `ERR_DATE_RANGE_INVALID`       | 400  | Ngày bắt đầu phải trước hoặc bằng ngày kết thúc                                                                  |
+| `ERR_INVALID_TRANSITION`       | 409  | Không thể chuyển yêu cầu sang trạng thái này                                                                     |
+| `ERR_LAST_ADMIN`               | 409  | Không thể vô hiệu hoá quản trị viên cuối cùng                                                                    |
+| `ERR_FORBIDDEN`                | 403  | Bạn không có quyền thực hiện thao tác này                                                                        |
+| `ERR_UNAUTHENTICATED`          | 401  | Vui lòng đăng nhập lại                                                                                           |
+| `ERR_REPORT_FORMAT`            | 400  | Tệp báo cáo không đúng định dạng. Cần tệp CSV tải trực tiếp từ trang quản lý hoa hồng của sàn                    |
+| `WARN_ORDER_DATE_OUT_OF_RANGE` | —    | Ngày trong mã đơn nằm ngoài khoảng thời gian của yêu cầu. Kiểm tra lại giúp bạn — vẫn lưu được nếu bạn chắc chắn |
 
 ## 4. Hợp đồng giữa các tầng
 

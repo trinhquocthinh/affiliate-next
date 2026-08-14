@@ -31,7 +31,7 @@ export function useBuyerRequests() {
   })();
 
   const { data, isLoading, isValidating, mutate } = useSWR<RequestsListResponse>(swrKey);
-  const items = data?.ok ? data.data?.items ?? [] : [];
+  const items = data?.ok ? (data.data?.items ?? []) : [];
 
   function openDetail(item: BuyerRequestItem) {
     setSelectedId(item.id);

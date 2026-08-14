@@ -10,15 +10,15 @@ downstream: []
 
 # Onboarding Guide — Shop Quành
 
-| 📄 **Metadata** | 📑 **Details** |
-| :--- | :--- |
-| **Doc ID** | `onboarding-guide` |
-| **Version** | `1.0.0` |
-| **Status** | 🟢 **Approved** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [problem-definition], [prd], [tech-spec-architecture], [master-plan] |
-| **Downstream** | — |
+| 📄 **Metadata**  | 📑 **Details**                                                       |
+| :--------------- | :------------------------------------------------------------------- |
+| **Doc ID**       | `onboarding-guide`                                                   |
+| **Version**      | `1.0.0`                                                              |
+| **Status**       | 🟢 **Approved**                                                      |
+| **Last Updated** | `2026-08-11`                                                         |
+| **Owner**        | Quành (Admin)                                                        |
+| **Upstream**     | [problem-definition], [prd], [tech-spec-architecture], [master-plan] |
+| **Downstream**   | —                                                                    |
 
 Độc giả: một cộng tác viên mới, một AI agent, hoặc chính bạn sau sáu tháng đã quên sạch. Mục tiêu: từ chưa biết gì đến gửi được thay đổi đầu tiên trong dưới một giờ.
 
@@ -30,19 +30,19 @@ Một nhóm dưới 10 người bạn ở Việt Nam dùng chung một hàng đ�
 
 Đọc theo đúng thứ tự này nếu là lần đầu — mỗi tài liệu giả định bạn đã đọc tài liệu trước nó.
 
-| # | File | Trả lời câu hỏi gì | Đọc khi nào |
-| --- | --- | --- | --- |
-| 01 | `01-problem-definition.md` | Vấn đề gì, cho ai, tại sao đáng làm | Luôn đọc trước tiên |
-| 02 | `02-business-rules.md` | Luật nghiệp vụ nào không bao giờ được vi phạm | Trước khi chạm bất kỳ logic nào |
-| 03 | `03-prd.md` | Tính năng nào, ưu tiên ra sao, xong ở release nào | Trước khi nhận một task |
-| 04 | `04-sdd.md` | Hành vi chính xác, từng kịch bản kiểm chứng được | **Bắt buộc đọc trước khi viết code** cho task đó |
-| 05 | `05-tech-spec-architecture.md` | Kiến trúc, mô hình dữ liệu, vì sao chọn thế | Trước khi đổi cấu trúc thư mục hay lược đồ |
-| `07-diagrams/` | Sơ đồ trực quan của 3 tài liệu trên | Khi đọc chữ chưa hình dung ra luồng | |
-| 08 | `08-test-cases-specification.md` | Test case cụ thể, ánh xạ 1–1 với SDD | Lúc viết test |
-| 09 | `09-design-criteria.md` | Token màu, chữ, kiểm kê màn hình | Lúc chạm giao diện |
-| 10 | `10-setup-and-ops-guide.md` | Cài đặt, deploy, sự cố thường gặp | Lúc dựng môi trường hoặc gỡ lỗi vận hành |
-| 06 | `06-plan-and-scope.md` | Chia giai đoạn theo tuần, điểm dừng | Khi cần biết đang ở đâu trong 5 tháng |
-| 11 | `11-master-plan.md` | Epic/Story/Subtask cụ thể, đường găng, việc ngoài phạm vi | **Mở mỗi ngày làm việc** |
+| #              | File                                | Trả lời câu hỏi gì                                        | Đọc khi nào                                      |
+| -------------- | ----------------------------------- | --------------------------------------------------------- | ------------------------------------------------ |
+| 01             | `01-problem-definition.md`          | Vấn đề gì, cho ai, tại sao đáng làm                       | Luôn đọc trước tiên                              |
+| 02             | `02-business-rules.md`              | Luật nghiệp vụ nào không bao giờ được vi phạm             | Trước khi chạm bất kỳ logic nào                  |
+| 03             | `03-prd.md`                         | Tính năng nào, ưu tiên ra sao, xong ở release nào         | Trước khi nhận một task                          |
+| 04             | `04-sdd.md`                         | Hành vi chính xác, từng kịch bản kiểm chứng được          | **Bắt buộc đọc trước khi viết code** cho task đó |
+| 05             | `05-tech-spec-architecture.md`      | Kiến trúc, mô hình dữ liệu, vì sao chọn thế               | Trước khi đổi cấu trúc thư mục hay lược đồ       |
+| `07-diagrams/` | Sơ đồ trực quan của 3 tài liệu trên | Khi đọc chữ chưa hình dung ra luồng                       |                                                  |
+| 08             | `08-test-cases-specification.md`    | Test case cụ thể, ánh xạ 1–1 với SDD                      | Lúc viết test                                    |
+| 09             | `09-design-criteria.md`             | Token màu, chữ, kiểm kê màn hình                          | Lúc chạm giao diện                               |
+| 10             | `10-setup-and-ops-guide.md`         | Cài đặt, deploy, sự cố thường gặp                         | Lúc dựng môi trường hoặc gỡ lỗi vận hành         |
+| 06             | `06-plan-and-scope.md`              | Chia giai đoạn theo tuần, điểm dừng                       | Khi cần biết đang ở đâu trong 5 tháng            |
+| 11             | `11-master-plan.md`                 | Epic/Story/Subtask cụ thể, đường găng, việc ngoài phạm vi | **Mở mỗi ngày làm việc**                         |
 
 `INDEX.md` ở gốc `docs/` luôn là nguồn xác định phiên bản và trạng thái mới nhất của từng tài liệu — nếu số phiên bản ở đây khác `INDEX.md`, tin `INDEX.md`.
 
@@ -96,11 +96,11 @@ Phần còn lại của mã nguồn **không** theo cấu trúc Clean Architectu
 
 ## 5. Quy ước
 
-| Việc | Quy ước |
-| --- | --- |
-| Tên nhánh | `<epic-id>-<mô-tả-ngắn>`, ví dụ `e4-s3-ghep-sub-id` |
-| Commit | Mỗi subtask trong master-plan tương ứng ít nhất một commit gộp được. Nội dung commit nêu ID subtask, ví dụ `E4-S3-T1: hàm ghép theo Sub_id1` |
-| Pull Request | Mở PR → Vercel tự dựng Preview Deployment trỏ nhánh `uat` của Neon → thử tay trên URL đó → đối chiếu Definition of Done ở `06-plan-and-scope.md` §4 → merge |
+| Việc         | Quy ước                                                                                                                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tên nhánh    | `<epic-id>-<mô-tả-ngắn>`, ví dụ `e4-s3-ghep-sub-id`                                                                                                                                                                                                |
+| Commit       | Mỗi subtask trong master-plan tương ứng ít nhất một commit gộp được. Nội dung commit nêu ID subtask, ví dụ `E4-S3-T1: hàm ghép theo Sub_id1`                                                                                                       |
+| Pull Request | Mở PR → Vercel tự dựng Preview Deployment trỏ nhánh `uat` của Neon → thử tay trên URL đó → đối chiếu Definition of Done ở `06-plan-and-scope.md` §4 → merge                                                                                        |
 | Cổng tự động | `yarn lint`, `yarn tsc --noEmit`, `yarn test` chạy trong CI trên mọi PR. Đỏ ở `yarn test` cho `src/domain/` nghĩa là hành vi sai theo SDD — sửa code, không sửa test, trừ khi SDD chính nó sai (thì sửa SDD trước, bump version, rồi mới sửa test) |
 
 ## 6. Thêm một tính năng mới — ví dụ thật: E6-S4-T1 (gợi ý dùng lại mã đơn)
@@ -136,16 +136,16 @@ Viết hàm `suggestOrderId(actorId, platform, recentCloses)` — thuần, nhậ
 
 ## 7. Nơi tìm câu trả lời
 
-| Câu hỏi | Tài liệu |
-| --- | --- |
-| "Vì sao tính năng này tồn tại?" | `01-problem-definition.md`, tra theo BR-ID hoặc S-ID |
-| "Ai được làm gì?" | `02-business-rules.md` nhóm Quyền, hoặc `04-sdd.md` SPEC-006 |
-| "Hành vi chính xác khi... ?" | `04-sdd.md`, tìm SPEC tương ứng |
+| Câu hỏi                                | Tài liệu                                                            |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| "Vì sao tính năng này tồn tại?"        | `01-problem-definition.md`, tra theo BR-ID hoặc S-ID                |
+| "Ai được làm gì?"                      | `02-business-rules.md` nhóm Quyền, hoặc `04-sdd.md` SPEC-006        |
+| "Hành vi chính xác khi... ?"           | `04-sdd.md`, tìm SPEC tương ứng                                     |
 | "Vì sao chọn công nghệ/kiến trúc này?" | `05-tech-spec-architecture.md`, mỗi lựa chọn có cột "Từ bỏ điều gì" |
-| "Màu này, khoảng cách này lấy từ đâu?" | `09-design-criteria.md` §2 |
-| "Sao cái này lỗi, từng gặp chưa?" | `10-setup-and-ops-guide.md` §8 |
-| "Đang ở tuần nào, còn bao nhiêu giờ?" | `11-master-plan.md` §1 bảng tiến độ |
-| "Cái này có đáng làm bây giờ không?" | `11-master-plan.md` §12 — có thể nó đã có sẵn điều kiện kích hoạt |
+| "Màu này, khoảng cách này lấy từ đâu?" | `09-design-criteria.md` §2                                          |
+| "Sao cái này lỗi, từng gặp chưa?"      | `10-setup-and-ops-guide.md` §8                                      |
+| "Đang ở tuần nào, còn bao nhiêu giờ?"  | `11-master-plan.md` §1 bảng tiến độ                                 |
+| "Cái này có đáng làm bây giờ không?"   | `11-master-plan.md` §12 — có thể nó đã có sẵn điều kiện kích hoạt   |
 
 ## 8. Cạm bẫy
 

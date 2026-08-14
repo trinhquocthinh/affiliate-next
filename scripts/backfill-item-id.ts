@@ -4,7 +4,7 @@ import { extractProductItemId } from "../src/lib/url-utils";
 
 async function main() {
   console.log("Fetching requests with missing productItemId...");
-  
+
   const requests = await prisma.request.findMany({
     where: { productItemId: null },
     select: { id: true, productUrlRaw: true, platform: true },
@@ -13,10 +13,10 @@ async function main() {
   console.log(`Found ${requests.length} requests to process.`);
 
   let successCount = 0;
-  
+
   for (const req of requests) {
     const itemId = extractProductItemId(req.productUrlRaw, req.platform);
-    
+
     if (itemId) {
       await prisma.request.update({
         where: { id: req.id },
@@ -26,10 +26,13 @@ async function main() {
     }
   }
 
-  const percentage = requests.length === 0 ? 100 : Math.round((successCount / requests.length) * 100);
-  
+  const percentage =
+    requests.length === 0 ? 100 : Math.round((successCount / requests.length) * 100);
+
   console.log(`\nBackfill complete!`);
-  console.log(`Successfully extracted ${successCount}/${requests.length} item IDs (${percentage}%).`);
+  console.log(
+    `Successfully extracted ${successCount}/${requests.length} item IDs (${percentage}%).`,
+  );
 }
 
 main()

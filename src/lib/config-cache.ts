@@ -1,10 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_CONFIG } from "@/lib/constants";
-import {
-  parseAllowedColumns,
-  type AffiliateColumnId,
-} from "@/lib/affiliate-columns";
+import { parseAllowedColumns, type AffiliateColumnId } from "@/lib/affiliate-columns";
 
 export type AppConfigMap = {
   STALE_REQUEST_HOURS: number;

@@ -49,8 +49,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
-
+      <body className="flex min-h-full flex-col">
         <SWRProvider>{children}</SWRProvider>
         <GlobalProgress />
         <Toaster richColors position="top-right" />

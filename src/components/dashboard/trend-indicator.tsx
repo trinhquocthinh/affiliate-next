@@ -41,7 +41,7 @@ export function TrendIndicator({
         {sign}
         {delta}
       </span>
-      <span className="text-muted-foreground font-normal">{label}</span>
+      <span className="font-normal text-muted-foreground">{label}</span>
     </span>
   );
 }

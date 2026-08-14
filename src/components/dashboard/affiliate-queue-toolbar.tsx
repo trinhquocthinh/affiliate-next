@@ -18,11 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import {
-  SearchIcon,
-  DownloadIcon,
-  Columns3Icon,
-} from "lucide-react";
+import { SearchIcon, DownloadIcon, Columns3Icon } from "lucide-react";
 import { SORT_OPTIONS, type BuyerOption } from "@/lib/affiliate-queue";
 import type { AffiliateColumnId } from "@/lib/affiliate-columns";
 import type { EffectiveColumn } from "@/lib/affiliate-columns";
@@ -67,15 +63,15 @@ export function AffiliateQueueToolbar({
   visibleColumnsCount: number;
 }) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+    <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
       {/* Search */}
       <div className="relative w-full lg:flex-1">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <Input
           placeholder="Search requestsId, product name, requester name..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 shadow-sm h-10.5"
+          className="h-10.5 rounded-xl border-slate-200 bg-white pl-10 shadow-sm placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500 dark:border-slate-800 dark:bg-[#131B2F] dark:placeholder:text-slate-500"
         />
       </div>
 
@@ -86,10 +82,22 @@ export function AffiliateQueueToolbar({
           createdTo={createdTo}
           onChange={onDateRangeChange}
         />
-        <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v ?? "ALL")} disabled={fetching}>
-          <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-30 shadow-sm">
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => onStatusFilterChange(v ?? "ALL")}
+          disabled={fetching}
+        >
+          <SelectTrigger className="h-10.5! w-30 rounded-xl border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm focus:ring-emerald-500 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-300">
             <SelectValue>
-              {({ ALL: "All Status", OPEN: "Open", NEW: "Pending", FILLED: "Ready", CLOSED: "Closed" } as Record<string, string>)[statusFilter] ?? "All Status"}
+              {(
+                {
+                  ALL: "All Status",
+                  OPEN: "Open",
+                  NEW: "Pending",
+                  FILLED: "Ready",
+                  CLOSED: "Closed",
+                } as Record<string, string>
+              )[statusFilter] ?? "All Status"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -101,14 +109,18 @@ export function AffiliateQueueToolbar({
           </SelectContent>
         </Select>
 
-        <Select value={buyerFilter} onValueChange={(v) => onBuyerFilterChange(v ?? "ALL")} disabled={fetching}>
-          <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-32.5 shadow-sm">
+        <Select
+          value={buyerFilter}
+          onValueChange={(v) => onBuyerFilterChange(v ?? "ALL")}
+          disabled={fetching}
+        >
+          <SelectTrigger className="h-10.5! w-32.5 rounded-xl border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm focus:ring-emerald-500 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-300">
             <SelectValue>
               {buyerFilter === "ALL"
                 ? "All Buyers"
-                : (buyers.find((b) => b.id === buyerFilter)?.displayName ||
+                : buyers.find((b) => b.id === buyerFilter)?.displayName ||
                   buyers.find((b) => b.id === buyerFilter)?.email ||
-                  "All Buyers")}
+                  "All Buyers"}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -121,11 +133,13 @@ export function AffiliateQueueToolbar({
           </SelectContent>
         </Select>
 
-        <Select value={sortValue} onValueChange={(v) => onSortChange(v ?? "createdAt:desc")} disabled={fetching}>
-          <SelectTrigger className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl h-10.5! focus:ring-emerald-500 w-47.5 shadow-sm">
-            <SelectValue>
-              {SORT_OPTIONS.find((o) => o.value === sortValue)?.label}
-            </SelectValue>
+        <Select
+          value={sortValue}
+          onValueChange={(v) => onSortChange(v ?? "createdAt:desc")}
+          disabled={fetching}
+        >
+          <SelectTrigger className="h-10.5! w-47.5 rounded-xl border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm focus:ring-emerald-500 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-300">
+            <SelectValue>{SORT_OPTIONS.find((o) => o.value === sortValue)?.label}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map((opt) => (
@@ -141,7 +155,7 @@ export function AffiliateQueueToolbar({
             render={
               <Button
                 variant="outline"
-                className="bg-white hover:bg-slate-50 dark:bg-[#131B2F] dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl shadow-sm text-xs h-10.5"
+                className="h-10.5 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-300 dark:hover:bg-slate-800"
               />
             }
           >
@@ -178,7 +192,7 @@ export function AffiliateQueueToolbar({
           variant="outline"
           onClick={onExportCSV}
           disabled={exporting || visibleColumnsCount === 0}
-          className="bg-white hover:bg-slate-50 dark:bg-[#131B2F] dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl shadow-sm text-xs h-10.5"
+          className="h-10.5 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-300 dark:hover:bg-slate-800"
         >
           <DownloadIcon size={14} className="mr-2" />
           {exporting ? "Exporting..." : "CSV"}

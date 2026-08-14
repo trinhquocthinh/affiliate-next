@@ -4,13 +4,18 @@ export type UserItem = {
   displayName: string | null;
   role: string;
   status: string;
+  discordId: string | null;
   lastLoginAt: string | null;
   createdAt: string;
 };
 
-export type AdminAction = "APPROVE" | "REJECT" | "DELETE" | "REOPEN";
+export type AdminAction = "APPROVE" | "REJECT" | "DELETE" | "REOPEN" | "EDIT_DISCORD";
 
-export type UsersResponse = { ok: boolean; data?: { users: UserItem[] }; error?: { message?: string } };
+export type UsersResponse = {
+  ok: boolean;
+  data?: { users: UserItem[] };
+  error?: { message?: string };
+};
 
 export const roleStyles: Record<string, string> = {
   BUYER:
@@ -45,4 +50,5 @@ export const ACTION_SUCCESS_TOAST: Record<AdminAction, string> = {
   REJECT: "Đã từ chối người dùng",
   DELETE: "Đã vô hiệu hoá người dùng",
   REOPEN: "Đã mở lại tài khoản",
+  EDIT_DISCORD: "Đã cập nhật Discord ID",
 };

@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/swr-fetcher";
-import { AFFILIATE_COLUMNS, parseAllowedColumns, type AffiliateColumnId } from "@/lib/affiliate-columns";
+import {
+  AFFILIATE_COLUMNS,
+  parseAllowedColumns,
+  type AffiliateColumnId,
+} from "@/lib/affiliate-columns";
 
 /**
  * Admin-side toggle for which affiliate-queue columns are allowed at all
@@ -19,7 +23,8 @@ export function useAffiliateAllowedColumns({
     () => new Set<AffiliateColumnId>(parseAllowedColumns(remoteValue)),
     [remoteValue],
   );
-  const [allowedColumns, setAllowedColumns] = useState<Set<AffiliateColumnId>>(initialAllowedColumns);
+  const [allowedColumns, setAllowedColumns] =
+    useState<Set<AffiliateColumnId>>(initialAllowedColumns);
   const [columnsDirty, setColumnsDirty] = useState(false);
   const [savingColumns, setSavingColumns] = useState(false);
 

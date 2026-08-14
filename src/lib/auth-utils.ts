@@ -41,13 +41,27 @@ export async function getApiActorContext(): Promise<ActorContext | null> {
     return null;
   }
 
-  const role = session.user.role ?? "BUYER";
+  let role = session.user.role;
+  let email = session.user.email;
+  let displayName = session.user.name ?? null;
+
+  if (!role || !email) {
+    const { prisma } = await import("@/lib/prisma");
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, email: true, displayName: true },
+    });
+    if (!user) return null;
+    role = user.role;
+    email = user.email;
+    displayName = displayName ?? user.displayName;
+  }
 
   return {
     userId: session.user.id,
-    email: session.user.email!,
-    role,
-    displayName: session.user.name ?? null,
+    email: email || "",
+    role: role ?? "BUYER",
+    displayName,
   };
 }
 

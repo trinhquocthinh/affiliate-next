@@ -1,27 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { queueFilterSchema } from "@/lib/validations";
 import { getAppConfig } from "@/lib/config-cache";
-import { assertPermission, Actor, PermissionError } from "@/domain/permissions/resolve";
+import { requireApiAuth } from "@/lib/api-utils";
 
 // GET /api/affiliate/queue — affiliate work queue
 export async function GET(request: Request) {
   try {
-    const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
-
-    try {
-      assertPermission(actor, "affiliate.queue.view");
-    } catch (e: unknown) {
-      if (e instanceof PermissionError) {
-        return NextResponse.json(
-          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
-          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
-        );
-      }
-      throw e;
-    }
+    const auth = await requireApiAuth("affiliate.queue.view");
+    if (auth.error) return auth.error;
 
     const { searchParams } = new URL(request.url);
     const parsed = queueFilterSchema.safeParse(Object.fromEntries(searchParams));
@@ -33,7 +20,17 @@ export async function GET(request: Request) {
       );
     }
 
-    const { search, statusFilter, buyerId, createdFrom, createdTo, sortBy, sortOrder, page, limit } = parsed.data;
+    const {
+      search,
+      statusFilter,
+      buyerId,
+      createdFrom,
+      createdTo,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    } = parsed.data;
 
     // Build where clause
     const conditions: Record<string, unknown>[] = [];
@@ -75,6 +72,11 @@ export async function GET(request: Request) {
 
     const where = conditions.length > 0 ? { AND: conditions } : {};
 
+    // Get config values (cached — avoids a DB round-trip on each queue request)
+    const config = await getAppConfig();
+    const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 3600000);
+    const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 3600000);
+
     const [items, total] = await Promise.all([
       prisma.request.findMany({
         where,
@@ -88,11 +90,6 @@ export async function GET(request: Request) {
       }),
       prisma.request.count({ where }),
     ]);
-
-    // Get config values (cached — avoids a DB round-trip on each queue request)
-    const config = await getAppConfig();
-    const staleThreshold = new Date(Date.now() - config.STALE_REQUEST_HOURS * 3600000);
-    const dupCutoff = new Date(Date.now() - config.DUPLICATE_WINDOW_HOURS * 3600000);
 
     // Build duplicate index for visibility
     const normUrls = [...new Set(items.map((i) => i.productUrlNorm))];
@@ -136,7 +133,7 @@ export async function GET(request: Request) {
       isStale: item.status !== "CLOSED" && item.createdAt < staleThreshold,
       ageHours: Math.floor((Date.now() - item.createdAt.getTime()) / 3600000),
       isClaimed: !!item.affiliateOwnerId,
-      isOwnedByMe: item.affiliateOwnerId === actorCtx!.userId,
+      isOwnedByMe: item.affiliateOwnerId === auth.actor.userId,
       hasPotentialDuplicate: !!item.duplicateOfId || (dupCounts[item.productUrlNorm] || 0) > 1,
     }));
 
@@ -158,8 +155,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Affiliate queue error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to load queue";
     return NextResponse.json(
-      { ok: false, error: { code: "REQUEST_FAILED", message: "Failed to load queue" } },
+      { ok: false, error: { code: "REQUEST_FAILED", message: errorMessage } },
       { status: 500 },
     );
   }

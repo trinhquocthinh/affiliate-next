@@ -38,40 +38,48 @@ export default function AffiliateQueuePage() {
     <>
       <AppHeader title="Affiliate Queue" />
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-400 mx-auto w-full pb-20">
-
+        <div className="mx-auto w-full max-w-400 pb-20">
           {/* Top Metrics Cards */}
           <TooltipProvider>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
-              <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden">
+            <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#131B2F]">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3">
                     <InboxIcon size={20} className="text-slate-400 dark:text-slate-500" />
                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                       {queue.summary.processedCount}{" "}
-                      <span className="text-sm font-medium text-slate-400 dark:text-slate-500">/ {queue.summary.total}</span>
+                      <span className="text-sm font-medium text-slate-400 dark:text-slate-500">
+                        / {queue.summary.total}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500 mt-2">
+                  <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500">
                     Total [Processed / All]
                     <InfoTooltip
                       content={
                         <div className="flex flex-col gap-1">
-                          <p><span className="font-semibold">Processed:</span> requests that have been assigned to an affiliate</p>
-                          <p><span className="font-semibold">All:</span> total requests submitted</p>
+                          <p>
+                            <span className="font-semibold">Processed:</span> requests that have
+                            been assigned to an affiliate
+                          </p>
+                          <p>
+                            <span className="font-semibold">All:</span> total requests submitted
+                          </p>
                         </div>
                       }
                     />
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden">
+              <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#131B2F]">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3">
                     <AlertTriangleIcon size={20} className="text-amber-500" />
-                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{queue.summary.staleCount}</div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      {queue.summary.staleCount}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500 mt-2">
+                  <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-500">
                     Stale
                     <InfoTooltip
                       content={<p>Requests that have not been closed for too long</p>}
@@ -81,7 +89,9 @@ export default function AffiliateQueuePage() {
                 </CardContent>
               </Card>
             </div>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mb-6 ml-2">These metrics are not affected by filters</p>
+            <p className="mb-6 ml-2 text-[11px] text-slate-400 italic dark:text-slate-500">
+              These metrics are not affected by filters
+            </p>
           </TooltipProvider>
 
           {/* Discord Linking */}
@@ -129,10 +139,14 @@ export default function AffiliateQueuePage() {
 
           {/* Empty */}
           {!queue.loading && queue.items.length === 0 && (
-            <div className="bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-              <InboxIcon className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Queue is empty</h3>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No requests matching your filters.</p>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800/80 dark:bg-[#131B2F]">
+              <InboxIcon className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
+              <h3 className="mb-2 text-base font-bold text-slate-900 dark:text-white">
+                Queue is empty
+              </h3>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                No requests matching your filters.
+              </p>
             </div>
           )}
 

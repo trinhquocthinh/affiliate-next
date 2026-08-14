@@ -59,9 +59,7 @@ const buyerItems: NavItem[] = [
   { title: "My Requests", href: "/buyer/requests", icon: ListIcon },
 ];
 
-const affiliateItems: NavItem[] = [
-  { title: "Queue", href: "/affiliate", icon: InboxIcon },
-];
+const affiliateItems: NavItem[] = [{ title: "Queue", href: "/affiliate", icon: InboxIcon }];
 
 // Reconciliation nằm ở nhóm Admin vì cùng đường dẫn /admin/*, nhưng nó **không**
 // đòi `user.manage` như Users/Config — AffiliateMaster cũng chạy đối soát được.
@@ -85,6 +83,39 @@ type AppSidebarProps = {
   };
 };
 
+function SidebarNavSection({
+  label,
+  items,
+  pathname,
+}: {
+  label: string;
+  items: { title: string; href: string; icon: React.ElementType }[];
+  pathname: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel className="text-[11px] font-semibold tracking-wider uppercase">
+        {label}
+      </SidebarGroupLabel>
+      <SidebarMenu>
+        {items.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              render={<Link href={item.href} />}
+              isActive={pathname === item.href}
+              tooltip={item.title}
+            >
+              <item.icon />
+              <span>{item.title}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -94,7 +125,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
   // nên gán vai Master cho ai đó là họ mất luôn mục Queue.
   const { hasPermission } = usePermissions();
   const isAffiliate = hasPermission("affiliate.queue.view");
-  const visibleAdminItems = adminItems.filter((item) => !item.requires || hasPermission(item.requires));
+  const visibleAdminItems = adminItems.filter(
+    (item) => !item.requires || hasPermission(item.requires),
+  );
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -113,7 +146,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   alt="Shop Quành"
                   width={80}
                   height={80}
-                  className="object-contain drop-shadow-[0_0_3px_rgba(16,185,129,0.8)] brightness-110"
+                  className="object-contain brightness-110 drop-shadow-[0_0_3px_rgba(16,185,129,0.8)]"
                 />
               </div>
               <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
@@ -131,7 +164,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="/" />} isActive={pathname === "/"} tooltip="Home">
+              <SidebarMenuButton
+                render={<Link href="/" />}
+                isActive={pathname === "/"}
+                tooltip="Home"
+              >
                 <HomeIcon />
                 <span>Home</span>
               </SidebarMenuButton>
@@ -139,50 +176,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Buyer</SidebarGroupLabel>
-          <SidebarMenu>
-            {buyerItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
+        <SidebarNavSection label="Buyer" items={buyerItems} pathname={pathname} />
         {isAffiliate && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Affiliate</SidebarGroupLabel>
-            <SidebarMenu>
-              {affiliateItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          <SidebarNavSection label="Affiliate" items={affiliateItems} pathname={pathname} />
         )}
-
         {visibleAdminItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="uppercase tracking-wider text-[11px] font-semibold">Admin</SidebarGroupLabel>
-            <SidebarMenu>
-              {visibleAdminItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />} isActive={pathname === item.href} tooltip={item.title}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          <SidebarNavSection label="Admin" items={visibleAdminItems} pathname={pathname} />
         )}
       </SidebarContent>
 
@@ -190,30 +189,27 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger render={
-                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent" />
-              }>
+              <DropdownMenuTrigger
+                render={
+                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent" />
+                }
+              >
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  <AvatarFallback className="bg-primary/10 text-xs text-primary">
                     {getInitials(user.displayName, user.email)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col gap-0.5 leading-none text-left">
-                  <span className="text-sm font-medium truncate">
+                <div className="flex flex-col gap-0.5 text-left leading-none">
+                  <span className="truncate text-sm font-medium">
                     {user.displayName || user.email}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="truncate text-xs text-muted-foreground">
                     {user.role.toLowerCase()}
                   </span>
                 </div>
                 <ChevronsUpDownIcon className="ml-auto size-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-56"
-                side="top"
-                align="start"
-                sideOffset={4}
-              >
+              <DropdownMenuContent className="w-56" side="top" align="start" sideOffset={4}>
                 <DropdownMenuItem onClick={() => setTheme("light")}>
                   <SunIcon className="mr-2 h-4 w-4" />
                   Light

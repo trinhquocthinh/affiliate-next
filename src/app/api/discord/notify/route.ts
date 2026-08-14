@@ -18,10 +18,7 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     // Find NEW requests that haven't been notified yet
@@ -144,19 +141,13 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Discord notify error:", error);
-    return NextResponse.json(
-      { ok: false, error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
 /** Create a new Discord thread and persist its ID in AppConfig */
 async function createAndSaveThread(channelId: string, todayStr: string) {
-  const newThread = await createThread(
-    channelId,
-    `📋 Requests — ${todayStr}`,
-  );
+  const newThread = await createThread(channelId, `📋 Requests — ${todayStr}`);
   await Promise.all([
     prisma.appConfig.upsert({
       where: { key: "DISCORD_CURRENT_THREAD_ID" },

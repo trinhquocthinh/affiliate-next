@@ -163,6 +163,7 @@ model Request {
   duplicates         Request[]     @relation("Duplicates")
   discordNotifiedAt  DateTime?
   discordMessageId   String?
+  sourceChannel      String        @default("website") // E7-S2: discord/website
 
   auditLogs          AuditLog[]
   reconciliationRows ReconciliationRow[] @relation("MatchedRequest")

@@ -5,11 +5,7 @@ import { ActorProvider } from "@/components/layout/actor-provider";
 import { getActorContext } from "@/lib/auth-utils";
 import { cookies } from "next/headers";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const actor = await getActorContext();
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
@@ -25,9 +21,7 @@ export default async function DashboardLayout({
               role: actor.role,
             }}
           />
-          <SidebarInset>
-            {children}
-          </SidebarInset>
+          <SidebarInset>{children}</SidebarInset>
         </SidebarProvider>
       </ActorProvider>
     </ThemeProvider>

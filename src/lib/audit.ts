@@ -54,7 +54,9 @@ export function isOwnershipOverride(
  * Dùng nhãn máy đọc được (`ownership_override`, `link_replaced`) thay vì câu
  * tiếng Việt, vì đây là thứ sẽ bị lọc và đếm khi rà dấu vết.
  */
-export function auditRemark(...flags: Array<string | false | null | undefined>): string | undefined {
+export function auditRemark(
+  ...flags: Array<string | false | null | undefined>
+): string | undefined {
   const set = flags.filter((flag): flag is string => !!flag);
   return set.length > 0 ? set.join(",") : undefined;
 }

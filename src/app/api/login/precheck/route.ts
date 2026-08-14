@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRequestRateLimit } from "@/lib/api-utils";
 import { verifyRequestSecurity } from "@/lib/security-guard";
 
 export const runtime = "nodejs";
@@ -23,17 +23,8 @@ export const runtime = "nodejs";
  */
 export async function POST(request: Request) {
   // Rate limit: 5 attempts/min/IP
-  const ip = getClientIp(request);
-  const limit = rateLimit(`precheck:${ip}`, { limit: 5, windowSecs: 60 });
-  if (!limit.allowed) {
-    return NextResponse.json(
-      { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please try again later." } },
-      {
-        status: 429,
-        headers: { "Retry-After": String(Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000)) },
-      },
-    );
-  }
+  const rateLimitRes = checkRequestRateLimit(request, { limit: 5, windowSecs: 60 });
+  if (rateLimitRes) return rateLimitRes;
 
   const guard = await verifyRequestSecurity(request, { requireTurnstile: false });
   if (!guard.ok) return guard.response;
@@ -68,10 +59,7 @@ export async function POST(request: Request) {
 
   // Password is correct — now check account status
   if (user.status === "PENDING") {
-    return NextResponse.json(
-      { ok: false, error: { code: "PENDING" } },
-      { status: 403 },
-    );
+    return NextResponse.json({ ok: false, error: { code: "PENDING" } }, { status: 403 });
   }
 
   if (user.status === "REJECTED") {
@@ -82,10 +70,7 @@ export async function POST(request: Request) {
   }
 
   if (user.status === "INACTIVE") {
-    return NextResponse.json(
-      { ok: false, error: { code: "INACTIVE" } },
-      { status: 403 },
-    );
+    return NextResponse.json({ ok: false, error: { code: "INACTIVE" } }, { status: 403 });
   }
 
   // ACTIVE — allow client to proceed with NextAuth signIn

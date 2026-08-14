@@ -7,12 +7,18 @@ import {
 } from "./affiliate-columns";
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address").transform((v) => v.toLowerCase().trim()),
+  email: z
+    .string()
+    .email("Invalid email address")
+    .transform((v) => v.toLowerCase().trim()),
   password: z.string().min(1, "Password is required"),
 });
 
 export const registerSchema = z.object({
-  email: z.string().email("Invalid email address").transform((v) => v.toLowerCase().trim()),
+  email: z
+    .string()
+    .email("Invalid email address")
+    .transform((v) => v.toLowerCase().trim()),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -23,23 +29,30 @@ export const registerSchema = z.object({
 });
 
 export const createRequestSchema = z.object({
-  productUrl: z.string().url("Invalid URL").refine(
-    (url) => url.startsWith("http://") || url.startsWith("https://"),
-    "URL must start with http:// or https://",
-  ),
+  productUrl: z
+    .string()
+    .url("Invalid URL")
+    .refine(
+      (url) => url.startsWith("http://") || url.startsWith("https://"),
+      "URL must start with http:// or https://",
+    ),
   platform: z.enum(["SHOPEE", "TIKTOK", "OTHER"]),
   productName: z.string().max(200).trim().optional(),
   requesterName: z.string().max(100).trim().optional(),
+  sourceChannel: z.enum(["website", "discord"]).default("website"),
 });
 
 export const batchCreateSchema = z.object({
   items: z
     .array(
       z.object({
-        productUrl: z.string().url("Invalid URL").refine(
-          (url) => url.startsWith("http://") || url.startsWith("https://"),
-          "URL must start with http:// or https://",
-        ),
+        productUrl: z
+          .string()
+          .url("Invalid URL")
+          .refine(
+            (url) => url.startsWith("http://") || url.startsWith("https://"),
+            "URL must start with http:// or https://",
+          ),
         productName: z.string().max(200).trim().optional(),
       }),
     )
@@ -47,45 +60,60 @@ export const batchCreateSchema = z.object({
     .max(MAX_BATCH_SIZE, `Maximum ${MAX_BATCH_SIZE} items per batch`),
   platform: z.enum(["SHOPEE", "TIKTOK", "OTHER"]),
   requesterName: z.string().max(100).trim().optional(),
+  sourceChannel: z.enum(["website", "discord"]).default("website"),
 });
 
 export const fillLinkSchema = z.object({
-  affiliateLink: z.string().url("Invalid affiliate link URL").refine(
-    (url) => url.startsWith("http://") || url.startsWith("https://"),
-    "URL must start with http:// or https://",
-  ),
+  affiliateLink: z
+    .string()
+    .url("Invalid affiliate link URL")
+    .refine(
+      (url) => url.startsWith("http://") || url.startsWith("https://"),
+      "URL must start with http:// or https://",
+    ),
   note: z.string().max(MAX_NOTE_LENGTH).trim().optional(),
   subIdStamped: z.boolean().optional().default(false),
   expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
 });
 
-export const closeRequestSchema = z.object({
-  closeReason: z.enum(["BOUGHT", "NOT_BUYING", "INVALID", "STALE", "OTHER"]),
-  closeNote: z.string().max(MAX_NOTE_LENGTH).trim().optional(),
-  orderId: z.string().max(100).trim().optional(),
-  expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
-}).superRefine((data, ctx) => {
-  if (data.closeReason === "BOUGHT" && !data.orderId?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Order ID is required when reason is Bought",
-      path: ["orderId"],
-    });
-  }
-});
+export const closeRequestSchema = z
+  .object({
+    closeReason: z.enum(["BOUGHT", "NOT_BUYING", "INVALID", "STALE", "OTHER"]),
+    closeNote: z.string().max(MAX_NOTE_LENGTH).trim().optional(),
+    orderId: z.string().max(100).trim().optional(),
+    expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.closeReason === "BOUGHT" && !data.orderId?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Order ID is required when reason is Bought",
+        path: ["orderId"],
+      });
+    }
+  });
 
-export const editRequestSchema = z.object({
-  productUrl: z.string().url("Invalid URL").refine(
-    (url) => url.startsWith("http://") || url.startsWith("https://"),
-    "URL must start with http:// or https://",
-  ).optional(),
-  platform: z.enum(["SHOPEE", "TIKTOK", "OTHER"]).optional(),
-  productName: z.string().max(200).trim().nullable().optional(),
-  expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
-}).refine(
-  (data) => data.productUrl !== undefined || data.platform !== undefined || data.productName !== undefined,
-  { message: "At least one field must be provided" },
-);
+export const editRequestSchema = z
+  .object({
+    productUrl: z
+      .string()
+      .url("Invalid URL")
+      .refine(
+        (url) => url.startsWith("http://") || url.startsWith("https://"),
+        "URL must start with http:// or https://",
+      )
+      .optional(),
+    platform: z.enum(["SHOPEE", "TIKTOK", "OTHER"]).optional(),
+    productName: z.string().max(200).trim().nullable().optional(),
+    expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
+  })
+  .refine(
+    (data) =>
+      data.productUrl !== undefined ||
+      data.platform !== undefined ||
+      data.productName !== undefined,
+    { message: "At least one field must be provided" },
+  );
 
 export const claimRequestSchema = z.object({
   unclaim: z.boolean().optional(),
@@ -102,27 +130,35 @@ export const saveBuyerNoteSchema = z.object({
   expectedLastUpdatedAt: z.string().datetime("Invalid timestamp"),
 });
 
-export const queueFilterSchema = z.object({
-  search: z.string().max(200).trim().optional(),
-  statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("ALL"),
-  buyerId: z.string().optional(),
-  createdFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format").optional(),
-  createdTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format").optional(),
-  sortBy: z.enum(["createdAt", "lastUpdatedAt"]).default("createdAt"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-}).superRefine((data, ctx) => {
-  if (data.createdFrom && data.createdTo) {
-    if (new Date(data.createdFrom) > new Date(data.createdTo)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "ERR_DATE_RANGE_INVALID",
-        path: ["createdFrom"],
-      });
+export const queueFilterSchema = z
+  .object({
+    search: z.string().max(200).trim().optional(),
+    statusFilter: z.enum(["OPEN", "NEW", "FILLED", "CLOSED", "ALL"]).default("ALL"),
+    buyerId: z.string().optional(),
+    createdFrom: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format")
+      .optional(),
+    createdTo: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format")
+      .optional(),
+    sortBy: z.enum(["createdAt", "lastUpdatedAt"]).default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(20),
+  })
+  .superRefine((data, ctx) => {
+    if (data.createdFrom && data.createdTo) {
+      if (new Date(data.createdFrom) > new Date(data.createdTo)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "ERR_DATE_RANGE_INVALID",
+          path: ["createdFrom"],
+        });
+      }
     }
-  }
-});
+  });
 
 export const bulkCloseSchema = z.object({
   olderThanDays: z.number().int().positive("Must be a positive number"),
@@ -131,7 +167,10 @@ export const bulkCloseSchema = z.object({
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email address").transform((v) => v.toLowerCase().trim()),
+  email: z
+    .string()
+    .email("Invalid email address")
+    .transform((v) => v.toLowerCase().trim()),
 });
 
 export const resetPasswordSchema = z.object({
@@ -230,17 +269,20 @@ export const columnPreferencesSchema = z
     }
   });
 
-export const adminCorrectSchema = z.object({
-  orderId: z.string().max(100).trim().nullable().optional(),
-  buyerNote: z.string().max(MAX_NOTE_LENGTH).trim().nullable().optional(),
-}).refine((data) => data.orderId !== undefined || data.buyerNote !== undefined, {
-  message: "At least one field (orderId or buyerNote) must be provided",
-});
+export const adminCorrectSchema = z
+  .object({
+    orderId: z.string().max(100).trim().nullable().optional(),
+    buyerNote: z.string().max(MAX_NOTE_LENGTH).trim().nullable().optional(),
+  })
+  .refine((data) => data.orderId !== undefined || data.buyerNote !== undefined, {
+    message: "At least one field (orderId or buyerNote) must be provided",
+  });
 
 export const updateUserSchema = z.object({
   role: z.enum(["BUYER", "AFFILIATE", "AFFILIATE_MASTER", "ADMIN"]).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "PENDING", "REJECTED", "DELETED"]).optional(),
   displayName: z.string().max(100).trim().optional(),
+  discordId: z.string().trim().nullable().optional(),
 });
 
 export const userActionSchema = z
@@ -250,8 +292,7 @@ export const userActionSchema = z
   })
   .refine(
     (data) =>
-      data.action !== "REJECT" ||
-      (typeof data.reason === "string" && data.reason.length > 0),
+      data.action !== "REJECT" || (typeof data.reason === "string" && data.reason.length > 0),
     { message: "Reason is required when rejecting a user", path: ["reason"] },
   );
 

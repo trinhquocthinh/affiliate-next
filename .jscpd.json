@@ -1,0 +1,22 @@
+{
+  "threshold": 5,
+  "minTokens": 70,
+  "minLines": 8,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/src/generated/**",
+    "**/docs/**",
+    "**/public/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/coverage/**",
+    "**/scripts/**",
+    "**/.agents/**",
+    "**/.husky/**",
+    "**/.git/**"
+  ],
+  "format": ["javascript", "typescript", "tsx", "css", "markup"],
+  "silent": false
+}

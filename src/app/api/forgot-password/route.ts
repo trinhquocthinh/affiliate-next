@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordSchema } from "@/lib/validations";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRequestRateLimit } from "@/lib/api-utils";
 import { verifyRequestSecurity } from "@/lib/security-guard";
 
 // firebase-admin requires the Node.js runtime.
@@ -11,14 +11,8 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     // Rate limit: 5 requests per 15 minutes per IP
-    const ip = getClientIp(request);
-    const limit = rateLimit(ip, { limit: 5, windowSecs: 15 * 60 });
-    if (!limit.allowed) {
-      return NextResponse.json(
-        { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please try again later." } },
-        { status: 429, headers: { "Retry-After": String(Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000)) } },
-      );
-    }
+    const rateLimitRes = checkRequestRateLimit(request, { limit: 5, windowSecs: 15 * 60 });
+    if (rateLimitRes) return rateLimitRes;
 
     // Triple-layer security: SHA-256 body checksum + Firebase App Check + Turnstile.
     const guard = await verifyRequestSecurity(request);

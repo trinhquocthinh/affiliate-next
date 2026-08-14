@@ -8,16 +8,15 @@ upstream: [sdd, business-rules]
 
 # Flowchart
 
-| 📄 **Metadata** | 📑 **Details** |
-|:---|:---|
-| **Doc ID** | `diagrams-flowchart` |
-| **Version** | `1.0.0` |
-| **Status** | 🟡 **Draft** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [sdd], [business-rules] |
-| **Downstream** | — |
-
+| 📄 **Metadata**  | 📑 **Details**          |
+| :--------------- | :---------------------- |
+| **Doc ID**       | `diagrams-flowchart`    |
+| **Version**      | `1.0.0`                 |
+| **Status**       | 🟡 **Draft**            |
+| **Last Updated** | `2026-08-11`            |
+| **Owner**        | Quành (Admin)           |
+| **Upstream**     | [sdd], [business-rules] |
+| **Downstream**   | —                       |
 
 Ba luồng, không hơn. Vẽ hết mọi luồng thì không ai cập nhật và sơ đồ chết sau một tháng.
 

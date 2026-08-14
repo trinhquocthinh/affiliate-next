@@ -22,7 +22,7 @@ export default function AdminConfigPage() {
     return (
       <>
         <AppHeader title="System Config" />
-        <div className="flex-1 p-4 md:p-6 space-y-4">
+        <div className="flex-1 space-y-4 p-4 md:p-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full" />
           ))}
@@ -34,14 +34,12 @@ export default function AdminConfigPage() {
   return (
     <>
       <AppHeader title="System Config" />
-      <div className="flex-1 p-4 md:p-6 space-y-4 max-w-2xl">
+      <div className="max-w-2xl flex-1 space-y-4 p-4 md:p-6">
         {CONFIG_FIELDS.map((field) => (
           <Card key={field.key}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">{field.label}</CardTitle>
-              <CardDescription className="text-xs">
-                {field.description}
-              </CardDescription>
+              <CardDescription className="text-xs">{field.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-2">
@@ -61,8 +59,8 @@ export default function AdminConfigPage() {
               {field.key === "BULK_CLOSE_MIN_DAYS" && (
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
                   <span className="text-xs text-muted-foreground">
-                    Manually trigger the cleanup using the saved threshold. Runs
-                    automatically every day at 00:00 UTC.
+                    Manually trigger the cleanup using the saved threshold. Runs automatically every
+                    day at 00:00 UTC.
                   </span>
                   <Button
                     size="sm"
@@ -82,8 +80,8 @@ export default function AdminConfigPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Affiliate Queue Columns</CardTitle>
             <CardDescription className="text-xs">
-              Columns affiliates are allowed to see and toggle in their queue.
-              Mandatory columns are always enabled.
+              Columns affiliates are allowed to see and toggle in their queue. Mandatory columns are
+              always enabled.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -96,7 +94,7 @@ export default function AdminConfigPage() {
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-foreground">{col.label}</span>
-                    <span className="text-[11px] text-muted-foreground font-mono">{col.id}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">{col.id}</span>
                   </div>
                   <Switch
                     checked={checked}
@@ -119,7 +117,12 @@ export default function AdminConfigPage() {
           </CardContent>
         </Card>
 
-        <Button variant="outline" onClick={admin.resetToDefaults} disabled={admin.resetting} className="w-full">
+        <Button
+          variant="outline"
+          onClick={admin.resetToDefaults}
+          disabled={admin.resetting}
+          className="w-full"
+        >
           {admin.resetting ? "Resetting..." : "Reset to Defaults"}
         </Button>
       </div>

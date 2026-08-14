@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated Prisma client
     "src/generated/**",
+    // Standalone ad-hoc scripts
+    "scripts/**",
   ]),
   {
     rules: {
@@ -73,8 +75,7 @@ const eslintConfig = defineConfig([
             "Điểm cuối không được so sánh trực tiếp vai. Dùng hasPermission / assertPermission / canAccessRequest (tech-spec §4, SPEC-006).",
         },
         {
-          selector:
-            "MemberExpression[property.name=/^(isAdmin|isAffiliate|isBuyer)$/]",
+          selector: "MemberExpression[property.name=/^(isAdmin|isAffiliate|isBuyer)$/]",
           message:
             "Không được dựa vào cờ vai (isAdmin/isAffiliate/isBuyer). Dùng hasPermission với định danh thẩm quyền tương ứng (tech-spec §4, SPEC-006).",
         },

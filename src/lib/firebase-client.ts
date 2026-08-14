@@ -64,8 +64,7 @@ function ensureAppCheck(): AppCheck {
     const debugToken = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
     // If a specific token is already saved, use it; otherwise set `true` so
     // Firebase auto-generates one and logs it to the console.
-    (window as unknown as DebugWindow).FIREBASE_APPCHECK_DEBUG_TOKEN =
-      debugToken ?? true;
+    (window as unknown as DebugWindow).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken ?? true;
   }
 
   const siteKey = process.env.NEXT_PUBLIC_FIREBASE_RECAPTCHA_SITE_KEY;

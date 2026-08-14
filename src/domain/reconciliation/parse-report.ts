@@ -13,13 +13,13 @@ export interface CommissionRow {
 
 export function parseCommissionReport(csvContent: string): CommissionRow[] {
   // Loại bỏ BOM nếu có
-  if (csvContent.charCodeAt(0) === 0xFEFF) {
+  if (csvContent.charCodeAt(0) === 0xfeff) {
     csvContent = csvContent.slice(1);
   }
 
   const lines = csvContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
   if (lines.length === 0) {
-    throw new Error('ERR_REPORT_FORMAT');
+    throw new Error("ERR_REPORT_FORMAT");
   }
 
   const headerRow = parseCSVLine(lines[0]);
@@ -27,34 +27,30 @@ export function parseCommissionReport(csvContent: string): CommissionRow[] {
   const columnIndices: Record<string, number> = {};
 
   const columnMapping: Record<string, string[]> = {
-    orderId: ['id đơn hàng', 'idđơnhàng', 'orderid'],
-    itemId: ['item id', 'itemid', 'productid'],
-    itemName: ['tên item', 'tênitem', 'itemname', 'productname'],
-    orderedAt: ['thời gian đặt hàng', 'thờigianđặthàng', 'ordertime', 'orderedat'],
-    orderStatus: ['trạng thái đặt hàng', 'trạngtháiđặthàng', 'orderstatus'],
-    affiliateStatus: [
-      'trạng thái sản phẩm liên kết',
-      'trạngtháisảnphẩmliênkết',
-      'affiliatestatus',
-    ],
-    price: ['giá(₫)', 'giá (₫)', 'giá(đ)', 'giá (đ)', 'price'],
+    orderId: ["id đơn hàng", "idđơnhàng", "orderid"],
+    itemId: ["item id", "itemid", "productid"],
+    itemName: ["tên item", "tênitem", "itemname", "productname"],
+    orderedAt: ["thời gian đặt hàng", "thờigianđặthàng", "ordertime", "orderedat"],
+    orderStatus: ["trạng thái đặt hàng", "trạngtháiđặthàng", "orderstatus"],
+    affiliateStatus: ["trạng thái sản phẩm liên kết", "trạngtháisảnphẩmliênkết", "affiliatestatus"],
+    price: ["giá(₫)", "giá (₫)", "giá(đ)", "giá (đ)", "price"],
     orderValue: [
-      'giá trị đơn hàng (₫)',
-      'giá trị đơn hàng(₫)',
-      'giá trị đơn hàng (đ)',
-      'giátrịđơnhàng(₫)',
-      'ordervalue',
+      "giá trị đơn hàng (₫)",
+      "giá trị đơn hàng(₫)",
+      "giá trị đơn hàng (đ)",
+      "giátrịđơnhàng(₫)",
+      "ordervalue",
     ],
     netCommission: [
-      'hoa hồng ròng tiếp thị liên kết(₫)',
-      'hoa hồng ròng tiếp thị liên kết (₫)',
-      'hoahồngròngtiếpthịliênkết(₫)',
-      'netcommission',
+      "hoa hồng ròng tiếp thị liên kết(₫)",
+      "hoa hồng ròng tiếp thị liên kết (₫)",
+      "hoahồngròngtiếpthịliênkết(₫)",
+      "netcommission",
     ],
-    subId1: ['sub_id1', 'subid1'],
+    subId1: ["sub_id1", "subid1"],
   };
 
-  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/\s/g, '');
+  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ").replace(/\s/g, "");
   const normalizedHeaders = headerRow.map(normalize);
 
   for (const [key, possibleNames] of Object.entries(columnMapping)) {
@@ -66,9 +62,7 @@ export function parseCommissionReport(csvContent: string): CommissionRow[] {
     columnIndices[key] = index;
   }
 
-  const requiredColumns = [
-    { key: 'orderId', name: 'ID đơn hàng' }
-  ];
+  const requiredColumns = [{ key: "orderId", name: "ID đơn hàng" }];
 
   for (const reqCol of requiredColumns) {
     if (columnIndices[reqCol.key] === -1) {
@@ -80,22 +74,22 @@ export function parseCommissionReport(csvContent: string): CommissionRow[] {
 
   for (let i = 1; i < lines.length; i++) {
     const fields = parseCSVLine(lines[i]);
-    if (fields.length < headerRow.length && fields.join('').trim() === '') continue;
+    if (fields.length < headerRow.length && fields.join("").trim() === "") continue;
 
-    const orderId = getField(fields, columnIndices['orderId']);
+    const orderId = getField(fields, columnIndices["orderId"]);
     if (!orderId) continue;
 
     results.push({
       orderId,
-      itemId: getField(fields, columnIndices['itemId']),
-      itemName: getField(fields, columnIndices['itemName']),
-      orderedAt: getField(fields, columnIndices['orderedAt']),
-      orderStatus: getField(fields, columnIndices['orderStatus']),
-      affiliateStatus: getField(fields, columnIndices['affiliateStatus']),
-      price: getField(fields, columnIndices['price']),
-      orderValue: getField(fields, columnIndices['orderValue']),
-      netCommission: getField(fields, columnIndices['netCommission']),
-      subId1: getField(fields, columnIndices['subId1']),
+      itemId: getField(fields, columnIndices["itemId"]),
+      itemName: getField(fields, columnIndices["itemName"]),
+      orderedAt: getField(fields, columnIndices["orderedAt"]),
+      orderStatus: getField(fields, columnIndices["orderStatus"]),
+      affiliateStatus: getField(fields, columnIndices["affiliateStatus"]),
+      price: getField(fields, columnIndices["price"]),
+      orderValue: getField(fields, columnIndices["orderValue"]),
+      netCommission: getField(fields, columnIndices["netCommission"]),
+      subId1: getField(fields, columnIndices["subId1"]),
     });
   }
 
@@ -103,13 +97,13 @@ export function parseCommissionReport(csvContent: string): CommissionRow[] {
 }
 
 function getField(fields: string[], index: number): string {
-  if (index === -1 || index >= fields.length) return '';
+  if (index === -1 || index >= fields.length) return "";
   return fields[index].trim();
 }
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
@@ -127,9 +121,9 @@ function parseCSVLine(line: string): string[] {
     } else {
       if (char === '"') {
         inQuotes = true;
-      } else if (char === ',') {
+      } else if (char === ",") {
         result.push(current);
-        current = '';
+        current = "";
       } else {
         current += char;
       }

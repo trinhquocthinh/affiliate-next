@@ -1,12 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Columns3Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  GripVerticalIcon,
-} from "lucide-react";
+import { Columns3Icon, ChevronLeftIcon, ChevronRightIcon, GripVerticalIcon } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -15,11 +10,7 @@ import {
   closestCenter,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   renderAffiliateCell,
@@ -57,10 +48,7 @@ function SortableHeader({
     >
       <span className="inline-flex items-center gap-1.5">
         {draggable && (
-          <GripVerticalIcon
-            size={12}
-            className="text-slate-300 dark:text-slate-600 shrink-0"
-          />
+          <GripVerticalIcon size={12} className="shrink-0 text-slate-300 dark:text-slate-600" />
         )}
         {label}
       </span>
@@ -91,7 +79,9 @@ export function AffiliateQueueTable({
 }) {
   // dnd-kit sensors — small activation distance so click-targets (sort header
   // text, dropdown trigger) still fire when the user merely clicks.
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
 
   function handleColumnDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -101,14 +91,14 @@ export function AffiliateQueueTable({
 
   return (
     <>
-      <div className="hidden lg:block bg-white dark:bg-[#131B2F] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
+      <div className="hidden overflow-hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm lg:block dark:border-slate-800/80 dark:bg-[#131B2F]">
         {visibleColumns.length === 0 ? (
-          <div className="p-12 flex flex-col items-center justify-center text-center">
-            <Columns3Icon className="h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <Columns3Icon className="mb-3 h-10 w-10 text-slate-400 dark:text-slate-500" />
+            <h3 className="mb-2 text-base font-bold text-slate-900 dark:text-white">
               All columns are hidden
             </h3>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+            <p className="mb-4 text-sm font-medium text-slate-500 dark:text-slate-400">
               Enable at least one column from the Columns menu, or restore the defaults.
             </p>
             <Button size="sm" variant="outline" onClick={onResetColumnDefaults}>
@@ -121,8 +111,8 @@ export function AffiliateQueueTable({
             collisionDetection={closestCenter}
             onDragEnd={handleColumnDragEnd}
           >
-            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-              <thead className="text-[11px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-[#0B1120]/50 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
+            <table className="w-full text-left text-sm whitespace-nowrap text-slate-600 dark:text-slate-300">
+              <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:border-slate-800/80 dark:bg-[#0B1120]/50 dark:text-slate-400">
                 <SortableContext
                   items={visibleColumns.map((c) => c.id)}
                   strategy={horizontalListSortingStrategy}
@@ -143,7 +133,7 @@ export function AffiliateQueueTable({
                 {items.map((item) => (
                   <tr
                     key={item.id}
-                    className="hover:bg-slate-50 dark:hover:bg-[#1A233A]/50 transition-colors cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
+                    className="cursor-pointer text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-[#1A233A]/50"
                     onClick={() => onRowClick(item)}
                   >
                     {visibleColumns.map((col) => (
@@ -161,16 +151,28 @@ export function AffiliateQueueTable({
 
       {/* Desktop Pagination */}
       {totalPages > 1 && (
-        <div className="hidden lg:flex items-center justify-between mt-4">
+        <div className="mt-4 hidden items-center justify-between lg:flex">
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
           </p>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
               <ChevronLeftIcon className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-slate-700 dark:text-slate-300">{page} / {totalPages}</span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => onPageChange(page + 1)}
+            >
               <ChevronRightIcon className="h-4 w-4" />
             </Button>
           </div>

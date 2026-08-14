@@ -14,7 +14,7 @@ import { getAppCheck } from "firebase-admin/app-check";
  */
 let cachedApp: App | null = null;
 
-export function getFirebaseAdminApp(): App {
+function getFirebaseAdminApp(): App {
   if (cachedApp) return cachedApp;
 
   const existing = getApps()[0];

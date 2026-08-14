@@ -26,17 +26,21 @@ type PrefsResponse = {
 const SAVE_DEBOUNCE_MS = 500;
 
 export function useAffiliateColumns() {
-  const { data: prefsResp, isLoading: prefsLoading, mutate: mutatePrefs } = useSWR<PrefsResponse>(
-    "/api/users/me/preferences",
-  );
+  const {
+    data: prefsResp,
+    isLoading: prefsLoading,
+    mutate: mutatePrefs,
+  } = useSWR<PrefsResponse>("/api/users/me/preferences");
 
-  const allowedColumns: AffiliateColumnId[] = prefsResp?.ok && prefsResp.data?.allowedColumns
-    ? parseAllowedColumns(JSON.stringify(prefsResp.data.allowedColumns))
-    : getDefaultAllowedColumnIds();
+  const allowedColumns: AffiliateColumnId[] =
+    prefsResp?.ok && prefsResp.data?.allowedColumns
+      ? parseAllowedColumns(JSON.stringify(prefsResp.data.allowedColumns))
+      : getDefaultAllowedColumnIds();
 
-  const storedPrefs: ColumnPreference[] = prefsResp?.ok && prefsResp.data?.columns
-    ? parseColumnPreferences(prefsResp.data.columns)
-    : getDefaultPreferences();
+  const storedPrefs: ColumnPreference[] =
+    prefsResp?.ok && prefsResp.data?.columns
+      ? parseColumnPreferences(prefsResp.data.columns)
+      : getDefaultPreferences();
 
   // Local state mirrors server prefs but is the source of truth for the UI so
   // toggles/drags feel instant. We re-sync only when the user has no pending

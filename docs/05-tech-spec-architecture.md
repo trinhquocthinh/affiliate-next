@@ -10,16 +10,15 @@ downstream: [diagrams, setup-and-ops-guide, plan-and-scope]
 
 # Tech Spec & Architecture — Shop Quành
 
-| 📄 **Metadata** | 📑 **Details** |
-|:---|:---|
-| **Doc ID** | `tech-spec-architecture` |
-| **Version** | `2.1.0` |
-| **Status** | 🟡 **Draft** |
-| **Last Updated** | `2026-08-11` |
-| **Owner** | Quành (Admin) |
-| **Upstream** | [sdd], [prd], [business-rules] |
-| **Downstream** | [diagrams], [setup-and-ops-guide], [plan-and-scope] |
-
+| 📄 **Metadata**  | 📑 **Details**                                      |
+| :--------------- | :-------------------------------------------------- |
+| **Doc ID**       | `tech-spec-architecture`                            |
+| **Version**      | `2.1.0`                                             |
+| **Status**       | 🟡 **Draft**                                        |
+| **Last Updated** | `2026-08-11`                                        |
+| **Owner**        | Quành (Admin)                                       |
+| **Upstream**     | [sdd], [prd], [business-rules]                      |
+| **Downstream**   | [diagrams], [setup-and-ops-guide], [plan-and-scope] |
 
 > [!IMPORTANT]
 > **Bối cảnh quyết định mọi thứ trong tài liệu này: đây là brownfield.** Hệ thống đã chạy 4 tháng với người dùng thật. Quỹ thời gian là 85 giờ trong 5 tháng. Vì vậy tài liệu này ưu tiên **thay đổi tối thiểu có chủ đích** thay vì kiến trúc lý tưởng. Mỗi chỗ lệch khỏi baseline đều ghi rõ lý do.
@@ -28,17 +27,17 @@ downstream: [diagrams, setup-and-ops-guide, plan-and-scope]
 
 Stack hiện tại giữ nguyên. Cột cuối ghi **thứ ta từ bỏ** khi chọn — tài liệu không ghi trade-off là tài liệu quảng cáo.
 
-| Hạng mục | Lựa chọn | Vì sao | Chi phí | Từ bỏ điều gì |
-| --- | --- | --- | --- | --- |
-| Package manager | yarn | Theo baseline, đã dùng sẵn | 0₫ | — |
-| Framework | Next.js 16 App Router + TypeScript | Đã chạy, fullstack một repo | 0₫ | Bị ràng buộc vào hệ sinh thái React; nâng cấp lớn theo lịch của họ |
-| Database | Neon Postgres (free) | Serverless, có branching cho môi trường thử | 0₫ | Kết nối lạnh chậm hơn Postgres thường; phụ thuộc một nhà cung cấp |
-| ORM | Prisma 7 | Đã dùng, có migration, type-safe | 0₫ | Gói cài đặt nặng; truy vấn phức tạp phải viết SQL thô |
-| Auth | Auth.js v5, đăng nhập bằng mật khẩu | Đã chạy, nhóm nội bộ | 0₫ | Tự gánh việc quản lý mật khẩu, khoá tài khoản, đặt lại mật khẩu |
-| UI | Tailwind v4 + shadcn/ui | Đã dùng | 0₫ | Lớp CSS dài trong JSX; nâng cấp shadcn phải làm tay |
-| Test | Vitest | Theo baseline, nhanh | 0₫ | Hệ sinh thái nhỏ hơn Jest |
-| **Hosting** | **Vercel cho cả hai môi trường** | Theo baseline; hợp nhất một nền tảng để môi trường thử và thật dựng cùng một cách. Xem §6 | 0₫ | Gói Hobby có điều khoản phi thương mại — rủi ro đã chấp nhận, xem TR-7 |
-| CI | GitHub Actions | Free cho repo | 0₫ | — |
+| Hạng mục        | Lựa chọn                            | Vì sao                                                                                    | Chi phí | Từ bỏ điều gì                                                          |
+| --------------- | ----------------------------------- | ----------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------- |
+| Package manager | yarn                                | Theo baseline, đã dùng sẵn                                                                | 0₫      | —                                                                      |
+| Framework       | Next.js 16 App Router + TypeScript  | Đã chạy, fullstack một repo                                                               | 0₫      | Bị ràng buộc vào hệ sinh thái React; nâng cấp lớn theo lịch của họ     |
+| Database        | Neon Postgres (free)                | Serverless, có branching cho môi trường thử                                               | 0₫      | Kết nối lạnh chậm hơn Postgres thường; phụ thuộc một nhà cung cấp      |
+| ORM             | Prisma 7                            | Đã dùng, có migration, type-safe                                                          | 0₫      | Gói cài đặt nặng; truy vấn phức tạp phải viết SQL thô                  |
+| Auth            | Auth.js v5, đăng nhập bằng mật khẩu | Đã chạy, nhóm nội bộ                                                                      | 0₫      | Tự gánh việc quản lý mật khẩu, khoá tài khoản, đặt lại mật khẩu        |
+| UI              | Tailwind v4 + shadcn/ui             | Đã dùng                                                                                   | 0₫      | Lớp CSS dài trong JSX; nâng cấp shadcn phải làm tay                    |
+| Test            | Vitest                              | Theo baseline, nhanh                                                                      | 0₫      | Hệ sinh thái nhỏ hơn Jest                                              |
+| **Hosting**     | **Vercel cho cả hai môi trường**    | Theo baseline; hợp nhất một nền tảng để môi trường thử và thật dựng cùng một cách. Xem §6 | 0₫      | Gói Hobby có điều khoản phi thương mại — rủi ro đã chấp nhận, xem TR-7 |
+| CI              | GitHub Actions                      | Free cho repo                                                                             | 0₫      | —                                                                      |
 
 > [!WARNING]
 > **Không thêm thư viện mới nào** cho toàn bộ đợt này. Mọi tính năng trong PRD đều làm được bằng những gì đã có. Với 85 giờ, mỗi phụ thuộc mới là một khoản nợ không cần thiết.
@@ -101,18 +100,18 @@ Chỉ ghi **phần thay đổi**. Lược đồ hiện tại giữ nguyên.
 
 ### 3.1 Thay đổi
 
-| Đối tượng | Thay đổi | Nguồn |
-| --- | --- | --- |
-| `Role` | Thêm giá trị `AFFILIATE_MASTER`, đặt giữa `AFFILIATE` và `ADMIN` | BR-032 |
-| `Request` | Thêm `orderAmount Decimal(12,2)?` — cho phép rỗng, không mặc định | BR-015 |
-| `User` | Thêm `deactivatedAt DateTime?` | BR-040 |
-| `User` | Thêm `anonymizedAt DateTime?` | BR-041 |
-| `AuditAction` | Thêm `EDIT_ORDER_ID`, `EDIT_ORDER_AMOUNT`, `OVERRIDE_CLAIM`, `ANONYMIZE_USER` | BR-051, BR-052 |
-| `Request` | Thêm chỉ mục tổ hợp `(status, createdAt)` | SPEC-005 |
-| `Request` | Thêm `subIdStamped Boolean @default(false)` — cộng tác viên xác nhận đã gắn mã yêu cầu vào link | BR-061, SPEC-012 |
-| `Request` | Thêm `orderIdWarning Boolean @default(false)` — cờ ghim khi mã đơn đáng ngờ | SPEC-004, §10 phương án B |
-| `Request` | Thêm `productItemId String?` — mã sản phẩm trích từ URL, dùng làm khoá ghép phụ | BR-064 |
-| `Request` | Thêm chỉ mục `(productItemId)` | BR-064 |
+| Đối tượng     | Thay đổi                                                                                        | Nguồn                     |
+| ------------- | ----------------------------------------------------------------------------------------------- | ------------------------- |
+| `Role`        | Thêm giá trị `AFFILIATE_MASTER`, đặt giữa `AFFILIATE` và `ADMIN`                                | BR-032                    |
+| `Request`     | Thêm `orderAmount Decimal(12,2)?` — cho phép rỗng, không mặc định                               | BR-015                    |
+| `User`        | Thêm `deactivatedAt DateTime?`                                                                  | BR-040                    |
+| `User`        | Thêm `anonymizedAt DateTime?`                                                                   | BR-041                    |
+| `AuditAction` | Thêm `EDIT_ORDER_ID`, `EDIT_ORDER_AMOUNT`, `OVERRIDE_CLAIM`, `ANONYMIZE_USER`                   | BR-051, BR-052            |
+| `Request`     | Thêm chỉ mục tổ hợp `(status, createdAt)`                                                       | SPEC-005                  |
+| `Request`     | Thêm `subIdStamped Boolean @default(false)` — cộng tác viên xác nhận đã gắn mã yêu cầu vào link | BR-061, SPEC-012          |
+| `Request`     | Thêm `orderIdWarning Boolean @default(false)` — cờ ghim khi mã đơn đáng ngờ                     | SPEC-004, §10 phương án B |
+| `Request`     | Thêm `productItemId String?` — mã sản phẩm trích từ URL, dùng làm khoá ghép phụ                 | BR-064                    |
+| `Request`     | Thêm chỉ mục `(productItemId)`                                                                  | BR-064                    |
 
 **Không** thêm cột lưu trạng thái `stale` (BR-026 nói rõ là giá trị suy dẫn).
 
@@ -122,9 +121,9 @@ Chỉ ghi **phần thay đổi**. Lược đồ hiện tại giữ nguyên.
 
 Việc nạp báo cáo cần lưu vết, nếu không thì mỗi lần nạp lại phải làm lại từ đầu và không so sánh được giữa các đợt.
 
-| Bảng | Cột chính | Ghi chú |
-| --- | --- | --- |
-| `ReconciliationRun` | `id`, `platform`, `fileName`, `importedAt`, `importedById`, `rowCount`, `matchedCount` | Một lần nạp tệp |
+| Bảng                | Cột chính                                                                                                                                                                           | Ghi chú                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `ReconciliationRun` | `id`, `platform`, `fileName`, `importedAt`, `importedById`, `rowCount`, `matchedCount`                                                                                              | Một lần nạp tệp                          |
 | `ReconciliationRow` | `id`, `runId`, `orderId`, `itemId`, `itemName`, `orderedAt`, `orderStatus`, `affiliateStatus`, `price`, `orderValue`, `netCommission`, `subId1`, `matchedRequestId?`, `matchMethod` | Một dòng báo cáo, giữ nguyên như tệp gốc |
 
 `matchMethod` nhận `SUB_ID`, `ORDER_ITEM`, hoặc `NONE` — đây là cột cho phép đo KPI-2 mà không cần tính lại.
@@ -152,18 +151,18 @@ Cách này thoả BR-042 mà không cần đụng tới ràng buộc khoá ngo�
 
 Điểm cuối mới hoặc thay đổi. Phần còn lại giữ nguyên.
 
-| Method | Đường dẫn | Mục đích | Thẩm quyền | SPEC |
-| --- | --- | --- | --- | --- |
-| `GET` | `/api/me/permissions` | Trả danh sách thẩm quyền đã phân giải cho phía trình duyệt | đã đăng nhập | SPEC-006 |
-| `GET` | `/api/affiliate/queue?createdFrom=&createdTo=` | Lọc theo khoảng ngày | `affiliate.queue.view` | SPEC-005 |
-| `GET` | `/api/requests?createdFrom=&createdTo=` | Lọc theo khoảng ngày cho người mua | `request.view` | SPEC-005 |
-| `PATCH` | `/api/requests/:id/order` | Sửa mã đơn và số tiền ở mọi trạng thái | `request.order_id.edit_any_status` | SPEC-008 |
-| `POST` | `/api/requests/:id/claim` | Thêm cờ `override` | `affiliate.claim.override` | SPEC-007 |
-| `GET` | `/api/requests/order-id-suggestion?platform=` | Gợi ý mã đơn gần nhất | đã đăng nhập | SPEC-003 |
-| `POST` | `/api/admin/users/:id/anonymize` | Ẩn danh hoá sau 30 ngày | `user.manage` | SPEC-010 |
-| `POST` | `/api/reconciliation/import` | Nạp tệp báo cáo, chạy ghép | `affiliate.queue.view` + phạm vi `any` | SPEC-013 |
-| `GET` | `/api/reconciliation/:runId` | Xem ba nhóm kết quả ghép | như trên | SPEC-013 |
-| `GET` | `/api/reconciliation/:runId/export` | Xuất tệp đã ghép cho bảng tính | như trên | SPEC-013, BR-066 |
+| Method  | Đường dẫn                                      | Mục đích                                                   | Thẩm quyền                             | SPEC             |
+| ------- | ---------------------------------------------- | ---------------------------------------------------------- | -------------------------------------- | ---------------- |
+| `GET`   | `/api/me/permissions`                          | Trả danh sách thẩm quyền đã phân giải cho phía trình duyệt | đã đăng nhập                           | SPEC-006         |
+| `GET`   | `/api/affiliate/queue?createdFrom=&createdTo=` | Lọc theo khoảng ngày                                       | `affiliate.queue.view`                 | SPEC-005         |
+| `GET`   | `/api/requests?createdFrom=&createdTo=`        | Lọc theo khoảng ngày cho người mua                         | `request.view`                         | SPEC-005         |
+| `PATCH` | `/api/requests/:id/order`                      | Sửa mã đơn và số tiền ở mọi trạng thái                     | `request.order_id.edit_any_status`     | SPEC-008         |
+| `POST`  | `/api/requests/:id/claim`                      | Thêm cờ `override`                                         | `affiliate.claim.override`             | SPEC-007         |
+| `GET`   | `/api/requests/order-id-suggestion?platform=`  | Gợi ý mã đơn gần nhất                                      | đã đăng nhập                           | SPEC-003         |
+| `POST`  | `/api/admin/users/:id/anonymize`               | Ẩn danh hoá sau 30 ngày                                    | `user.manage`                          | SPEC-010         |
+| `POST`  | `/api/reconciliation/import`                   | Nạp tệp báo cáo, chạy ghép                                 | `affiliate.queue.view` + phạm vi `any` | SPEC-013         |
+| `GET`   | `/api/reconciliation/:runId`                   | Xem ba nhóm kết quả ghép                                   | như trên                               | SPEC-013         |
+| `GET`   | `/api/reconciliation/:runId/export`            | Xuất tệp đã ghép cho bảng tính                             | như trên                               | SPEC-013, BR-066 |
 
 **Quy tắc áp cho mọi điểm cuối được bảo vệ:** gọi `assertPermission` **trước** khi đọc dữ liệu. Kiểm tra xác thực đi trước kiểm tra thẩm quyền. Không điểm cuối nào được so sánh trực tiếp `actor.role === ...` hay `actor.isAdmin` — mọi so sánh kiểu đó bị coi là lỗi và phải bị ESLint chặn.
 
@@ -202,7 +201,7 @@ Phía trình duyệt nhận danh sách thẩm quyền đã phân giải từ `/a
 
 Hiện tại: Netlify cho môi trường thử, Vercel cho môi trường thật. Hai đường dựng bản chạy khác nhau cho cùng một ứng dụng Next.js — middleware, edge runtime, tối ưu ảnh đều có hành vi lệch nhau. Hệ quả: **môi trường thử báo xanh không còn bảo đảm môi trường thật xanh**, tức là mất luôn tác dụng chính của việc có môi trường thử.
 
-Vấn đề cần giải là *chạy song song hai nền tảng*, không phải nền tảng cụ thể nào.
+Vấn đề cần giải là _chạy song song hai nền tảng_, không phải nền tảng cụ thể nào.
 
 ### 6.2 Quyết định: Vercel cho cả hai môi trường
 
@@ -216,21 +215,21 @@ Gói Hobby của Vercel giới hạn ở mục đích phi thương mại, và đ
 
 ### 6.4 Cấu hình môi trường
 
-| Môi trường | Nền tảng | Nhánh | Cơ sở dữ liệu |
-| --- | --- | --- | --- |
-| Thật | Vercel Production | `main` | Neon, nhánh `main` |
-| Thử | Vercel Preview Deployment | mọi nhánh và pull request | Neon, nhánh `uat` |
+| Môi trường | Nền tảng                  | Nhánh                     | Cơ sở dữ liệu      |
+| ---------- | ------------------------- | ------------------------- | ------------------ |
+| Thật       | Vercel Production         | `main`                    | Neon, nhánh `main` |
+| Thử        | Vercel Preview Deployment | mọi nhánh và pull request | Neon, nhánh `uat`  |
 
 Neon có phân nhánh cơ sở dữ liệu ở gói miễn phí: nhánh `uat` cùng lược đồ, dữ liệu tách biệt, và đây là chỗ dữ liệu mẫu nằm. Biến môi trường trỏ tới nhánh cơ sở dữ liệu nào được đặt riêng theo từng môi trường trên Vercel.
 
 ## 7. Chi phí
 
-| Dịch vụ | Gói | Hạn mức | Mức dùng dự kiến | Khi vượt |
-| --- | --- | --- | --- | --- |
-| Netlify | Free | <cite index="26-1">100 GB băng thông, 300 phút dựng, 125.000 lượt gọi hàm, 1 triệu lượt hàm biên, 10 GB lưu trữ mỗi tháng</cite> | 10 người dùng, đỉnh 50 yêu cầu/tuần — dưới 1% hạn mức | Site bị dừng tới kỳ sau, không phát sinh hoá đơn |
-| Neon | Free | Đủ cho lượng dữ liệu ở quy mô này | 110 yêu cầu sau 4 tháng | Chỉ đọc tới kỳ sau |
-| GitHub Actions | Free | Repo công khai không giới hạn | Vài phút mỗi lần đẩy mã | — |
-| Cron ngoài | Free | Đã dùng cho thông báo | 96 lượt/ngày | — |
+| Dịch vụ        | Gói  | Hạn mức                                                                                                                          | Mức dùng dự kiến                                      | Khi vượt                                         |
+| -------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| Netlify        | Free | <cite index="26-1">100 GB băng thông, 300 phút dựng, 125.000 lượt gọi hàm, 1 triệu lượt hàm biên, 10 GB lưu trữ mỗi tháng</cite> | 10 người dùng, đỉnh 50 yêu cầu/tuần — dưới 1% hạn mức | Site bị dừng tới kỳ sau, không phát sinh hoá đơn |
+| Neon           | Free | Đủ cho lượng dữ liệu ở quy mô này                                                                                                | 110 yêu cầu sau 4 tháng                               | Chỉ đọc tới kỳ sau                               |
+| GitHub Actions | Free | Repo công khai không giới hạn                                                                                                    | Vài phút mỗi lần đẩy mã                               | —                                                |
+| Cron ngoài     | Free | Đã dùng cho thông báo                                                                                                            | 96 lượt/ngày                                          | —                                                |
 
 **Tổng: 0₫/tháng.** Với lưu lượng của 10 người, mọi hạn mức đều dư hai bậc độ lớn. Rủi ro chi phí ở dự án này bằng không; rủi ro thật nằm ở điều khoản sử dụng, đã xử lý ở §6.
 
@@ -238,15 +237,15 @@ Neon có phân nhánh cơ sở dữ liệu ở gói miễn phí: nhánh `uat` c�
 
 Áp dụng dần, không dựng hết một lượt. Thứ tự theo tỉ lệ giá trị trên công sức:
 
-| Bước | Công cụ | Khi nào | Chặn cái gì |
-| --- | --- | --- | --- |
-| 1 | Vitest cho `src/domain/` | Ngay tuần đầu | Logic mã đơn và thẩm quyền sai |
-| 2 | ESLint `import/no-restricted-paths` | Cùng lúc | `domain/` lỡ import ra ngoài |
-| 3 | ESLint chặn `actor.role ===`, `actor.isAdmin` | Khi bắt đầu chuyển đổi §5.2 | Kiểm tra vai còn sót ngoài module chung |
-| 4 | TypeScript `--noEmit` trong CI | Tuần 2 | Lỗi kiểu |
-| 5 | Dữ liệu mẫu | Trước khi chuyển đổi thẩm quyền | Không có gì để thử |
-| 6 | Prettier, commitlint, husky | Khi tiện | Nhiễu về định dạng |
-| 7 | jscpd, knip | Cuối, nếu còn giờ | Trùng lặp và mã chết |
+| Bước | Công cụ                                       | Khi nào                         | Chặn cái gì                             |
+| ---- | --------------------------------------------- | ------------------------------- | --------------------------------------- |
+| 1    | Vitest cho `src/domain/`                      | Ngay tuần đầu                   | Logic mã đơn và thẩm quyền sai          |
+| 2    | ESLint `import/no-restricted-paths`           | Cùng lúc                        | `domain/` lỡ import ra ngoài            |
+| 3    | ESLint chặn `actor.role ===`, `actor.isAdmin` | Khi bắt đầu chuyển đổi §5.2     | Kiểm tra vai còn sót ngoài module chung |
+| 4    | TypeScript `--noEmit` trong CI                | Tuần 2                          | Lỗi kiểu                                |
+| 5    | Dữ liệu mẫu                                   | Trước khi chuyển đổi thẩm quyền | Không có gì để thử                      |
+| 6    | Prettier, commitlint, husky                   | Khi tiện                        | Nhiễu về định dạng                      |
+| 7    | jscpd, knip                                   | Cuối, nếu còn giờ               | Trùng lặp và mã chết                    |
 
 **Ngưỡng phủ test:** 80% số dòng cho `src/domain/`. Không đặt ngưỡng cho phần còn lại — ép phủ test ở tầng giao diện chỉ sinh ra test rác.
 
@@ -254,26 +253,26 @@ Neon có phân nhánh cơ sở dữ liệu ở gói miễn phí: nhánh `uat` c�
 
 ## 9. Rủi ro kỹ thuật
 
-| # | Rủi ro | Mức | Giảm thiểu |
-| --- | --- | --- | --- |
-| TR-1 | Chuyển đổi thẩm quyền làm sai quyền trên hệ thống đang chạy, không có thông báo lỗi | **Cao** | Thứ tự bắt buộc ở §5.2: ma trận tương đương + test xanh trước, rồi mới thay từng điểm cuối, rồi mới thêm vai mới |
-| TR-2 | Gỡ Netlify khỏi dự án gây gián đoạn môi trường thử | Thấp | Môi trường thật vốn đã ở Vercel nên không đụng tới; chỉ việc dựng Preview Deployment rồi tắt site Netlify |
-| TR-3 | Ràng buộc khuôn dạng mã đơn chặn cả trường hợp hợp lệ mà ta chưa biết | Trung bình | Đo dữ liệu hiện có trước: nếu có mã đúng thật mà sai khuôn dạng giả định, phải nới quy tắc trước khi bật |
-| TR-4 | Netlify chậm hỗ trợ bản Next.js mới | Thấp | Ghim phiên bản Next.js; không nâng cấp trong 5 tháng này |
-| TR-5 | Thêm giá trị vào kiểu liệt kê `Role` yêu cầu di trú cơ sở dữ liệu trên hệ thống đang chạy | Thấp | Thêm giá trị vào kiểu liệt kê Postgres là thao tác chỉ thêm, không phá vỡ dữ liệu cũ; chạy khi ít người dùng |
-| TR-6 | Cột `orderAmount` để rỗng gần hết nên vô dụng | Trung bình | Chấp nhận theo thiết kế (PD §10.9). Xem thêm §11.4: số tiền người mua trả **không bằng** giá trị đơn trong báo cáo sàn, nên giá trị của nó như khoá nối còn thấp hơn dự kiến ban đầu |
-| TR-8 | `subIdStamped` là khai báo của người dùng, hệ thống không kiểm chứng được | **Cao** | Không có cách kỹ thuật nào xác minh, vì link rút gọn của sàn không lộ tham số. Cách kiểm chứng duy nhất là **hậu kiểm**: sau đợt sale đầu tiên, so tỉ lệ `subIdStamped = true` với tỉ lệ dòng báo cáo thật sự có `Sub_id1`. Lệch lớn nghĩa là quy trình chưa được tuân thủ, và đó là vấn đề con người chứ không phải phần mềm |
-| TR-9 | Trích `productItemId` từ URL sai khuôn với một số dạng link | Trung bình | Chạy thử biểu thức trên toàn bộ URL đã có trước khi bật; để rỗng khi không trích được thay vì đoán |
-| TR-7 | Điều khoản phi thương mại của gói Hobby | Trung bình | Dấu hiệu cảnh báo: email từ nhà cung cấp, hoặc dự án bị tạm dừng ngoài dự kiến. Phương án dự phòng: Netlify cho phép dùng thương mại ở gói miễn phí — giữ tệp cấu hình Netlify trong kho mã dưới dạng lịch sử git để chuyển lại trong vòng một buổi nếu cần |
+| #    | Rủi ro                                                                                    | Mức        | Giảm thiểu                                                                                                                                                                                                                                                                                                                    |
+| ---- | ----------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-1 | Chuyển đổi thẩm quyền làm sai quyền trên hệ thống đang chạy, không có thông báo lỗi       | **Cao**    | Thứ tự bắt buộc ở §5.2: ma trận tương đương + test xanh trước, rồi mới thay từng điểm cuối, rồi mới thêm vai mới                                                                                                                                                                                                              |
+| TR-2 | Gỡ Netlify khỏi dự án gây gián đoạn môi trường thử                                        | Thấp       | Môi trường thật vốn đã ở Vercel nên không đụng tới; chỉ việc dựng Preview Deployment rồi tắt site Netlify                                                                                                                                                                                                                     |
+| TR-3 | Ràng buộc khuôn dạng mã đơn chặn cả trường hợp hợp lệ mà ta chưa biết                     | Trung bình | Đo dữ liệu hiện có trước: nếu có mã đúng thật mà sai khuôn dạng giả định, phải nới quy tắc trước khi bật                                                                                                                                                                                                                      |
+| TR-4 | Netlify chậm hỗ trợ bản Next.js mới                                                       | Thấp       | Ghim phiên bản Next.js; không nâng cấp trong 5 tháng này                                                                                                                                                                                                                                                                      |
+| TR-5 | Thêm giá trị vào kiểu liệt kê `Role` yêu cầu di trú cơ sở dữ liệu trên hệ thống đang chạy | Thấp       | Thêm giá trị vào kiểu liệt kê Postgres là thao tác chỉ thêm, không phá vỡ dữ liệu cũ; chạy khi ít người dùng                                                                                                                                                                                                                  |
+| TR-6 | Cột `orderAmount` để rỗng gần hết nên vô dụng                                             | Trung bình | Chấp nhận theo thiết kế (PD §10.9). Xem thêm §11.4: số tiền người mua trả **không bằng** giá trị đơn trong báo cáo sàn, nên giá trị của nó như khoá nối còn thấp hơn dự kiến ban đầu                                                                                                                                          |
+| TR-8 | `subIdStamped` là khai báo của người dùng, hệ thống không kiểm chứng được                 | **Cao**    | Không có cách kỹ thuật nào xác minh, vì link rút gọn của sàn không lộ tham số. Cách kiểm chứng duy nhất là **hậu kiểm**: sau đợt sale đầu tiên, so tỉ lệ `subIdStamped = true` với tỉ lệ dòng báo cáo thật sự có `Sub_id1`. Lệch lớn nghĩa là quy trình chưa được tuân thủ, và đó là vấn đề con người chứ không phải phần mềm |
+| TR-9 | Trích `productItemId` từ URL sai khuôn với một số dạng link                               | Trung bình | Chạy thử biểu thức trên toàn bộ URL đã có trước khi bật; để rỗng khi không trích được thay vì đoán                                                                                                                                                                                                                            |
+| TR-7 | Điều khoản phi thương mại của gói Hobby                                                   | Trung bình | Dấu hiệu cảnh báo: email từ nhà cung cấp, hoặc dự án bị tạm dừng ngoài dự kiến. Phương án dự phòng: Netlify cho phép dùng thương mại ở gói miễn phí — giữ tệp cấu hình Netlify trong kho mã dưới dạng lịch sử git để chuyển lại trong vòng một buổi nếu cần                                                                   |
 
 ## 10. Quyết định đã chốt
 
 **Ghim cờ cảnh báo lệch ngày.** Khi mã đơn Shopee có phần ngày nằm ngoài vòng đời yêu cầu (SPEC-004), hệ thống cảnh báo nhưng vẫn cho lưu. Câu hỏi là **sau khi người dùng bấm lưu, cảnh báo đó đi đâu**:
 
-| Phương án | Cách làm | Được | Mất |
-| --- | --- | --- | --- |
-| A — chỉ ghi dấu vết | Ghi vào `AuditLog` một bản ghi có cờ cảnh báo | Không đổi lược đồ | Muốn tìm lại các yêu cầu đáng ngờ phải lục toàn bộ dấu vết; không lọc được, không đếm được |
-| B — ghim lên yêu cầu | Thêm cột `orderIdWarning boolean` trên `Request` | Lọc ra được ngay "cho tôi xem các yêu cầu có mã đơn đáng ngờ" — đúng lúc đối soát cần | Thêm một cột, và cột đó phải được tính lại mỗi khi mã đơn đổi |
+| Phương án            | Cách làm                                         | Được                                                                                  | Mất                                                                                        |
+| -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| A — chỉ ghi dấu vết  | Ghi vào `AuditLog` một bản ghi có cờ cảnh báo    | Không đổi lược đồ                                                                     | Muốn tìm lại các yêu cầu đáng ngờ phải lục toàn bộ dấu vết; không lọc được, không đếm được |
+| B — ghim lên yêu cầu | Thêm cột `orderIdWarning boolean` trên `Request` | Lọc ra được ngay "cho tôi xem các yêu cầu có mã đơn đáng ngờ" — đúng lúc đối soát cần | Thêm một cột, và cột đó phải được tính lại mỗi khi mã đơn đổi                              |
 
 Mục đích của phương án B: lúc đối soát, thay vì dò 100% số dòng, người đối soát mở danh sách đã lọc sẵn những dòng hệ thống từng nghi ngờ và xử lý trước. Cờ này là **cách hệ thống chuyển lời cảnh báo từ người nhập sang người đối soát**, vượt qua khoảng cách vài tuần giữa hai người.
 
@@ -306,10 +305,10 @@ Báo cáo có `Giá(₫)` và `Giá trị đơn hàng (₫)`, và hai cột này
 
 ### 11.5 Hai khoá nối tốt hơn hẳn, không cần gõ tay
 
-| Cột trong báo cáo | Ghép với | Nhận xét |
-| --- | --- | --- |
-| `Item id` | Mã sản phẩm nằm sẵn trong URL sản phẩm mà người mua đã dán | Không cần ai gõ gì. Trích được bằng biểu thức chính quy từ dữ liệu đã có |
-| `Sub_id1` … `Sub_id5` | Mã yêu cầu, nếu được gắn vào link affiliate lúc tạo | **Khoá hoàn hảo**: báo cáo trả về kèm đúng mã yêu cầu |
+| Cột trong báo cáo     | Ghép với                                                   | Nhận xét                                                                 |
+| --------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `Item id`             | Mã sản phẩm nằm sẵn trong URL sản phẩm mà người mua đã dán | Không cần ai gõ gì. Trích được bằng biểu thức chính quy từ dữ liệu đã có |
+| `Sub_id1` … `Sub_id5` | Mã yêu cầu, nếu được gắn vào link affiliate lúc tạo        | **Khoá hoàn hảo**: báo cáo trả về kèm đúng mã yêu cầu                    |
 
 Trong tệp mẫu, `Sub_id1` **gần như trống — chỉ 1 trong 91 dòng có giá trị.** Nghĩa là công cụ này đang có sẵn nhưng chưa được dùng.
 

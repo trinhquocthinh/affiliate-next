@@ -58,23 +58,23 @@ export function RequestDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 sm:max-w-lg lg:max-w-4xl">
+      <DialogContent className="gap-0 p-0 sm:max-w-lg lg:max-w-4xl">
         {loading && !data ? (
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 p-6">
             <Skeleton className="h-7 w-40" />
             <Skeleton className="h-4 w-72" />
             <Skeleton className="h-40 w-full" />
           </div>
         ) : data ? (
-          <div className="flex flex-col rounded-xl overflow-hidden">
+          <div className="flex flex-col overflow-hidden rounded-xl">
             {/* Header */}
-            <DialogHeader className="px-6 pr-12 py-5 border-b border-border gap-3">
+            <DialogHeader className="gap-3 border-b border-border px-6 py-5 pr-12">
               <DialogTitle className="flex items-center gap-3">
                 <code className="font-mono text-lg font-bold tracking-wide">{data.id}</code>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 border border-border"
+                  className="h-7 w-7 border border-border p-0"
                   onClick={() => actions.copyId(data.id)}
                   aria-label="Copy ID"
                 >
@@ -82,11 +82,11 @@ export function RequestDetailDialog({
                 </Button>
               </DialogTitle>
               <DialogDescription>
-                <span className="flex items-center gap-2 flex-wrap">
+                <span className="flex flex-wrap items-center gap-2">
                   <PlatformBadge platform={data.platform} />
                   <StatusBadge status={data.status} />
                   {data.isStale && <StaleBadge />}
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-sm text-muted-foreground">
                     · {formatRelativeTime(data.createdAt)}
                   </span>
                 </span>
@@ -94,30 +94,30 @@ export function RequestDetailDialog({
             </DialogHeader>
 
             {/* Body */}
-            <div className="flex flex-col lg:flex-row max-h-[70vh] overflow-y-auto lg:overflow-visible">
+            <div className="flex max-h-[70vh] flex-col overflow-y-auto lg:flex-row lg:overflow-visible">
               {/* Left: read-only info */}
-              <div className="w-full lg:w-[45%] p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
+              <div className="w-full border-b border-border p-6 lg:w-[45%] lg:overflow-y-auto lg:border-r lg:border-b-0 lg:p-8">
                 <div className="space-y-5">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                       Product URL
                     </p>
                     <a
                       href={data.productUrlRaw}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline break-all flex items-start gap-1 group"
+                      className="group flex items-start gap-1 text-sm break-all text-primary hover:underline"
                     >
                       <span className="line-clamp-4">
                         {decodeURIComponent(data.productUrlRaw.split("?")[0])}
                       </span>
-                      <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                      <ExternalLinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
                     </a>
                   </div>
 
                   {data.productName && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Product Name
                       </p>
                       <p className="text-sm">{data.productName}</p>
@@ -125,17 +125,15 @@ export function RequestDetailDialog({
                   )}
 
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                       Buyer
                     </p>
-                    <p className="text-sm">
-                      {data.createdBy.displayName || data.createdBy.email}
-                    </p>
+                    <p className="text-sm">{data.createdBy.displayName || data.createdBy.email}</p>
                   </div>
 
                   {data.affiliateOwner && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Claimed by
                       </p>
                       <p className="text-sm">
@@ -146,20 +144,20 @@ export function RequestDetailDialog({
 
                   {data.affiliateLink && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Affiliate Link
                       </p>
                       <a
                         href={data.affiliateLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline break-all flex items-start gap-1 group"
+                        className="group flex items-start gap-1 text-sm break-all text-primary hover:underline"
                       >
                         <span className="line-clamp-3">{data.affiliateLink}</span>
-                        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                        <ExternalLinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
                       </a>
                       {data.filledAt && (
-                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                           <ClockIcon className="h-3 w-3" />
                           Filled {formatDateTime(data.filledAt)}
                         </p>
@@ -169,10 +167,10 @@ export function RequestDetailDialog({
 
                   {data.notes && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Affiliate Notes
                       </p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                         {data.notes}
                       </p>
                     </div>
@@ -180,16 +178,16 @@ export function RequestDetailDialog({
 
                   {data.status === "CLOSED" && data.closeReason === "BOUGHT" && data.orderId && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Order ID
                       </p>
-                      <p className="text-sm font-mono">{data.orderId}</p>
+                      <p className="font-mono text-sm">{data.orderId}</p>
                     </div>
                   )}
 
                   {data.status === "CLOSED" && data.closeReason && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      <p className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                         Close Reason
                       </p>
                       <p className="text-sm capitalize">
@@ -201,11 +199,11 @@ export function RequestDetailDialog({
               </div>
 
               {/* Right: action panels */}
-              <div className="w-full lg:w-[55%] flex flex-col lg:overflow-y-auto">
+              <div className="flex w-full flex-col lg:w-[55%] lg:overflow-y-auto">
                 {/* Affiliate fill (claims implicitly when filled) */}
                 {canAffiliateAct && (
-                  <div className="p-6 lg:p-8 border-b border-border space-y-3">
-                    <p className="text-sm font-semibold flex items-center gap-2">
+                  <div className="space-y-3 border-b border-border p-6 lg:p-8">
+                    <p className="flex items-center gap-2 text-sm font-semibold">
                       <LinkIcon className="h-4 w-4" />
                       Affiliate Link
                     </p>
@@ -240,8 +238,8 @@ export function RequestDetailDialog({
 
                 {/* Buyer edit */}
                 {canBuyerEdit && (
-                  <div className="p-6 lg:p-8 border-b border-border space-y-3">
-                    <p className="text-sm font-semibold flex items-center gap-2">
+                  <div className="space-y-3 border-b border-border p-6 lg:p-8">
+                    <p className="flex items-center gap-2 text-sm font-semibold">
                       <PencilIcon className="h-4 w-4" />
                       Edit Request
                     </p>
@@ -253,7 +251,12 @@ export function RequestDetailDialog({
                       >
                         <SelectTrigger>
                           <SelectValue>
-                            {({ SHOPEE: "Shopee", TIKTOK: "TikTok", OTHER: "Other" } as Record<string, string>)[form.editPlatform] ?? form.editPlatform}
+                            {(
+                              { SHOPEE: "Shopee", TIKTOK: "TikTok", OTHER: "Other" } as Record<
+                                string,
+                                string
+                              >
+                            )[form.editPlatform] ?? form.editPlatform}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -274,7 +277,7 @@ export function RequestDetailDialog({
                     <div className="space-y-1.5">
                       <Label className="text-sm">
                         Product Name{" "}
-                        <span className="text-muted-foreground font-normal">(optional)</span>
+                        <span className="font-normal text-muted-foreground">(optional)</span>
                       </Label>
                       <Input
                         value={form.editProductName}
@@ -306,7 +309,7 @@ export function RequestDetailDialog({
 
                 {/* Buyer note */}
                 {canBuyerNote && (
-                  <div className="p-6 lg:p-8 border-b border-border space-y-3">
+                  <div className="space-y-3 border-b border-border p-6 lg:p-8">
                     <Label className="text-sm font-semibold">Your Note</Label>
                     <Textarea
                       placeholder={
@@ -340,8 +343,8 @@ export function RequestDetailDialog({
 
                 {/* Close */}
                 {canBuyerEdit && (
-                  <div className="p-6 lg:p-8 bg-destructive/5 space-y-3">
-                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                  <div className="space-y-3 bg-destructive/5 p-6 lg:p-8">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
                       <AlertTriangleIcon className="h-4 w-4" />
                       Close Request
                     </p>
@@ -354,7 +357,14 @@ export function RequestDetailDialog({
                     >
                       <SelectTrigger>
                         <SelectValue>
-                          {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", OTHER: "Other" } as Record<string, string>)[form.closeReason] ?? "Reason"}
+                          {(
+                            {
+                              BOUGHT: "Bought",
+                              NOT_BUYING: "Not buying",
+                              INVALID: "Invalid",
+                              OTHER: "Other",
+                            } as Record<string, string>
+                          )[form.closeReason] ?? "Reason"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -379,9 +389,11 @@ export function RequestDetailDialog({
                     />
                     <Button
                       variant="outline"
-                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
+                      className="w-full border-destructive/30 text-destructive hover:border-destructive/50 hover:bg-destructive/10"
                       onClick={actions.close}
-                      disabled={busy === "close" || (form.closeReason === "BOUGHT" && !form.orderId.trim())}
+                      disabled={
+                        busy === "close" || (form.closeReason === "BOUGHT" && !form.orderId.trim())
+                      }
                     >
                       {busy === "close" ? (
                         <>
@@ -397,8 +409,8 @@ export function RequestDetailDialog({
 
                 {/* Admin correction */}
                 {canAdminCorrect && (
-                  <div className="p-6 lg:p-8 bg-violet-500/5 border-t border-border space-y-3">
-                    <p className="text-sm font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-2">
+                  <div className="space-y-3 border-t border-border bg-violet-500/5 p-6 lg:p-8">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-violet-600 dark:text-violet-400">
                       <ShieldIcon className="h-4 w-4" />
                       Admin Correction
                     </p>
@@ -421,7 +433,7 @@ export function RequestDetailDialog({
                     </div>
                     <Button
                       variant="outline"
-                      className="w-full border-violet-400/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:border-violet-400/60"
+                      className="w-full border-violet-400/40 text-violet-600 hover:border-violet-400/60 hover:bg-violet-500/10 dark:text-violet-400"
                       onClick={actions.adminCorrect}
                       disabled={
                         busy === "adminCorrect" ||
@@ -442,7 +454,7 @@ export function RequestDetailDialog({
                 )}
 
                 {data.status === "CLOSED" && !canAdminCorrect && (
-                  <div className="p-6 lg:p-8 flex items-center justify-center text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center p-6 text-sm text-muted-foreground lg:p-8">
                     This request has been closed.
                   </div>
                 )}

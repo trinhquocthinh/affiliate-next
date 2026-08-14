@@ -94,9 +94,9 @@ describe("SPEC-009 — ghi dấu vết (TC-072..076)", () => {
 
     // Quên khai báo -> vẫn bị từ chối như mọi bản ghi thiếu actorId
     create.mockClear();
-    await expect(
-      logAuditEvent({ action: "BULK_CLOSE", source: "cron" }),
-    ).rejects.toThrow(AuditValidationError);
+    await expect(logAuditEvent({ action: "BULK_CLOSE", source: "cron" })).rejects.toThrow(
+      AuditValidationError,
+    );
     expect(create).not.toHaveBeenCalled();
   });
 

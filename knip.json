@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@5/overview/configuration-schema.json",
+  "entry": ["scripts/**/*.{ts,js}"],
+  "project": ["src/**/*.{ts,tsx,css}"],
+  "ignore": ["src/components/ui/**"],
+  "ignoreDependencies": [
+    "@types/*",
+    "@prisma/client",
+    "@auth/prisma-adapter",
+    "framer-motion",
+    "ts-node"
+  ],
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "unlisted": "error",
+    "unresolved": "error",
+    "exports": "error",
+    "types": "error"
+  }
+}

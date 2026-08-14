@@ -62,12 +62,29 @@ export function useAffiliateQueue() {
     if (newQuery !== currentQuery) {
       router.replace(`${pathname}${newQuery ? `?${newQuery}` : ""}`, { scroll: false });
     }
-  }, [debouncedSearch, statusFilter, buyerFilter, sortValue, createdFrom, createdTo, pathname, router]);
+  }, [
+    debouncedSearch,
+    statusFilter,
+    buyerFilter,
+    sortValue,
+    createdFrom,
+    createdTo,
+    pathname,
+    router,
+  ]);
 
   const [sortBy, sortOrder] = sortValue.split(":") as [string, string];
 
   const filters: AffiliateQueueFilters = useMemo(
-    () => ({ search: debouncedSearch, statusFilter, buyerFilter, sortBy, sortOrder, createdFrom, createdTo }),
+    () => ({
+      search: debouncedSearch,
+      statusFilter,
+      buyerFilter,
+      sortBy,
+      sortOrder,
+      createdFrom,
+      createdTo,
+    }),
     [debouncedSearch, statusFilter, buyerFilter, sortBy, sortOrder, createdFrom, createdTo],
   );
 
@@ -83,9 +100,11 @@ export function useAffiliateQueue() {
   // Desktop fetch via SWR
   const swrKey = `/api/affiliate/queue?${buildQueueParams(filters, page).toString()}`;
   const { data: swrData, isLoading, isValidating, mutate } = useSWR<QueueResponse>(swrKey);
-  const items = useMemo(() => (swrData?.ok ? swrData.data?.items ?? [] : []), [swrData]);
-  const total = swrData?.ok ? swrData.data?.total ?? 0 : 0;
-  const summary: QueueSummary = swrData?.ok ? swrData.data?.summary ?? EMPTY_SUMMARY : EMPTY_SUMMARY;
+  const items = useMemo(() => (swrData?.ok ? (swrData.data?.items ?? []) : []), [swrData]);
+  const total = swrData?.ok ? (swrData.data?.total ?? 0) : 0;
+  const summary: QueueSummary = swrData?.ok
+    ? (swrData.data?.summary ?? EMPTY_SUMMARY)
+    : EMPTY_SUMMARY;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const loading = isLoading;
   const fetching = isValidating;

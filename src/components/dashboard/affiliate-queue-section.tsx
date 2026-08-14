@@ -111,22 +111,20 @@ export function AffiliateQueueSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">Queue</h3>
-          {filterLabel && (
-            <p className="text-xs text-muted-foreground mt-0.5">{filterLabel}</p>
-          )}
+          {filterLabel && <p className="mt-0.5 text-xs text-muted-foreground">{filterLabel}</p>}
         </div>
       </div>
 
       {items.length === 0 ? (
-        <CyberCard className="p-10 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-muted text-muted-foreground flex items-center justify-center mb-4">
+        <CyberCard className="flex flex-col items-center p-10 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <InboxIcon className="h-7 w-7" />
           </div>
-          <h4 className="text-base font-semibold mb-1">Nothing here right now</h4>
-          <p className="text-sm text-muted-foreground max-w-sm">
+          <h4 className="mb-1 text-base font-semibold">Nothing here right now</h4>
+          <p className="max-w-sm text-sm text-muted-foreground">
             {activeStat === "stale"
               ? "No stale requests. Nice work staying on top of the queue."
               : activeStat === "mine"
@@ -156,7 +154,7 @@ export function AffiliateQueueSection({
                   return (
                     <TableRow
                       key={item.id}
-                      className="group cursor-pointer transition-colors hover:bg-muted/40 border-l-2 border-l-transparent hover:border-l-primary"
+                      className="group cursor-pointer border-l-2 border-l-transparent transition-colors hover:border-l-primary hover:bg-muted/40"
                       onClick={() => openDetail(item.id)}
                     >
                       <TableCell className="font-mono text-xs">{item.id}</TableCell>
@@ -174,7 +172,7 @@ export function AffiliateQueueSection({
                           suppressHydrationWarning
                           className={
                             item.isStale
-                              ? "text-rose-600 dark:text-rose-400 font-medium"
+                              ? "font-medium text-rose-600 dark:text-rose-400"
                               : "text-muted-foreground"
                           }
                         >
@@ -187,10 +185,7 @@ export function AffiliateQueueSection({
                           {item.isStale && <StaleBadge />}
                         </span>
                       </TableCell>
-                      <TableCell
-                        className="text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={
@@ -224,7 +219,9 @@ export function AffiliateQueueSection({
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                disabled={(isClaimedByOther && !canOverride) || claimingId === item.id}
+                                disabled={
+                                  (isClaimedByOther && !canOverride) || claimingId === item.id
+                                }
                                 onClick={() => handleClaim(item, false)}
                               >
                                 {claimingId === item.id ? (
@@ -244,10 +241,10 @@ export function AffiliateQueueSection({
               </TableBody>
             </Table>
           </div>
-          <div className="border-t border-border bg-muted/30 px-4 py-2.5 flex justify-end">
+          <div className="flex justify-end border-t border-border bg-muted/30 px-4 py-2.5">
             <Link
               href="/affiliate"
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
             >
               View all <ArrowRightIcon className="h-3.5 w-3.5" />
             </Link>

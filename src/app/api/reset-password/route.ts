@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     const adminEmail = process.env.ADMIN_EMAIL;
     if (adminEmail && resetToken.user.email === adminEmail) {
       return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Admin account cannot use password reset" } },
+        {
+          ok: false,
+          error: { code: "FORBIDDEN", message: "Admin account cannot use password reset" },
+        },
         { status: 403 },
       );
     }

@@ -1,63 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { closeRequestSchema } from "@/lib/validations";
 import { logAuditEvent, closeAuditSourceFor, auditRemark, isOwnershipOverride } from "@/lib/audit";
-import { checkOptimisticLock } from "@/lib/api-utils";
-import { canAccessRequest, hasPermission, Actor } from "@/domain/permissions/resolve";
+import { parseAuthenticatedRequest, getAccessibleRequest } from "@/lib/api-utils";
+import { hasPermission } from "@/domain/permissions/resolve";
 
 // POST /api/requests/[id]/close
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const ctx = await parseAuthenticatedRequest(request, params, closeRequestSchema);
+    if (ctx.error) return ctx.error;
+    const { id, actor, data, actorContext } = ctx;
+    const { closeReason, closeNote, orderId, expectedLastUpdatedAt } = data;
 
-    const { id } = await params;
-    const body = await request.json();
-    const parsed = closeRequestSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } },
-        { status: 400 },
-      );
-    }
-
-    const { closeReason, closeNote, orderId, expectedLastUpdatedAt } = parsed.data;
-
-    const existing = await prisma.request.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json(
-        { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (existing.status === "CLOSED") {
-      return NextResponse.json(
-        { ok: false, error: { code: "INVALID_STATE", message: "Request is already closed" } },
-        { status: 400 },
-      );
-    }
-
-    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
-    if (!canAccessRequest(domainActor, existing, "request.close")) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-        { status: 403 },
-      );
-    }
-
-    const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);
-    if (conflict) return conflict;
+    const reqResult = await getAccessibleRequest(id, actor, "request.close", {
+      expectedLastUpdatedAt,
+    });
+    if (reqResult.error) return reqResult.error;
+    const existing = reqResult.request;
 
     const now = new Date();
     const updated = await prisma.request.update({
@@ -66,22 +26,22 @@ export async function POST(
         status: "CLOSED",
         closeReason,
         closeNote: closeNote || null,
-        orderId: closeReason === "BOUGHT" ? (orderId || null) : null,
+        orderId: closeReason === "BOUGHT" ? orderId || null : null,
         closedAt: now,
-        closedById: actor.userId,
+        closedById: actor.id,
         // Đóng một yêu cầu chưa ai giữ thì người đóng nhận luôn việc — nhưng
         // chỉ khi họ vốn có thể nhận việc. Người mua đóng yêu cầu của mình
         // không vì thế mà thành người giữ.
         affiliateOwnerId:
           existing.affiliateOwnerId ||
-          (hasPermission(domainActor, "affiliate.claim.unclaimed") ? actor.userId : undefined),
-        lastUpdatedById: actor.userId,
+          (hasPermission(actor, "affiliate.claim.unclaimed") ? actor.id : undefined),
+        lastUpdatedById: actor.id,
       },
     });
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "CLOSE_REQUEST",
       oldValue: { status: existing.status, closeReason: existing.closeReason },
       newValue: { status: "CLOSED", closeReason, closeNote, orderId },
@@ -89,7 +49,7 @@ export async function POST(
       // BR-051: đóng yêu cầu của người khác. `orderId` đi kèm lúc đóng cũng
       // thuộc diện BR-052 nên đánh dấu luôn, để rà một lần ra cả hai.
       remark: auditRemark(
-        isOwnershipOverride(actor.userId, existing) && "ownership_override",
+        isOwnershipOverride(actor.id, existing) && "ownership_override",
         !!orderId && "order_id_set",
       ),
     });
@@ -100,7 +60,7 @@ export async function POST(
         status: updated.status,
         closeReason: updated.closeReason,
         closedAt: updated.closedAt,
-        closedBy: actor.email,
+        closedBy: actorContext.email,
         lastUpdatedAt: updated.lastUpdatedAt,
       },
     });

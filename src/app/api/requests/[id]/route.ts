@@ -2,16 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiActorContext } from "@/lib/auth-utils";
 import { getAppConfig } from "@/lib/config-cache";
-import { canAccessRequest, assertPermission, PermissionError, Actor } from "@/domain/permissions/resolve";
+import {
+  canAccessRequest,
+  assertPermission,
+  PermissionError,
+  Actor,
+} from "@/domain/permissions/resolve";
 
 // GET /api/requests/[id] — get single request
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
+    const actor: Actor = actorCtx
+      ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] }
+      : null;
 
     if (!actor) {
       return NextResponse.json(
@@ -81,21 +85,26 @@ export async function GET(
 }
 
 // PATCH /api/requests/[id] — admin: update orderId
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
+    const actor: Actor = actorCtx
+      ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] }
+      : null;
 
     try {
       assertPermission(actor, "request.order_id.edit_any_status");
     } catch (e: unknown) {
       if (e instanceof PermissionError) {
         return NextResponse.json(
-          { ok: false, error: { code: (e as any).code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN", message: (e as any).message } },
-          { status: (e as any).code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
+          {
+            ok: false,
+            error: {
+              code: e.code === "ERR_UNAUTHENTICATED" ? "UNAUTHORIZED" : "FORBIDDEN",
+              message: e.message,
+            },
+          },
+          { status: e.code === "ERR_UNAUTHENTICATED" ? 401 : 403 },
         );
       }
       throw e;
@@ -121,7 +130,13 @@ export async function PATCH(
     }
     if (existing.status !== "CLOSED" || existing.closeReason !== "BOUGHT") {
       return NextResponse.json(
-        { ok: false, error: { code: "INVALID_STATE", message: "Order ID can only be updated on CLOSED/BOUGHT requests" } },
+        {
+          ok: false,
+          error: {
+            code: "INVALID_STATE",
+            message: "Order ID can only be updated on CLOSED/BOUGHT requests",
+          },
+        },
         { status: 422 },
       );
     }

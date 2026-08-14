@@ -13,8 +13,9 @@ export function RoleDropdown({
   return (
     <div className="relative inline-block w-32">
       <select
-        className={`appearance-none w-full px-3 py-1.5 text-xs font-bold rounded-full border focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${roleStyles[role] || ""
-          }`}
+        className={`w-full cursor-pointer appearance-none rounded-full border px-3 py-1.5 text-xs font-bold shadow-sm transition-colors focus:ring-1 focus:ring-emerald-500/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
+          roleStyles[role] || ""
+        }`}
         value={role}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}

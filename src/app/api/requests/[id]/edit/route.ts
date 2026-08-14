@@ -1,66 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { editRequestSchema } from "@/lib/validations";
 import { normalizeProductUrl } from "@/lib/url-utils";
 import { logAuditEvent, auditSourceFor } from "@/lib/audit";
-import { checkOptimisticLock } from "@/lib/api-utils";
-import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
+import { parseAuthenticatedRequest, getAccessibleRequest } from "@/lib/api-utils";
 
 // PATCH /api/requests/[id]/edit — buyer edits their own request before it's closed
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await getApiActorContext();
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const ctx = await parseAuthenticatedRequest(request, params, editRequestSchema);
+    if (ctx.error) return ctx.error;
+    const { id, actor, data } = ctx;
+    const { productUrl, platform, productName, expectedLastUpdatedAt } = data;
 
-    const { id } = await params;
-    const body = await request.json();
-    const parsed = editRequestSchema.safeParse(body);
+    const reqResult = await getAccessibleRequest(id, actor, "request.edit", {
+      expectedLastUpdatedAt,
+    });
+    if (reqResult.error) return reqResult.error;
+    const existing = reqResult.request;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } },
-        { status: 400 },
-      );
-    }
-
-    const { productUrl, platform, productName, expectedLastUpdatedAt } = parsed.data;
-
-    const existing = await prisma.request.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json(
-        { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
-        { status: 404 },
-      );
-    }
-
-    const domainActor: Actor = { id: actor.userId, role: actor.role as NonNullable<Actor>["role"] };
-    if (!canAccessRequest(domainActor, existing, "request.edit")) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "You can only edit your own requests" } },
-        { status: 403 },
-      );
-    }
-
-    if (existing.status === "CLOSED") {
-      return NextResponse.json(
-        { ok: false, error: { code: "INVALID_STATE", message: "Cannot edit a closed request" } },
-        { status: 400 },
-      );
-    }
-
-    const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);
-    if (conflict) return conflict;
-
-    const updateData: Record<string, unknown> = { lastUpdatedById: actor.userId };
+    const updateData: Record<string, unknown> = { lastUpdatedById: actor.id };
     if (productUrl !== undefined) {
       updateData.productUrlRaw = productUrl;
       updateData.productUrlNorm = normalizeProductUrl(productUrl);
@@ -75,7 +34,7 @@ export async function PATCH(
 
     await logAuditEvent({
       requestId: id,
-      actorId: actor.userId,
+      actorId: actor.id,
       action: "SAVE_NOTE",
       oldValue: {
         productUrlRaw: existing.productUrlRaw,

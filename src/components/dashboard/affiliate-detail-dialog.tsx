@@ -39,34 +39,40 @@ export function AffiliateDetailDialog({
 
   return (
     <Dialog open={!!selected} onOpenChange={(open) => !open && detail.closeDetail()}>
-      <DialogContent className="p-0 gap-0 sm:max-w-lg lg:max-w-5xl">
+      <DialogContent className="gap-0 p-0 sm:max-w-lg lg:max-w-5xl">
         {selected && (
-          <div className="flex flex-col rounded-xl overflow-hidden">
+          <div className="flex flex-col overflow-hidden rounded-xl">
             {/* Header */}
-            <DialogHeader className="px-6 pr-12 py-5 border-b gap-3">
+            <DialogHeader className="gap-3 border-b px-6 py-5 pr-12">
               <DialogTitle className="flex items-center gap-3">
                 <code className="font-mono text-lg font-bold tracking-wide">{selected.id}</code>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 border border-border"
+                  className="h-7 w-7 border border-border p-0"
                   onClick={() => detail.copyId(selected.id)}
                 >
                   <CopyIcon className="h-3.5 w-3.5" />
                 </Button>
               </DialogTitle>
               <DialogDescription>
-                <span className="flex items-center gap-2.5 flex-wrap">
-                  <Badge className={`text-xs font-semibold ${QUEUE_PLATFORM_STYLES[selected.platform] || ""}`}>
+                <span className="flex flex-wrap items-center gap-2.5">
+                  <Badge
+                    className={`text-xs font-semibold ${QUEUE_PLATFORM_STYLES[selected.platform] || ""}`}
+                  >
                     {selected.platform}
                   </Badge>
-                  <Badge className={`text-xs font-semibold ${QUEUE_STATUS_BADGE_STYLES[selected.status] || ""}`}>
+                  <Badge
+                    className={`text-xs font-semibold ${QUEUE_STATUS_BADGE_STYLES[selected.status] || ""}`}
+                  >
                     {statusLabel(selected.status)}
                   </Badge>
                   {selected.isStale && (
-                    <Badge variant="destructive" className="text-xs font-semibold">Stale</Badge>
+                    <Badge variant="destructive" className="text-xs font-semibold">
+                      Stale
+                    </Badge>
                   )}
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-sm text-muted-foreground">
                     · {formatRelativeTime(selected.createdAt)}
                   </span>
                 </span>
@@ -76,74 +82,80 @@ export function AffiliateDetailDialog({
             {/* Body: 2-col on lg, 1-col on mobile */}
             <div className="flex flex-col lg:flex-row">
               {/* Left Column: Read-only Info */}
-              <div className="w-full lg:w-[45%] p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-border">
+              <div className="w-full border-b border-border p-6 lg:w-[45%] lg:border-r lg:border-b-0 lg:p-8">
                 <div className="space-y-5">
                   {/* Product URL */}
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1.5">Product URL</p>
+                    <p className="mb-1.5 text-sm font-medium text-muted-foreground">Product URL</p>
                     <a
                       href={selected.productUrlRaw}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline break-all leading-relaxed flex items-start gap-1 group"
+                      className="group flex items-start gap-1 text-sm leading-relaxed break-all text-primary hover:underline"
                     >
                       <span className="line-clamp-4">
                         {decodeURIComponent(selected.productUrlRaw.split("?")[0])}
                       </span>
-                      <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-70 group-hover:opacity-100" />
+                      <ExternalLinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
                     </a>
                   </div>
 
                   {/* Product Name */}
                   {selected.productName && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Product Name</p>
+                      <p className="mb-1.5 text-sm font-medium text-muted-foreground">
+                        Product Name
+                      </p>
                       <p className="text-sm">{selected.productName}</p>
                     </div>
                   )}
 
                   {/* Requester */}
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1.5">Requester</p>
-                    <p className="text-sm">
-                      {selected.createdBy.email}
-                    </p>
+                    <p className="mb-1.5 text-sm font-medium text-muted-foreground">Requester</p>
+                    <p className="text-sm">{selected.createdBy.email}</p>
                   </div>
 
                   {/* Order ID (for BOUGHT closed requests) */}
-                  {selected.status === "CLOSED" && selected.closeReason === "BOUGHT" && selected.orderId && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Order ID</p>
-                      {canEditOrderId ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={detail.editOrderId}
-                            onChange={(e) => detail.setEditOrderId(e.target.value)}
-                            className="h-9 text-sm font-mono"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={detail.handleUpdateOrderId}
-                            disabled={detail.actionLoading === "editOrderId" || !detail.editOrderId.trim() || detail.editOrderId.trim() === selected.orderId}
-                            className="h-9 shrink-0"
-                          >
-                            {detail.actionLoading === "editOrderId" ? "Saving..." : "Save"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <p className="text-sm font-mono">{selected.orderId}</p>
-                      )}
-                    </div>
-                  )}
+                  {selected.status === "CLOSED" &&
+                    selected.closeReason === "BOUGHT" &&
+                    selected.orderId && (
+                      <div>
+                        <p className="mb-1.5 text-sm font-medium text-muted-foreground">Order ID</p>
+                        {canEditOrderId ? (
+                          <div className="flex gap-2">
+                            <Input
+                              value={detail.editOrderId}
+                              onChange={(e) => detail.setEditOrderId(e.target.value)}
+                              className="h-9 font-mono text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={detail.handleUpdateOrderId}
+                              disabled={
+                                detail.actionLoading === "editOrderId" ||
+                                !detail.editOrderId.trim() ||
+                                detail.editOrderId.trim() === selected.orderId
+                              }
+                              className="h-9 shrink-0"
+                            >
+                              {detail.actionLoading === "editOrderId" ? "Saving..." : "Save"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="font-mono text-sm">{selected.orderId}</p>
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
 
               {/* Right Column: Action Forms */}
-              <div className="w-full lg:w-[55%] flex flex-col">
+              <div className="flex w-full flex-col lg:w-[55%]">
                 {/* Save Section */}
                 {selected.status !== "CLOSED" && (
-                  <div className="p-6 lg:p-8 border-b border-border space-y-4">
+                  <div className="space-y-4 border-b border-border p-6 lg:p-8">
                     <div className="space-y-2">
                       <Label>Affiliate Link</Label>
                       <Input
@@ -161,7 +173,7 @@ export function AffiliateDetailDialog({
                       />
                       <Label
                         htmlFor="subIdStamped"
-                        className="text-sm font-medium leading-none cursor-pointer"
+                        className="cursor-pointer text-sm leading-none font-medium"
                       >
                         Tôi đã dán mã yêu cầu vào ô Sub_ID khi tạo link
                       </Label>
@@ -188,15 +200,29 @@ export function AffiliateDetailDialog({
 
                 {/* Close Request Section (Danger Zone) */}
                 {selected.status !== "CLOSED" && (
-                  <div className="p-6 lg:p-8 bg-destructive/5 space-y-4">
-                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                  <div className="space-y-4 bg-destructive/5 p-6 lg:p-8">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
                       <AlertTriangleIcon className="h-4 w-4" />
                       Close Request
                     </p>
-                    <Select value={detail.closeReason} onValueChange={(v) => { detail.setCloseReason(v ?? ""); detail.setOrderId(""); }}>
+                    <Select
+                      value={detail.closeReason}
+                      onValueChange={(v) => {
+                        detail.setCloseReason(v ?? "");
+                        detail.setOrderId("");
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue>
-                          {({ BOUGHT: "Bought", NOT_BUYING: "Not buying", INVALID: "Invalid", STALE: "Stale", OTHER: "Other" } as Record<string, string>)[detail.closeReason] ?? "Reason"}
+                          {(
+                            {
+                              BOUGHT: "Bought",
+                              NOT_BUYING: "Not buying",
+                              INVALID: "Invalid",
+                              STALE: "Stale",
+                              OTHER: "Other",
+                            } as Record<string, string>
+                          )[detail.closeReason] ?? "Reason"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -223,8 +249,11 @@ export function AffiliateDetailDialog({
                     <Button
                       variant="outline"
                       onClick={detail.handleClose}
-                      disabled={detail.actionLoading === "close" || (detail.closeReason === "BOUGHT" && !detail.orderId.trim())}
-                      className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
+                      disabled={
+                        detail.actionLoading === "close" ||
+                        (detail.closeReason === "BOUGHT" && !detail.orderId.trim())
+                      }
+                      className="border-destructive/30 text-destructive hover:border-destructive/50 hover:bg-destructive/10"
                     >
                       {detail.actionLoading === "close" ? "Closing..." : "Close Request"}
                     </Button>
@@ -233,7 +262,7 @@ export function AffiliateDetailDialog({
 
                 {/* When closed, show empty state or nothing */}
                 {selected.status === "CLOSED" && (
-                  <div className="p-6 lg:p-8 flex items-center justify-center text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center p-6 text-sm text-muted-foreground lg:p-8">
                     This request has been closed.
                   </div>
                 )}

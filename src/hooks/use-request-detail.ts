@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/swr-fetcher";
 import { computeRequestPermissions } from "@/lib/request-status";
 import { usePermissions } from "@/hooks/use-permissions";
 
-export type RequestDetail = {
+type RequestDetail = {
   id: string;
   createdAt: string;
   platform: string;
@@ -42,11 +42,7 @@ export function useRequestDetail({
   const actor = useActor();
   const { hasPermission, getPermissionScope } = usePermissions();
   const swrKey = open && requestId ? `/api/requests/${requestId}` : null;
-  const {
-    data: swrData,
-    isLoading: swrLoading,
-    mutate,
-  } = useSWR<RequestDetailResponse>(swrKey);
+  const { data: swrData, isLoading: swrLoading, mutate } = useSWR<RequestDetailResponse>(swrKey);
 
   const data: RequestDetail | null = swrData?.ok && swrData.data ? swrData.data : null;
   const loading = swrLoading;
@@ -109,8 +105,7 @@ export function useRequestDetail({
       };
       if (editProductUrl !== data.productUrlRaw) body.productUrl = editProductUrl;
       if (editPlatform !== data.platform) body.platform = editPlatform;
-      if (editProductName !== (data.productName || ""))
-        body.productName = editProductName || null;
+      if (editProductName !== (data.productName || "")) body.productName = editProductName || null;
       const json = await apiFetch<{ ok: boolean; error?: { message?: string } }>(
         `/api/requests/${data.id}/edit`,
         { method: "PATCH", body: JSON.stringify(body) },
@@ -241,12 +236,8 @@ export function useRequestDetail({
     }
   }
 
-  const { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect, canBuyerNote } = computeRequestPermissions(
-    data,
-    actor,
-    hasPermission,
-    getPermissionScope,
-  );
+  const { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect, canBuyerNote } =
+    computeRequestPermissions(data, actor, hasPermission, getPermissionScope);
 
   return {
     data,

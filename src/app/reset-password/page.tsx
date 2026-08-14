@@ -12,12 +12,12 @@ import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 
 const glassPage = (children: React.ReactNode) => (
   <div
-    className="relative min-h-screen flex items-center justify-center overflow-hidden p-5"
+    className="relative flex min-h-screen items-center justify-center overflow-hidden p-5"
     style={{ background: "linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)" }}
   >
     <div className="auth-blob auth-blob-1" />
     <div className="auth-blob auth-blob-2" />
-    <div className="auth-glass-card relative z-10 w-full max-w-105 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] px-8 py-10">
+    <div className="auth-glass-card relative z-10 w-full max-w-105 rounded-3xl border border-white/50 bg-white/40 px-8 py-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] backdrop-blur-xl">
       {children}
     </div>
   </div>
@@ -34,21 +34,35 @@ function ResetPasswordForm() {
   if (!token) {
     return glassPage(
       <>
-        <div className="flex justify-center mb-6">
+        <div className="mb-6 flex justify-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
           </div>
         </div>
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Invalid link</h2>
-          <p className="text-gray-500 text-sm">
+        <div className="mb-8 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-gray-800">Invalid link</h2>
+          <p className="text-sm text-gray-500">
             This password reset link is invalid or has expired.
           </p>
         </div>
         <Link href="/forgot-password">
           <Button
             variant="outline"
-            className="w-full h-12 rounded-xl border-white/50 bg-white/40 hover:bg-white/60 font-semibold"
+            className="h-12 w-full rounded-xl border-white/50 bg-white/40 font-semibold hover:bg-white/60"
           >
             Request a new link
           </Button>
@@ -91,7 +105,7 @@ function ResetPasswordForm() {
 
   return glassPage(
     <>
-      <div className="flex justify-center mb-6">
+      <div className="mb-6 flex justify-center">
         <Image
           src="/assets/logo.png"
           alt="Shop Quành"
@@ -101,9 +115,9 @@ function ResetPasswordForm() {
         />
       </div>
 
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Reset password</h2>
-        <p className="text-gray-500 text-sm">Enter your new password below.</p>
+      <div className="mb-8 text-center">
+        <h2 className="mb-2 text-2xl font-bold text-gray-800">Reset password</h2>
+        <p className="text-sm text-gray-500">Enter your new password below.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -120,7 +134,7 @@ function ResetPasswordForm() {
             autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
+            className="h-12 rounded-xl border-white/80 bg-white/60 px-4 text-[15px] focus-visible:border-[#008a62] focus-visible:bg-white/90 focus-visible:ring-[#008a62]/15"
           />
           <PasswordStrengthMeter password={password} />
           <p className="text-xs text-gray-500">
@@ -139,7 +153,7 @@ function ResetPasswordForm() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="h-12 px-4 text-[15px] bg-white/60 border-white/80 rounded-xl focus-visible:bg-white/90 focus-visible:border-[#008a62] focus-visible:ring-[#008a62]/15"
+            className="h-12 rounded-xl border-white/80 bg-white/60 px-4 text-[15px] focus-visible:border-[#008a62] focus-visible:bg-white/90 focus-visible:ring-[#008a62]/15"
           />
           {confirmPassword.length > 0 && password !== confirmPassword && (
             <p className="text-xs text-red-500">Passwords do not match</p>
@@ -147,7 +161,7 @@ function ResetPasswordForm() {
         </div>
         <Button
           type="submit"
-          className="w-full mt-2 h-12 text-[15px] font-semibold rounded-xl bg-[#008a62] hover:bg-[#006b4c] shadow-[0_4px_12px_rgba(0,138,98,0.2)] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)] hover:-translate-y-0.5 transition-all"
+          className="mt-2 h-12 w-full rounded-xl bg-[#008a62] text-[15px] font-semibold shadow-[0_4px_12px_rgba(0,138,98,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#006b4c] hover:shadow-[0_6px_16px_rgba(0,138,98,0.3)]"
           disabled={loading}
         >
           {loading ? "Resetting..." : "Reset password"}
@@ -157,7 +171,7 @@ function ResetPasswordForm() {
       <div className="mt-6 text-center text-sm text-gray-500">
         <Link
           href="/login"
-          className="text-[#008a62] hover:text-[#006b4c] hover:underline font-semibold"
+          className="font-semibold text-[#008a62] hover:text-[#006b4c] hover:underline"
         >
           Back to sign in
         </Link>

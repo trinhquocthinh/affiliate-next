@@ -20,10 +20,7 @@ export async function securePost<TResponse = unknown>(
   init: RequestInit = {},
 ): Promise<TResponse> {
   const rawBody = JSON.stringify(payload ?? {});
-  const [appCheckToken, checksum] = await Promise.all([
-    getAppCheckToken(),
-    sha256Hex(rawBody),
-  ]);
+  const [appCheckToken, checksum] = await Promise.all([getAppCheckToken(), sha256Hex(rawBody)]);
 
   const res = await fetch(url, {
     ...init,

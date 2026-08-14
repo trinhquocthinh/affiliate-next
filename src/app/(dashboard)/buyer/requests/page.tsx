@@ -17,12 +17,7 @@ import {
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge, PlatformBadge, StaleBadge } from "@/components/requests/status-badge";
-import {
-  AlertTriangleIcon,
-  ExternalLinkIcon,
-  ClockIcon,
-  ListIcon,
-} from "lucide-react";
+import { AlertTriangleIcon, ExternalLinkIcon, ClockIcon, ListIcon } from "lucide-react";
 
 export default function BuyerRequestsPage() {
   const {
@@ -40,7 +35,7 @@ export default function BuyerRequestsPage() {
   return (
     <>
       <AppHeader title="My Requests" />
-      <div className="flex-1 p-4 md:p-6 space-y-4">
+      <div className="flex-1 space-y-4 p-4 md:p-6">
         {/* Filters */}
         <Tabs
           value={statusFilter}
@@ -48,7 +43,7 @@ export default function BuyerRequestsPage() {
             if (!fetching && v) setStatusFilter(v);
           }}
         >
-          <TabsList className={fetching ? "opacity-60 pointer-events-none" : undefined}>
+          <TabsList className={fetching ? "pointer-events-none opacity-60" : undefined}>
             <TabsTrigger value="ALL">All</TabsTrigger>
             <TabsTrigger value="NEW">Pending</TabsTrigger>
             <TabsTrigger value="FILLED">Ready</TabsTrigger>
@@ -69,9 +64,9 @@ export default function BuyerRequestsPage() {
         {!loading && items.length === 0 && (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <ListIcon className="h-12 w-12 text-muted-foreground mb-4" />
+              <ListIcon className="mb-4 h-12 w-12 text-muted-foreground" />
               <h3 className="text-lg font-medium">No requests yet</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Create your first request to get started.
               </p>
             </CardContent>
@@ -81,7 +76,7 @@ export default function BuyerRequestsPage() {
         {/* Desktop Table */}
         {!loading && items.length > 0 && (
           <>
-            <div className="hidden md:block rounded-lg border overflow-x-auto">
+            <div className="hidden overflow-x-auto rounded-lg border md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -98,21 +93,25 @@ export default function BuyerRequestsPage() {
                   {items.map((item) => (
                     <TableRow
                       key={item.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="cursor-pointer transition-colors hover:bg-muted/50"
                       onClick={() => openDetail(item)}
                     >
-                      <TableCell className="font-mono text-sm">
-                        {item.id}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      <TableCell className="font-mono text-sm">{item.id}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger render={<span className="cursor-default border-b border-dashed border-slate-300 dark:border-slate-600" />}>
-                              {new Date(item.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            <TooltipTrigger
+                              render={
+                                <span className="cursor-default border-b border-dashed border-slate-300 dark:border-slate-600" />
+                              }
+                            >
+                              {new Date(item.createdAt).toLocaleDateString("vi-VN", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })}
                             </TooltipTrigger>
-                            <TooltipContent>
-                              {formatDateTime(item.createdAt)}
-                            </TooltipContent>
+                            <TooltipContent>{formatDateTime(item.createdAt)}</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </TableCell>
@@ -122,9 +121,7 @@ export default function BuyerRequestsPage() {
                       <TableCell>
                         <span className="flex items-center gap-1">
                           <StatusBadge status={item.status} className="text-xs" />
-                          {item.isStale && (
-                            <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
-                          )}
+                          {item.isStale && <AlertTriangleIcon className="h-3 w-3 text-amber-500" />}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm">
@@ -140,12 +137,12 @@ export default function BuyerRequestsPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-primary hover:underline text-sm flex items-center gap-1"
+                            className="flex items-center gap-1 text-sm text-primary hover:underline"
                           >
                             Open <ExternalLinkIcon className="h-3 w-3" />
                           </a>
                         ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -155,27 +152,25 @@ export default function BuyerRequestsPage() {
             </div>
 
             {/* Mobile Card List */}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-3 md:hidden">
               {items.map((item) => (
                 <Card
                   key={item.id}
-                  className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+                  className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
                   onClick={() => openDetail(item)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
                           <code className="font-mono text-sm font-medium">{item.id}</code>
                           <PlatformBadge platform={item.platform} className="text-xs" />
                           <StatusBadge status={item.status} className="text-xs" />
                           {item.isStale && <StaleBadge className="text-xs" />}
                         </div>
-                        <p className="text-sm truncate">
-                          {item.productName || item.productUrlRaw}
-                        </p>
+                        <p className="truncate text-sm">{item.productName || item.productUrlRaw}</p>
                         {item.buyerNote && (
-                          <p className="text-xs text-muted-foreground truncate italic">
+                          <p className="truncate text-xs text-muted-foreground italic">
                             Note: {item.buyerNote}
                           </p>
                         )}

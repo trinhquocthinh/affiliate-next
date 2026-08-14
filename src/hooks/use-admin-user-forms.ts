@@ -6,9 +6,11 @@ import type { AdminAction, UserItem, UsersResponse } from "@/lib/user-status";
 export function useAdminUserForms({
   mutate,
   runUserAction,
+  updateUser,
 }: {
   mutate: () => void;
   runUserAction: (userId: string, action: AdminAction, reason?: string) => Promise<boolean>;
+  updateUser: (userId: string, updates: Record<string, unknown>) => Promise<void>;
 }) {
   // Add User dialog
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -78,6 +80,23 @@ export function useAdminUserForms({
     if (ok) closeRejectDialog();
   }
 
+  // Edit Discord ID
+  const [editDiscordTarget, setEditDiscordTarget] = useState<UserItem | null>(null);
+
+  function openEditDiscordDialog(user: UserItem) {
+    setEditDiscordTarget(user);
+  }
+
+  function closeEditDiscordDialog() {
+    setEditDiscordTarget(null);
+  }
+
+  async function submitEditDiscord(userId: string, discordId: string | null) {
+    await updateUser(userId, { discordId });
+    closeEditDiscordDialog();
+    toast.success("Đã cập nhật Discord ID");
+  }
+
   return {
     showAddDialog,
     setShowAddDialog,
@@ -98,5 +117,9 @@ export function useAdminUserForms({
     openRejectDialog,
     closeRejectDialog,
     submitReject,
+    editDiscordTarget,
+    openEditDiscordDialog,
+    closeEditDiscordDialog,
+    submitEditDiscord,
   };
 }

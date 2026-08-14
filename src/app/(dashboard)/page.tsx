@@ -263,11 +263,7 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ stat?: string; range?: string }>;
 }) {
-  const [actor, sp, config] = await Promise.all([
-    getActorContext(),
-    searchParams,
-    getAppConfig(),
-  ]);
+  const [actor, sp, config] = await Promise.all([getActorContext(), searchParams, getAppConfig()]);
 
   // Khối nào hiện trên trang chủ là quyết định theo thẩm quyền, không theo vai
   // (SPEC-006). Ẩn khối không thay cho kiểm tra phía máy chủ — mỗi khối bên
@@ -284,17 +280,14 @@ export default async function HomePage({
   return (
     <>
       <AppHeader title="Home" />
-      <div className="flex-1 p-6 md:p-8 w-full max-w-400 mx-auto space-y-8">
+      <div className="mx-auto w-full max-w-400 flex-1 space-y-8 p-6 md:p-8">
         {/* Header */}
-        <div className="flex justify-between items-end flex-wrap gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Badge
-              variant="outline"
-              className="mb-3 border-primary/40 text-primary bg-primary/10"
-            >
+            <Badge variant="outline" className="mb-3 border-primary/40 bg-primary/10 text-primary">
               {actor.role.charAt(0) + actor.role.slice(1).toLowerCase()}
             </Badge>
-            <h1 className="text-3xl font-bold mb-2 tracking-tight">
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">
               <GreetingText name={actor.displayName || actor.email.split("@")[0]} />
             </h1>
             <p className="text-[15px] text-muted-foreground">
@@ -303,7 +296,7 @@ export default async function HomePage({
           </div>
           {can("request.buyer_note") && (
             <Link href="/buyer">
-              <Button className="flex items-center gap-2 px-7 py-3.5 h-auto bg-linear-to-br from-primary to-[#00a877] text-white font-semibold text-[15px] rounded-[14px] shadow-glow transition-all duration-200 hover:shadow-glow-hover hover:-translate-y-0.5">
+              <Button className="shadow-glow hover:shadow-glow-hover flex h-auto items-center gap-2 rounded-[14px] bg-linear-to-br from-primary to-[#00a877] px-7 py-3.5 text-[15px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5">
                 <PlusCircleIcon className="h-5 w-5" />
                 Create New Request
               </Button>
@@ -336,7 +329,7 @@ async function AdminBlock() {
   return (
     <div className="space-y-5">
       <h3 className="text-lg font-semibold">Admin Overview</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-4">
         <StatCard
           title="Total Users"
           value={stats.totalUsers}
@@ -394,7 +387,7 @@ async function BuyerBlock({
   return (
     <div className="space-y-5">
       <h3 className="text-lg font-semibold">Buyer Overview</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
         <StatCard
           title="Active Requests"
           value={stats.activeCount}
@@ -441,7 +434,7 @@ async function AffiliateBlock({
   return (
     <div className="space-y-5">
       <h3 className="text-lg font-semibold">Affiliate Overview</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
         <StatCard
           title="Queue"
           value={stats.queueCount}
@@ -474,5 +467,3 @@ async function AffiliateBlock({
     </div>
   );
 }
-
-

@@ -40,7 +40,7 @@ export function assertPermission(actor: Actor, permission: Permission): void {
 export function canAccessRequest(
   actor: Actor,
   request: RequestResource,
-  permission: Permission
+  permission: Permission,
 ): boolean {
   if (!actor) return false;
   const scope = MATRIX[actor.role][permission];

@@ -1,64 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiActorContext } from "@/lib/auth-utils";
 import { fillLinkSchema } from "@/lib/validations";
 import { logAuditEvent, auditRemark, isOwnershipOverride } from "@/lib/audit";
-import { checkOptimisticLock } from "@/lib/api-utils";
-import { canAccessRequest, Actor } from "@/domain/permissions/resolve";
+import { parseAuthenticatedRequest, getAccessibleRequest } from "@/lib/api-utils";
 
 // POST /api/affiliate/[id]/fill — fill affiliate link
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actorCtx = await getApiActorContext();
-    const actor: Actor = actorCtx ? { id: actorCtx.userId, role: actorCtx.role as NonNullable<Actor>["role"] } : null;
+    const ctx = await parseAuthenticatedRequest(request, params, fillLinkSchema);
+    if (ctx.error) return ctx.error;
+    const { id, actor, data, actorContext } = ctx;
 
-    if (!actor) {
-      return NextResponse.json(
-        { ok: false, error: { code: "UNAUTHORIZED", message: "Not authenticated" } },
-        { status: 401 },
-      );
-    }
+    const reqResult = await getAccessibleRequest(id, actor, "affiliate.fill", {
+      expectedLastUpdatedAt: data.expectedLastUpdatedAt,
+    });
+    if (reqResult.error) return reqResult.error;
+    const existing = reqResult.request;
 
-    const { id } = await params;
-    const body = await request.json();
-    const parsed = fillLinkSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { ok: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } },
-        { status: 400 },
-      );
-    }
-
-    const { affiliateLink, note, expectedLastUpdatedAt, subIdStamped } = parsed.data;
-
-    const existing = await prisma.request.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json(
-        { ok: false, error: { code: "NOT_FOUND", message: "Request not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (!canAccessRequest(actor, existing, "affiliate.fill")) {
-      return NextResponse.json(
-        { ok: false, error: { code: "FORBIDDEN", message: "Access denied" } },
-        { status: 403 },
-      );
-    }
-
-    if (existing.status === "CLOSED") {
-      return NextResponse.json(
-        { ok: false, error: { code: "INVALID_STATE", message: "Cannot fill a closed request" } },
-        { status: 400 },
-      );
-    }
-
-    const conflict = checkOptimisticLock(existing, expectedLastUpdatedAt);
-    if (conflict) return conflict;
+    const { affiliateLink, note, subIdStamped } = data;
 
     const updated = await prisma.request.update({
       where: { id },
@@ -67,7 +26,7 @@ export async function POST(
         filledAt: new Date(),
         status: "FILLED",
         affiliateOwnerId: existing.affiliateOwnerId || actor.id,
-        notes: note !== undefined ? (note || null) : existing.notes,
+        notes: note !== undefined ? note || null : existing.notes,
         subIdStamped,
         lastUpdatedById: actor.id,
       },
@@ -101,7 +60,7 @@ export async function POST(
       data: {
         status: updated.status,
         affiliateLink: updated.affiliateLink,
-        affiliateOwner: actorCtx!.email,
+        affiliateOwner: actorContext.email,
         lastUpdatedAt: updated.lastUpdatedAt,
       },
     });

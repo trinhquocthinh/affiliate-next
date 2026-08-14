@@ -71,21 +71,21 @@ describe("Permissions Matrix (TC-049 to TC-062)", () => {
   it("TC-053: Master vào user.manage -> 403", () => {
     expect(hasPermission(master, "user.manage")).toBe(false);
     expect(() => assertPermission(master, "user.manage")).toThrowError(
-      new PermissionError("ERR_FORBIDDEN")
+      new PermissionError("ERR_FORBIDDEN"),
     );
   });
 
   it("TC-054: Master vào config.manage -> 403", () => {
     expect(hasPermission(master, "config.manage")).toBe(false);
     expect(() => assertPermission(master, "config.manage")).toThrowError(
-      new PermissionError("ERR_FORBIDDEN")
+      new PermissionError("ERR_FORBIDDEN"),
     );
   });
 
   it("TC-055: Master vào system.bulk_close -> 403", () => {
     expect(hasPermission(master, "system.bulk_close")).toBe(false);
     expect(() => assertPermission(master, "system.bulk_close")).toThrowError(
-      new PermissionError("ERR_FORBIDDEN")
+      new PermissionError("ERR_FORBIDDEN"),
     );
   });
 
@@ -112,14 +112,14 @@ describe("Permissions Matrix (TC-049 to TC-062)", () => {
   it("TC-058: chưa đăng nhập -> 401, không phải 403", () => {
     const unauthenticated: Actor = null;
     expect(() => assertPermission(unauthenticated, "request.view")).toThrowError(
-      new PermissionError("ERR_UNAUTHENTICATED")
+      new PermissionError("ERR_UNAUTHENTICATED"),
     );
   });
 
   it("TC-059: gọi thẳng bỏ qua giao diện -> 403", () => {
     // missing permission check
     expect(() => assertPermission(buyer, "user.manage")).toThrowError(
-      new PermissionError("ERR_FORBIDDEN")
+      new PermissionError("ERR_FORBIDDEN"),
     );
   });
 
@@ -134,7 +134,7 @@ describe("Permissions Matrix (TC-049 to TC-062)", () => {
     // so actor would be null.
     const inactive: Actor = null;
     expect(() => assertPermission(inactive, "request.view")).toThrowError(
-      new PermissionError("ERR_UNAUTHENTICATED")
+      new PermissionError("ERR_UNAUTHENTICATED"),
     );
   });
 });

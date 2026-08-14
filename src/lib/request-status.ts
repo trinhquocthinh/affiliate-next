@@ -33,14 +33,23 @@ export function computeRequestPermissions(
   getPermissionScope: (perm: Permission) => true | Scope | undefined,
 ): RequestPermissions {
   if (!data) {
-    return { isOwner: false, canBuyerEdit: false, canAffiliateAct: false, canAdminCorrect: false, canBuyerNote: false };
+    return {
+      isOwner: false,
+      canBuyerEdit: false,
+      canAffiliateAct: false,
+      canAdminCorrect: false,
+      canBuyerNote: false,
+    };
   }
   const isOwner = data.createdBy.email === actor.email;
   const editScope = getPermissionScope("request.edit");
-  const canBuyerEdit = data.status !== "CLOSED" && (editScope === "any" || (editScope === "own" && isOwner));
+  const canBuyerEdit =
+    data.status !== "CLOSED" && (editScope === "any" || (editScope === "own" && isOwner));
   const canAffiliateAct = data.status !== "CLOSED" && hasPermission("affiliate.fill");
   const canAdminCorrect =
-    hasPermission("request.order_id.edit_any_status") && data.status === "CLOSED" && data.closeReason === "BOUGHT";
+    hasPermission("request.order_id.edit_any_status") &&
+    data.status === "CLOSED" &&
+    data.closeReason === "BOUGHT";
   const noteScope = getPermissionScope("request.buyer_note");
   const canBuyerNote = noteScope === "any" || (noteScope === "own" && isOwner);
   return { isOwner, canBuyerEdit, canAffiliateAct, canAdminCorrect, canBuyerNote };

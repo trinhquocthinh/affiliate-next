@@ -78,12 +78,16 @@ function parseHtmlMeta(html: string): LinkPreview {
   const result: LinkPreview = {};
 
   // Extract title
-  const ogTitle = extractMetaContent(html, 'property="og:title"') || extractMetaContent(html, 'name="twitter:title"');
+  const ogTitle =
+    extractMetaContent(html, 'property="og:title"') ||
+    extractMetaContent(html, 'name="twitter:title"');
   const htmlTitle = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
   result.title = ogTitle || htmlTitle?.trim();
 
   // Extract image
-  const ogImage = extractMetaContent(html, 'property="og:image"') || extractMetaContent(html, 'name="twitter:image"');
+  const ogImage =
+    extractMetaContent(html, 'property="og:image"') ||
+    extractMetaContent(html, 'name="twitter:image"');
   if (ogImage) {
     result.imageUrl = ogImage;
   }

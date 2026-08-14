@@ -25,7 +25,7 @@ export function progressDone() {
   emit();
 }
 
-export function getInflight() {
+function getInflight() {
   return inflight;
 }
 

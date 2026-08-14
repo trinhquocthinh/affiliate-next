@@ -21,7 +21,7 @@ export function useAdminUsers() {
   })();
 
   const { data, isLoading, isValidating, mutate } = useSWR<UsersResponse>(swrKey);
-  const users = data?.ok ? data.data?.users ?? [] : [];
+  const users = data?.ok ? (data.data?.users ?? []) : [];
   const loading = isLoading;
   const fetching = isValidating;
 

@@ -71,11 +71,7 @@ export function normalizeProductUrl(url: string): string {
 
 function shouldIgnoreParam(key: string): boolean {
   const lower = key.toLowerCase();
-  return (
-    TRACKING_PARAMS.has(lower) ||
-    lower.startsWith("utm_") ||
-    lower.startsWith("__")
-  );
+  return TRACKING_PARAMS.has(lower) || lower.startsWith("utm_") || lower.startsWith("__");
 }
 
 // ---------------------------------------------------------------------------
@@ -94,28 +90,6 @@ const SHOPEE_DOMAINS = new Set([
   "shopee.com.mx",
   "shopee.com.co",
   "shopee.cl",
-]);
-
-export const SHORTLINK_DOMAINS = new Set([
-  // Shopee shortlinks
-  "s.shopee.vn",
-  "shp.ee",
-  // TikTok shortlinks
-  "vm.tiktok.com",
-  "vt.tiktok.com",
-  // Generic shortlink services
-  "bit.ly",
-  "tinyurl.com",
-  "t.co",
-  "goo.gl",
-  "ow.ly",
-  "buff.ly",
-  "is.gd",
-  "rb.gy",
-  "cutt.ly",
-  "tiny.cc",
-  "short.io",
-  "soo.gd",
 ]);
 
 export type DetectedPlatform = "SHOPEE" | "TIKTOK" | "OTHER";
@@ -149,22 +123,9 @@ export function detectPlatformFromUrl(url: string): UrlDetectionResult {
 
   const hostname = parsed.hostname.toLowerCase();
 
-  // if (SHORTLINK_DOMAINS.has(hostname)) {
-  //   // Try to give a platform hint even for shortlinks
-  //   let platform: DetectedPlatform | null = null;
-  //   if (hostname === "shp.ee" || hostname === "s.shopee.vn") platform = "SHOPEE";
-  //   else if (hostname === "vm.tiktok.com" || hostname === "vt.tiktok.com") platform = "TIKTOK";
-  //   return {
-  //     platform,
-  //     isShortlink: true,
-  //     errorMessage: "Shortlinks are not supported. Please use the full product URL.",
-  //   };
-  // }
-
   // Check exact Shopee domain or subdomain
   const isShopee =
-    SHOPEE_DOMAINS.has(hostname) ||
-    [...SHOPEE_DOMAINS].some((d) => hostname.endsWith("." + d));
+    SHOPEE_DOMAINS.has(hostname) || [...SHOPEE_DOMAINS].some((d) => hostname.endsWith("." + d));
   if (isShopee) {
     return { platform: "SHOPEE", isShortlink: false };
   }

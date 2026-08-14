@@ -43,11 +43,10 @@ export const AFFILIATE_COLUMN_IDS: readonly AffiliateColumnId[] = AFFILIATE_COLU
   (c) => c.id,
 );
 
-export const MANDATORY_AFFILIATE_COLUMN_IDS: readonly AffiliateColumnId[] = AFFILIATE_COLUMNS
-  .filter((c) => c.mandatory)
-  .map((c) => c.id);
+export const MANDATORY_AFFILIATE_COLUMN_IDS: readonly AffiliateColumnId[] =
+  AFFILIATE_COLUMNS.filter((c) => c.mandatory).map((c) => c.id);
 
-export function isAffiliateColumnId(value: unknown): value is AffiliateColumnId {
+function isAffiliateColumnId(value: unknown): value is AffiliateColumnId {
   return typeof value === "string" && (AFFILIATE_COLUMN_IDS as readonly string[]).includes(value);
 }
 
@@ -178,8 +177,7 @@ export function resolveEffectiveColumns(
   // Mandatory columns keep catalog order.
   mandatory.sort(
     (a, b) =>
-      MANDATORY_AFFILIATE_COLUMN_IDS.indexOf(a.id) -
-      MANDATORY_AFFILIATE_COLUMN_IDS.indexOf(b.id),
+      MANDATORY_AFFILIATE_COLUMN_IDS.indexOf(a.id) - MANDATORY_AFFILIATE_COLUMN_IDS.indexOf(b.id),
   );
 
   const final = [...mandatory, ...rest];

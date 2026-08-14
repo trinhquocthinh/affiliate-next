@@ -1,10 +1,5 @@
 import type { FormEvent } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronDown } from "lucide-react";
 
 export function AddUserDialog({
@@ -36,13 +31,18 @@ export function AddUserDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-white dark:bg-[#131B2F] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200">
+      <DialogContent className="max-w-md border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#131B2F] dark:text-slate-200">
         <DialogHeader>
           <DialogTitle className="text-slate-900 dark:text-slate-100">Add User</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-2">
-            <label htmlFor="add-email" className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+            <label
+              htmlFor="add-email"
+              className="text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Email
+            </label>
             <input
               id="add-email"
               type="email"
@@ -50,28 +50,38 @@ export function AddUserDialog({
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
               placeholder="user@example.com"
-              className="bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-[#0B1120] dark:text-slate-200 dark:placeholder-slate-500"
             />
           </div>
           <div className="grid gap-2">
-            <label htmlFor="add-name" className="text-sm font-medium text-slate-700 dark:text-slate-300">Display Name</label>
+            <label
+              htmlFor="add-name"
+              className="text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Display Name
+            </label>
             <input
               id="add-name"
               value={displayName}
               onChange={(e) => onDisplayNameChange(e.target.value)}
               placeholder="John Doe"
-              className="bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-[#0B1120] dark:text-slate-200 dark:placeholder-slate-500"
             />
           </div>
           <div className="grid gap-2">
-            <label htmlFor="add-password" className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+            <label
+              htmlFor="add-password"
+              className="text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Password
+            </label>
             <input
               id="add-password"
               type="password"
               required
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
-              className="bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-[#0B1120] dark:text-slate-200 dark:placeholder-slate-500"
             />
           </div>
           <div className="grid gap-2">
@@ -80,7 +90,7 @@ export function AddUserDialog({
               <select
                 value={role}
                 onChange={(e) => onRoleChange(e.target.value)}
-                className="appearance-none w-full bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                className="w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm text-slate-700 transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-[#0B1120] dark:text-slate-300"
               >
                 <option value="BUYER">BUYER</option>
                 <option value="AFFILIATE">AFFILIATE</option>
@@ -95,7 +105,7 @@ export function AddUserDialog({
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 disabled:opacity-50 text-white dark:text-slate-900 font-bold py-2.5 px-4 rounded-lg shadow-md shadow-emerald-500/20 transition-all text-sm"
+            className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:text-slate-900 dark:hover:bg-emerald-400"
           >
             {loading ? "Creating..." : "Create User"}
           </button>

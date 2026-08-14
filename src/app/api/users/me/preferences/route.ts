@@ -64,7 +64,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0]?.message ?? "Invalid columns" },
+          error: {
+            code: "VALIDATION_ERROR",
+            message: parsed.error.issues[0]?.message ?? "Invalid columns",
+          },
         },
         { status: 400 },
       );

@@ -19,19 +19,14 @@ export function AppHeader({ title }: { title?: string }) {
     }
   }
 
-  const ThemeIcon =
-    theme === "dark" ? SunIcon : theme === "light" ? MoonIcon : MonitorIcon;
+  const ThemeIcon = theme === "dark" ? SunIcon : theme === "light" ? MoonIcon : MonitorIcon;
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 md:px-8 sticky top-0 z-40 backdrop-blur-md">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between gap-2 px-4 backdrop-blur-md md:px-8">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 !h-4" />
-        {title && (
-          <span className="text-sm font-medium text-muted-foreground">
-            {title}
-          </span>
-        )}
+        {title && <span className="text-sm font-medium text-muted-foreground">{title}</span>}
       </div>
       <div className="flex items-center gap-2">
         <Button
